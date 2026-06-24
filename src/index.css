@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-editorial-cream: #FFFFFF;
+  --color-editorial-green: #76DA0D;
+  --color-editorial-dark: #102604;
+  --color-brand-yellow: #FFEA00;
+}
+
+/* Editorial styling defaults */
+.editorial-input {
+  border-bottom: 1px solid #D1D1D1;
+  background: transparent;
+  padding: 8px 0;
+  outline: none;
+  font-size: 14px;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.editorial-input:focus {
+  border-bottom: 2px solid #76DA0D;
+}
+
+.btn-editorial-primary {
+  background: #76DA0D;
+  color: #102604;
+  border: 2px solid #FFEA00;
+  padding: 12px 24px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 11px;
+  font-weight: 800;
+  transition: all 0.2s ease;
+}
+
+.btn-editorial-primary:hover {
+  background: #88F015;
+  border-color: #FFEB3B;
+  transform: translateY(-1px);
+}
+
+.btn-editorial-secondary {
+  border: 1px solid #76DA0D;
+  color: #102604;
+  padding: 12px 24px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 11px;
+  font-weight: 800;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.btn-editorial-secondary:hover {
+  background: #F6FDF0;
+  border-color: #8CE629;
+}
+
+/* Premium Student Registry form input and layout refinements */
+#register-student-modal input:not([type="file"]),
+#register-student-modal select {
+  border: 1px solid #E2E8F0 !important; /* border-slate-200 */
+  padding: 10px 14px !important; /* py-2.5 px-3.5 */
+  font-size: 0.75rem !important; /* text-xs */
+  background-color: #FFFFFF !important;
+  color: #1E293B !important; /* text-slate-800 */
+  outline: none !important;
+  border-radius: 0px !important; /* RMCHS sharp editorial theme */
+  transition: all 0.15s ease-in-out !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; /* shadow-2xs */
+}
+
+#register-student-modal input:not([type="file"]):hover:not(:disabled),
+#register-student-modal select:hover:not(:disabled) {
+  border-color: #CBD5E1 !important; /* border-slate-300 */
+}
+
+#register-student-modal input:not([type="file"]):focus,
+#register-student-modal select:focus {
+  border-color: #76DA0D !important; /* focus:border-[#76DA0D] */
+  box-shadow: 0 0 0 1px rgba(118, 218, 13, 0.4) !important; /* focus:ring-1 */
+  background-color: #FCFDFB !important; /* light tint on active inputs */
+}
+
+#register-student-modal input:not([type="file"]):disabled {
+  background-color: #F1F5F9 !important; /* disabled:bg-slate-100 */
+  color: #94A3B8 !important; /* disabled:text-slate-400 */
+  cursor: not-allowed !important;
+}
+
+#register-student-modal label {
+  color: #475569 !important; /* text-slate-600 */
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 5px !important;
+  display: block !important;
+}
+

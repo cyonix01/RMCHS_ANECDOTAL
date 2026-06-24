@@ -1,0 +1,6 @@
+{
+  "name": "RMCHS Anecdotal Portal",
+  "description": "A secure teacher registration, login, and profile portal for Ramon Magsaysay (Cubao) High School Anecdotal System, synced with Google Sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { AlertTriangle, FileText, Clipboard, Users } from "lucide-react";
+import { AlertTriangle, FileText, Clipboard, Users, TrendingUp } from "lucide-react";
 import { Student, Report, CriticalReport } from "../types";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
@@ -89,7 +89,9 @@ export default function DataAnalyticsView() {
     items.forEach(item => {
       const student = students.find(s => s.lrn === item.studentLrn);
       const gender = student?.gender === 'Male' ? 'Male' : 'Female';
-      const action = item.recommendation;
+      const action = item.recommendation?.trim();
+      
+      if (!action) return; 
       
       if (!stats[action]) stats[action] = { Male: 0, Female: 0 };
       stats[action][gender]++;
@@ -102,7 +104,7 @@ export default function DataAnalyticsView() {
         total: genderCounts.Male + genderCounts.Female
       }))
       .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
+      .slice(0, 10);
   };
 
   const actionData = getTopActions([...reports, ...criticalReports]);
@@ -220,19 +222,52 @@ export default function DataAnalyticsView() {
       })}
 
       <div className="bg-white border border-slate-200 p-6 shadow-sm rounded-sm">
-        <h3 className="font-bold text-sm text-slate-800 uppercase tracking-widest mb-6">Top Recommended Actions Across All Reports</h3>
-        <div className="h-64 w-full">
-          <ResponsiveContainer>
-             <BarChart data={actionData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" tick={{fontSize: 10}} />
-              <YAxis dataKey="name" type="category" width={200} tick={{fontSize: 10}} />
-              <Tooltip cursor={{fill: 'transparent'}} />
-              <Legend wrapperStyle={{fontSize: '10px'}} />
-              <Bar dataKey="Male" fill="#3b82f6" radius={[0, 2, 2, 0]} />
-              <Bar dataKey="Female" fill="#ec4899" radius={[0, 2, 2, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="text-purple-600" size={20} />
+            <h3 className="font-bold text-sm text-slate-800 uppercase tracking-widest">Top Recommended Actions Across All Reports</h3>
+          </div>
+          <span className="text-[10px] font-bold text-slate-400 border border-slate-200 px-2 py-0.5 rounded">MASTER LIST</span>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 h-96 w-full">
+                <ResponsiveContainer>
+                    <BarChart data={actionData} layout="vertical" margin={{ left: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" tick={{fontSize: 10}} />
+                    <YAxis dataKey="name" type="category" width={180} tick={{fontSize: 9}} />
+                    <Tooltip cursor={{fill: 'rgba(59, 130, 246, 0.05)'}} />
+                    <Legend wrapperStyle={{fontSize: '10px'}} />
+                    <Bar dataKey="Male" fill="#3b82f6" radius={[0, 2, 2, 0]} />
+                    <Bar dataKey="Female" fill="#ec4899" radius={[0, 2, 2, 0]} />
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+            
+            <div className="bg-slate-50 p-4 border border-slate-100 rounded">
+                <h4 className="text-[10px] font-bold text-slate-500 uppercase mb-4 tracking-widest border-b border-slate-200 pb-2">Action Breakdown</h4>
+                <div className="space-y-4">
+                    {actionData.map((action, idx) => (
+                        <div key={idx} className="flex flex-col gap-1 border-b border-slate-100 last:border-0 pb-2">
+                            <div className="flex justify-between items-start">
+                                <span className="text-xs font-bold text-slate-700 truncate max-w-[150px]">{action.name}</span>
+                                <span className="text-xs font-black text-slate-900">{action.total}</span>
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="flex items-center gap-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                    <span className="text-[9px] text-slate-500">Male: {action.Male}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-pink-500"></div>
+                                    <span className="text-[9px] text-slate-500">Female: {action.Female}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
       </div>
     </div>

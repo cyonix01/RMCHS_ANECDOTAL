@@ -6,7 +6,32 @@ const firstNames = ["James", "Mary", "Robert", "Patricia", "John", "Jennifer", "
 const lastNames = ["Garcia", "Santos", "Reyes", "Cruz", "Bautista", "Ocampo", "Dela Cruz", "Santiago", "Flores", "Aquino", "Pascual", "Dizon", "Mendoza", "Castillo", "Villanueva", "Ramos", "Castro", "Rivera", "Soriano", "De Leon"];
 const gradeLevels: ("Grade 7" | "Grade 8" | "Grade 9" | "Grade 10" | "Grade 11" | "Grade 12")[] = ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"];
 const sections = ["Aguinaldo", "Bonifacio", "Luna", "Rizal", "Mabini", "Silang", "Jacinto", "Del Pilar"];
-const issues = ["Bullying", "Truancy", "Academic Dishonesty", "Disrespect to Authorities", "Fighting", "Theft", "Vandalism", "Smoking"];
+const studentIssues = [
+  "Habitual tardiness", "Inattentiveness / sleeping in class", "Talking back to teachers", 
+  "Dress code violations", "Using gadgets during class hour without permission", 
+  "Minor class disturbances (e.g. noise, jokes)", "Cutting classes / Unexcused absences", 
+  "Copying assignments or mild cheating", "Peer misunderstanding or minor peer conflicts", 
+  "Lack of hygiene or cleanliness issues", "Vandalism (minor cases like writing on desks)"
+];
+const criticalIssues = [
+  "Teenage pregnancy or Pregnancy-related counseling and concerns",
+  "Suicidal attempts or Suicidal ideation",
+  "Bullying (Physical, Emotional, or Cyberbullying)",
+  "Self-harm or Self-injury",
+  "Physical abuse or Domestic violence",
+  "Substance abuse (alcohol, drugs, vaping)",
+  "Sexual harassment or Abuse (verbal, physical)",
+  "Truancy or Child labor",
+  "Physical altercation or Fights",
+  "Possession of deadly weapon or dangerous items",
+  "Repeated or severe cases of cutting classes",
+  "Online exploitation or inappropriate online behavior",
+  "Involvement in gangs or illegal activities",
+  "Extreme defiance of authority or insubordination"
+];
+const ciclOffenses = [
+  "Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"
+];
 const barangays = ["San Isidro", "San Roque", "San Jose", "Poblacion", "Santa Cruz", "Bagna", "Pinagbakahan"];
 
 async function seed() {
@@ -69,70 +94,57 @@ async function seed() {
   const studentResult = await createStudentsBulk(students);
   console.log(`Students added: ${studentResult.successCount}. Errors: ${studentResult.errors.length}`);
 
-  console.log("Adding reports...");
+  console.log("Adding General Student Reports...");
   for (let i = 0; i < 20; i++) {
     const lrn = lrns[Math.floor(Math.random() * lrns.length)];
     const report: Report = {
       studentLrn: lrn,
       dateOfIncident: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
       timeOfIncident: "10:00",
-      issue: issues[Math.floor(Math.random() * issues.length)],
-      description: "Dummy report for analytics.",
+      issue: studentIssues[Math.floor(Math.random() * studentIssues.length)],
+      description: "Dummy student report.",
       actionTaken: "Counseled",
       recommendation: "Monitor",
       reportedBy: "Teacher A",
       dateReported: new Date().toISOString().split('T')[0],
       recordStatus: Math.random() > 0.5 ? "RESOLVED" : "ON GOING"
     };
-    
-    try {
-      await saveReport(report);
-    } catch (e: any) {
-      // Fallback to direct insertion with minimal columns if saveReport fails due to schema
-      const supabase = getSupabaseClient();
-      if (supabase) {
-        await supabase.from("reports").insert([{
-          student_lrn: report.studentLrn,
-          date_of_incident: report.dateOfIncident,
-          issue: report.issue,
-          description: report.description,
-          action_taken: report.actionTaken,
-          reported_by: report.reportedBy,
-          date_reported: report.dateReported
-        }]);
-      }
-    }
+    try { await saveReport(report); } catch (e) {}
   }
 
-  console.log("Adding critical reports...");
-  for (let i = 0; i < 8; i++) {
+  console.log("Adding CICL Reports...");
+  for (let i = 0; i < 10; i++) {
+    const lrn = lrns[Math.floor(Math.random() * lrns.length)];
+    const report: Report = {
+      studentLrn: lrn,
+      dateOfIncident: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+      timeOfIncident: "11:00",
+      issue: ciclOffenses[Math.floor(Math.random() * ciclOffenses.length)],
+      description: "Dummy CICL report.",
+      actionTaken: "Referral to DSWD",
+      recommendation: "Legal assistance",
+      reportedBy: "SPO1 Reyes",
+      dateReported: new Date().toISOString().split('T')[0],
+      recordStatus: "ON GOING"
+    };
+    try { await saveReport(report); } catch (e) {}
+  }
+
+  console.log("Adding Critical Incident Reports...");
+  for (let i = 0; i < 15; i++) {
     const lrn = lrns[Math.floor(Math.random() * lrns.length)];
     const report: CriticalReport = {
       studentLrn: lrn,
       dateOfIncident: new Date(Date.now() - Math.floor(Math.random() * 15 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
       timeOfIncident: "14:30",
-      issue: "Major Disciplinary Issue",
+      issue: criticalIssues[Math.floor(Math.random() * criticalIssues.length)],
       description: "Critical incident dummy record.",
       actionTaken: "Parental notification.",
       recommendation: "Suspension",
       reportedBy: "Principal Office",
       dateReported: new Date().toISOString().split('T')[0]
     };
-    try {
-      await saveCriticalReport(report);
-    } catch (e) {
-      const supabase = getSupabaseClient();
-      if (supabase) {
-        await supabase.from("critical_reports").insert([{
-          student_lrn: report.studentLrn,
-          date_of_incident: report.dateOfIncident,
-          issue: report.issue,
-          description: report.description,
-          reported_by: report.reportedBy,
-          date_reported: report.dateReported
-        }]);
-      }
-    }
+    try { await saveCriticalReport(report); } catch (e) {}
   }
 
   console.log("✅ Seeding complete!");

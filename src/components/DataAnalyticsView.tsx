@@ -5,6 +5,36 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const GRADE_LEVELS = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'] as const;
 
+const STUDENT_REPORT_ISSUES = [
+  "Habitual tardiness", "Inattentiveness / sleeping in class", "Talking back to teachers", 
+  "Dress code violations", "Using gadgets during class hour without permission", 
+  "Minor class disturbances (e.g. noise, jokes)", "Cutting classes / Unexcused absences", 
+  "Copying assignments or mild cheating", "Peer misunderstanding or minor peer conflicts", 
+  "Lack of hygiene or cleanliness issues", "Vandalism (minor cases like writing on desks)", "Others (please specify)"
+];
+
+const CRITICAL_INCIDENT_ISSUES = [
+  "Teenage pregnancy or Pregnancy-related counseling and concerns",
+  "Suicidal attempts or Suicidal ideation",
+  "Bullying (Physical, Emotional, or Cyberbullying)",
+  "Self-harm or Self-injury",
+  "Physical abuse or Domestic violence",
+  "Substance abuse (alcohol, drugs, vaping)",
+  "Sexual harassment or Abuse (verbal, physical)",
+  "Truancy or Child labor",
+  "Physical altercation or Fights",
+  "Possession of deadly weapon or dangerous items",
+  "Repeated or severe cases of cutting classes",
+  "Online exploitation or inappropriate online behavior",
+  "Involvement in gangs or illegal activities",
+  "Extreme defiance of authority or insubordination",
+  "Others (please specify)"
+];
+
+const CICL_OFFENSE_TYPES = [
+  "Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"
+];
+
 export default function DataAnalyticsView() {
   const [students, setStudents] = useState<Student[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
@@ -42,15 +72,25 @@ export default function DataAnalyticsView() {
     return stats;
   };
 
-  const getStatsByIssue = (items: { issue: string; studentLrn: string }[]) => {
+  const getStatsByIssue = (items: { issue: string; studentLrn: string }[], masterList: string[]) => {
     const stats: { [key: string]: { Male: number; Female: number } } = {};
+    
+    // Initialize with all items from master list to show zero counts
+    masterList.forEach(issue => {
+      stats[issue] = { Male: 0, Female: 0 };
+    });
+
     items.forEach(item => {
       const student = students.find(s => s.lrn === item.studentLrn);
       const gender = student?.gender === 'Male' ? 'Male' : 'Female';
       
-      if (!stats[item.issue]) stats[item.issue] = { Male: 0, Female: 0 };
-      stats[item.issue][gender]++;
+      if (stats[item.issue]) {
+        stats[item.issue][gender]++;
+      } else if (item.issue && item.issue.toLowerCase().startsWith("others") && stats["Others (please specify)"]) {
+        stats["Others (please specify)"][gender]++;
+      }
     });
+
     return Object.entries(stats).map(([issue, genderCounts]) => ({
         issue,
         ...genderCounts
@@ -74,14 +114,17 @@ export default function DataAnalyticsView() {
       });
   };
 
-  const reportStats = getStatsByGrade(reports);
+  const studentReportsOnly = reports.filter(r => STUDENT_REPORT_ISSUES.includes(r.issue) || (!CICL_OFFENSE_TYPES.includes(r.issue) && !CRITICAL_INCIDENT_ISSUES.includes(r.issue)));
+  const ciclReportsOnly = reports.filter(r => CICL_OFFENSE_TYPES.includes(r.issue));
+
+  const reportStats = getStatsByGrade(studentReportsOnly);
   const criticalStats = getStatsByGrade(criticalReports);
-  const ciclStats = getStatsByGrade(reports); 
+  const ciclStats = getStatsByGrade(ciclReportsOnly); 
 
   const categories = [
-    { title: "General Reports", data: reports, stats: reportStats, issueStats: getStatsByIssue(reports), icon: FileText, color: "text-blue-500", topStudents: getTopStudents(reports) },
-    { title: "Critical Reports", data: criticalReports, stats: criticalStats, issueStats: getStatsByIssue(criticalReports), icon: AlertTriangle, color: "text-red-500", topStudents: getTopStudents(criticalReports) },
-    { title: "CICL Reports", data: reports, stats: ciclStats, issueStats: getStatsByIssue(reports), icon: Clipboard, color: "text-orange-500", topStudents: getTopStudents(reports) },
+    { title: "General Student Reports", data: studentReportsOnly, stats: reportStats, issueStats: getStatsByIssue(studentReportsOnly, STUDENT_REPORT_ISSUES), icon: FileText, color: "text-blue-500", topStudents: getTopStudents(studentReportsOnly) },
+    { title: "Critical Incident Reports", data: criticalReports, stats: criticalStats, issueStats: getStatsByIssue(criticalReports, CRITICAL_INCIDENT_ISSUES), icon: AlertTriangle, color: "text-red-500", topStudents: getTopStudents(criticalReports) },
+    { title: "CICL Offense Reports", data: ciclReportsOnly, stats: ciclStats, issueStats: getStatsByIssue(ciclReportsOnly, CICL_OFFENSE_TYPES), icon: Clipboard, color: "text-orange-500", topStudents: getTopStudents(ciclReportsOnly) },
   ];
 
   const getTopActions = (items: (Report | CriticalReport)[]) => {
@@ -166,17 +209,17 @@ export default function DataAnalyticsView() {
                 </div>
             </div>
 
-            <div className="h-64 mb-8">
+            <div className="h-96 mb-8">
                 <h3 className="text-xs font-bold text-slate-600 mb-2 uppercase text-center">Reports per Issue/Concern</h3>
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={cat.issueStats}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="issue" tick={{fontSize: 10}} />
-                        <YAxis tick={{fontSize: 10}} />
-                        <Tooltip cursor={{fill: 'transparent'}} />
+                    <BarChart data={cat.issueStats} layout="vertical" margin={{ left: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" tick={{fontSize: 10}} />
+                        <YAxis dataKey="issue" type="category" width={180} tick={{fontSize: 9}} />
+                        <Tooltip cursor={{fill: 'rgba(59, 130, 246, 0.05)'}} />
                         <Legend wrapperStyle={{fontSize: '10px'}} />
-                        <Bar dataKey="Male" fill="#3b82f6" radius={[2, 2, 0, 0]} />
-                        <Bar dataKey="Female" fill="#ec4899" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="Male" fill="#3b82f6" radius={[0, 2, 2, 0]} />
+                        <Bar dataKey="Female" fill="#ec4899" radius={[0, 2, 2, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>

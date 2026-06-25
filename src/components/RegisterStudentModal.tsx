@@ -164,38 +164,7 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
         return false;
       }
     } else if (step === 2) {
-      if (contactType === "father") {
-        if (!form.fatherName.trim()) {
-          setValidationError("Father's Name is required.");
-          return false;
-        }
-        if (form.fatherContact.trim() && !/^\+?\d+$/.test(form.fatherContact.trim())) {
-          setValidationError("Father's contact number must contain digits only.");
-          return false;
-        }
-      } else if (contactType === "mother") {
-        if (!form.motherName.trim()) {
-          setValidationError("Mother's Name is required.");
-          return false;
-        }
-        if (form.motherContact.trim() && !/^\+?\d+$/.test(form.motherContact.trim())) {
-          setValidationError("Mother's contact number must contain digits only.");
-          return false;
-        }
-      } else if (contactType === "guardian") {
-        if (!form.guardianName.trim()) {
-          setValidationError("Guardian's Name is required.");
-          return false;
-        }
-        if (!form.guardianRelationship.trim()) {
-          setValidationError("Please specify the Guardian's relationship to the student.");
-          return false;
-        }
-        if (form.guardianContact.trim() && !/^\+?\d+$/.test(form.guardianContact.trim())) {
-          setValidationError("Guardian's contact number must contain digits only.");
-          return false;
-        }
-      }
+      // Family data is now optional, so no required checks here.
     } else if (step === 3) {
       if (!form.barangay.trim() || !form.street.trim()) {
         setValidationError("Street and Barangay are required.");
@@ -880,7 +849,6 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                               onChange={handleChange}
                               className="w-full px-3 py-2 border border-slate-300 text-xs focus:outline-none focus:border-[#76DA0D] bg-white"
                               placeholder="Full name"
-                              required
                             />
                           </div>
                           <div>
@@ -921,7 +889,6 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                               onChange={handleChange}
                               className="w-full px-3 py-2 border border-slate-300 text-xs focus:outline-none focus:border-[#76DA0D] bg-white"
                               placeholder="Full name"
-                              required
                             />
                           </div>
                           <div>
@@ -962,7 +929,6 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                               onChange={handleChange}
                               className="w-full px-3 py-2 border border-slate-300 text-xs focus:outline-none focus:border-[#76DA0D] bg-white"
                               placeholder="Full name"
-                              required
                             />
                           </div>
                           <div>

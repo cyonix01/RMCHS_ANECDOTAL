@@ -147,15 +147,6 @@ function mapUserToSupabaseRow(user: UserAccount) {
     password_hash: user.passwordHash,
     registered_at: user.registeredAt,
   };
-  if (user.role) {
-    row.role = user.role;
-  }
-  if (user.gradeLevel) {
-    row.grade_level = user.gradeLevel;
-  }
-  if (user.section) {
-    row.section = user.section;
-  }
   return row;
 }
 

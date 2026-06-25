@@ -136,7 +136,7 @@ function mapSupabaseRowToUser(row: any): UserAccount {
 }
 
 function mapUserToSupabaseRow(user: UserAccount) {
-  return {
+  const row: any = {
     email: user.email,
     first_name: user.firstName,
     middle_name: user.middleName,
@@ -147,9 +147,14 @@ function mapUserToSupabaseRow(user: UserAccount) {
     password_hash: user.passwordHash,
     registered_at: user.registeredAt,
     role: user.role,
-    grade_level: user.gradeLevel,
-    section: user.section,
   };
+  if (user.gradeLevel) {
+    row.grade_level = user.gradeLevel;
+  }
+  if (user.section) {
+    row.section = user.section;
+  }
+  return row;
 }
 
 /**

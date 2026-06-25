@@ -24,7 +24,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   const [showRegisterStudent, setShowRegisterStudent] = useState(false);
   const [showStudentSearch, setShowStudentSearch] = useState(false);
   const [showCICLReport, setShowCICLReport] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(true);
 
   return (
     <div id="dashboard-layout" className="min-h-screen bg-[#FFFFFF] flex flex-col font-sans text-[#102604]">

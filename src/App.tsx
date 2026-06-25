@@ -125,12 +125,7 @@ export default function App() {
         </div>
 
         <div className="space-y-6 mt-8 md:mt-0">
-          <div className="space-y-1.5">
-            <div className="text-[10px] uppercase tracking-widest text-[#102604]/60 font-bold block">Secure Database Node</div>
-            <div className="font-mono text-[9px] text-[#102604]/70 break-all select-all leading-tight">
-              1uC8tcOBbYqR83qVL3x3XKoUK74OoJQgzicRKOP3Yp2s
-            </div>
-          </div>
+
 
           <div className="pt-4 border-t border-[#102604]/20 flex items-center justify-between">
             <div>

@@ -119,7 +119,8 @@ async function startServer() {
         department: department,
         position: position,
         passwordHash,
-        registeredAt: new Date().toISOString()
+        registeredAt: new Date().toISOString(),
+        role: 'Adviser'
       };
 
       await createUser(newUser);

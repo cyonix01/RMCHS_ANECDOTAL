@@ -42,6 +42,17 @@ export default function DataAnalyticsView() {
     return stats;
   };
 
+  const getStatsByIssue = (items: { issue: string }[]) => {
+    const stats: { [key: string]: number } = {};
+    items.forEach(item => {
+      stats[item.issue] = (stats[item.issue] || 0) + 1;
+    });
+    return Object.entries(stats).map(([issue, count]) => ({
+        issue,
+        count
+    }));
+  };
+
   const getTopStudents = (items: { studentLrn: string }[]) => {
     const counts: { [key: string]: number } = {};
     items.forEach(item => {
@@ -61,9 +72,9 @@ export default function DataAnalyticsView() {
   const ciclStats = getStatsByGrade(reports); 
 
   const categories = [
-    { title: "General Reports", data: reports, stats: reportStats, icon: FileText, color: "text-blue-500", topStudents: getTopStudents(reports) },
-    { title: "Critical Reports", data: criticalReports, stats: criticalStats, icon: AlertTriangle, color: "text-red-500", topStudents: getTopStudents(criticalReports) },
-    { title: "CICL Reports", data: reports, stats: ciclStats, icon: Clipboard, color: "text-orange-500", topStudents: getTopStudents(reports) },
+    { title: "General Reports", data: reports, stats: reportStats, issueStats: getStatsByIssue(reports), icon: FileText, color: "text-blue-500", topStudents: getTopStudents(reports) },
+    { title: "Critical Reports", data: criticalReports, stats: criticalStats, issueStats: getStatsByIssue(criticalReports), icon: AlertTriangle, color: "text-red-500", topStudents: getTopStudents(criticalReports) },
+    { title: "CICL Reports", data: reports, stats: ciclStats, issueStats: getStatsByIssue(reports), icon: Clipboard, color: "text-orange-500", topStudents: getTopStudents(reports) },
   ];
 
   const getTopActions = (items: { recommendation: string }[]) => {
@@ -131,6 +142,19 @@ export default function DataAnalyticsView() {
                         </PieChart>
                     </ResponsiveContainer>
                 </div>
+            </div>
+
+            <div className="h-64 mb-8">
+                <h3 className="text-xs font-bold text-slate-600 mb-2 uppercase text-center">Reports per Issue/Concern</h3>
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={cat.issueStats}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="issue" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="count" fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                </ResponsiveContainer>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

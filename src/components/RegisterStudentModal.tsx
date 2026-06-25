@@ -841,7 +841,7 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                         <div className="bg-slate-50/30 p-4 border border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-4 animate-fadeIn">
                           <div className="md:col-span-3 font-semibold text-[10px] uppercase tracking-wider text-slate-600">Father's Information</div>
                           <div>
-                            <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-500 mb-1">Father's Name <span className="text-red-500">*</span></label>
+                            <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-500 mb-1">Father's Name</label>
                             <input
                               type="text"
                               name="fatherName"
@@ -881,7 +881,7 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                         <div className="bg-slate-50/30 p-4 border border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-4 animate-fadeIn">
                           <div className="md:col-span-3 font-semibold text-[10px] uppercase tracking-wider text-slate-600">Mother's Information</div>
                           <div>
-                            <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-500 mb-1">Mother's Name <span className="text-red-500">*</span></label>
+                            <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-500 mb-1">Mother's Name</label>
                             <input
                               type="text"
                               name="motherName"
@@ -921,7 +921,7 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                         <div className="bg-slate-50/30 p-4 border border-slate-100 grid grid-cols-1 md:grid-cols-4 gap-4 animate-fadeIn">
                           <div className="md:col-span-4 font-semibold text-[10px] uppercase tracking-wider text-slate-600">Guardian's Information</div>
                           <div>
-                            <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-500 mb-1">Guardian's Name <span className="text-red-500">*</span></label>
+                            <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-500 mb-1">Guardian's Name</label>
                             <input
                               type="text"
                               name="guardianName"
@@ -932,7 +932,7 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                             />
                           </div>
                           <div>
-                            <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-500 mb-1">Relationship <span className="text-red-500">*</span></label>
+                            <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-500 mb-1">Relationship</label>
                             <input
                               type="text"
                               name="guardianRelationship"
@@ -940,7 +940,6 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                               onChange={handleChange}
                               className="w-full px-3 py-2 border border-slate-300 text-xs focus:outline-none focus:border-[#76DA0D] bg-white"
                               placeholder="e.g. Grandmother, Aunt"
-                              required
                             />
                           </div>
                           <div>

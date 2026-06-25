@@ -1,5 +1,5 @@
 
-import { createStudentsBulk, saveReport, saveCriticalReport, initDatabase } from "../server/database.js";
+import { createStudentsBulk, saveReport, saveCriticalReport, initDatabase, getSupabaseClient } from "../server/database.js";
 import { Student, Report, CriticalReport } from "../src/types.js";
 
 const firstNames = ["James", "Mary", "Robert", "Patricia", "John", "Jennifer", "Michael", "Linda", "William", "Elizabeth", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica", "Thomas", "Sarah", "Charles", "Karen"];
@@ -70,47 +70,69 @@ async function seed() {
   console.log(`Students added: ${studentResult.successCount}. Errors: ${studentResult.errors.length}`);
 
   console.log("Adding reports...");
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 20; i++) {
     const lrn = lrns[Math.floor(Math.random() * lrns.length)];
-    // Minimalist report to avoid column errors
-    const report: any = {
-      student_lrn: lrn,
-      date_of_incident: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+    const report: Report = {
+      studentLrn: lrn,
+      dateOfIncident: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+      timeOfIncident: "10:00",
       issue: issues[Math.floor(Math.random() * issues.length)],
-      description: "Dummy report",
-      action_taken: "Counseled",
-      reported_by: "Teacher A",
-      date_reported: new Date().toISOString().split('T')[0]
+      description: "Dummy report for analytics.",
+      actionTaken: "Counseled",
+      recommendation: "Monitor",
+      reportedBy: "Teacher A",
+      dateReported: new Date().toISOString().split('T')[0],
+      recordStatus: Math.random() > 0.5 ? "RESOLVED" : "ON GOING"
     };
     
     try {
+      await saveReport(report);
+    } catch (e: any) {
+      // Fallback to direct insertion with minimal columns if saveReport fails due to schema
       const supabase = getSupabaseClient();
       if (supabase) {
-        const { error } = await supabase.from("reports").insert([report]);
-        if (error) {
-          // If even this fails, skip reports
-        }
+        await supabase.from("reports").insert([{
+          student_lrn: report.studentLrn,
+          date_of_incident: report.dateOfIncident,
+          issue: report.issue,
+          description: report.description,
+          action_taken: report.actionTaken,
+          reported_by: report.reportedBy,
+          date_reported: report.dateReported
+        }]);
       }
-    } catch (e) {}
+    }
   }
 
   console.log("Adding critical reports...");
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 8; i++) {
     const lrn = lrns[Math.floor(Math.random() * lrns.length)];
-    const report: any = {
-      student_lrn: lrn,
-      date_of_incident: new Date(Date.now() - Math.floor(Math.random() * 15 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
-      issue: "Major Issue",
-      description: "Critical dummy",
-      reported_by: "Principal",
-      date_reported: new Date().toISOString().split('T')[0]
+    const report: CriticalReport = {
+      studentLrn: lrn,
+      dateOfIncident: new Date(Date.now() - Math.floor(Math.random() * 15 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+      timeOfIncident: "14:30",
+      issue: "Major Disciplinary Issue",
+      description: "Critical incident dummy record.",
+      actionTaken: "Parental notification.",
+      recommendation: "Suspension",
+      reportedBy: "Principal Office",
+      dateReported: new Date().toISOString().split('T')[0]
     };
     try {
+      await saveCriticalReport(report);
+    } catch (e) {
       const supabase = getSupabaseClient();
       if (supabase) {
-        const { error } = await supabase.from("critical_reports").insert([report]);
+        await supabase.from("critical_reports").insert([{
+          student_lrn: report.studentLrn,
+          date_of_incident: report.dateOfIncident,
+          issue: report.issue,
+          description: report.description,
+          reported_by: report.reportedBy,
+          date_reported: report.dateReported
+        }]);
       }
-    } catch (e) {}
+    }
   }
 
   console.log("✅ Seeding complete!");
@@ -120,3 +142,4 @@ seed().catch(err => {
   console.error("❌ Seeding failed:", err);
   process.exit(1);
 });
+

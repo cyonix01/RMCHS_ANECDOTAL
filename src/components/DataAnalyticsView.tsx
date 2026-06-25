@@ -42,14 +42,18 @@ export default function DataAnalyticsView() {
     return stats;
   };
 
-  const getStatsByIssue = (items: { issue: string }[]) => {
-    const stats: { [key: string]: number } = {};
+  const getStatsByIssue = (items: { issue: string; studentLrn: string }[]) => {
+    const stats: { [key: string]: { Male: number; Female: number } } = {};
     items.forEach(item => {
-      stats[item.issue] = (stats[item.issue] || 0) + 1;
+      const student = students.find(s => s.lrn === item.studentLrn);
+      const gender = student?.gender === 'Male' ? 'Male' : 'Female';
+      
+      if (!stats[item.issue]) stats[item.issue] = { Male: 0, Female: 0 };
+      stats[item.issue][gender]++;
     });
-    return Object.entries(stats).map(([issue, count]) => ({
+    return Object.entries(stats).map(([issue, genderCounts]) => ({
         issue,
-        count
+        ...genderCounts
     }));
   };
 
@@ -61,10 +65,13 @@ export default function DataAnalyticsView() {
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([lrn, count]) => ({
-        name: students.find(s => s.lrn === lrn)?.name || `Student ${lrn}`,
-        count
-      }));
+      .map(([lrn, count]) => {
+        const s = students.find(student => student.lrn === lrn);
+        return {
+          name: s ? `${s.firstName} ${s.lastName}` : `Student ${lrn}`,
+          count
+        };
+      });
   };
 
   const reportStats = getStatsByGrade(reports);
@@ -77,15 +84,25 @@ export default function DataAnalyticsView() {
     { title: "CICL Reports", data: reports, stats: ciclStats, issueStats: getStatsByIssue(reports), icon: Clipboard, color: "text-orange-500", topStudents: getTopStudents(reports) },
   ];
 
-  const getTopActions = (items: { recommendation: string }[]) => {
-    const counts: { [key: string]: number } = {};
+  const getTopActions = (items: (Report | CriticalReport)[]) => {
+    const stats: { [key: string]: { Male: number; Female: number } } = {};
     items.forEach(item => {
-      counts[item.recommendation] = (counts[item.recommendation] || 0) + 1;
+      const student = students.find(s => s.lrn === item.studentLrn);
+      const gender = student?.gender === 'Male' ? 'Male' : 'Female';
+      const action = item.recommendation;
+      
+      if (!stats[action]) stats[action] = { Male: 0, Female: 0 };
+      stats[action][gender]++;
     });
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, value]) => ({ name, value }));
+    
+    return Object.entries(stats)
+      .map(([name, genderCounts]) => ({
+        name,
+        ...genderCounts,
+        total: genderCounts.Male + genderCounts.Female
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
   };
 
   const actionData = getTopActions([...reports, ...criticalReports]);
@@ -102,7 +119,8 @@ export default function DataAnalyticsView() {
       {categories.map((cat, i) => {
         const barData = GRADE_LEVELS.map(g => ({
           grade: g,
-          total: cat.stats[g].total
+          Male: cat.stats[g].male,
+          Female: cat.stats[g].female
         }));
         
         const genderData = [
@@ -122,11 +140,13 @@ export default function DataAnalyticsView() {
                     <h3 className="text-xs font-bold text-slate-600 mb-2 uppercase text-center">Reports per Grade Level</h3>
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={barData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="grade" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="total" fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="grade" tick={{fontSize: 10}} />
+                            <YAxis tick={{fontSize: 10}} />
+                            <Tooltip cursor={{fill: 'transparent'}} />
+                            <Legend wrapperStyle={{fontSize: '10px'}} />
+                            <Bar dataKey="Male" fill="#3b82f6" radius={[2, 2, 0, 0]} />
+                            <Bar dataKey="Female" fill="#ec4899" radius={[2, 2, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -148,11 +168,13 @@ export default function DataAnalyticsView() {
                 <h3 className="text-xs font-bold text-slate-600 mb-2 uppercase text-center">Reports per Issue/Concern</h3>
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={cat.issueStats}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="issue" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill={COLORS[i % COLORS.length]} radius={[4, 4, 0, 0]} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="issue" tick={{fontSize: 10}} />
+                        <YAxis tick={{fontSize: 10}} />
+                        <Tooltip cursor={{fill: 'transparent'}} />
+                        <Legend wrapperStyle={{fontSize: '10px'}} />
+                        <Bar dataKey="Male" fill="#3b82f6" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="Female" fill="#ec4899" radius={[2, 2, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -202,11 +224,13 @@ export default function DataAnalyticsView() {
         <div className="h-64 w-full">
           <ResponsiveContainer>
              <BarChart data={actionData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" tick={{fontSize: 10}} />
               <YAxis dataKey="name" type="category" width={200} tick={{fontSize: 10}} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#8884d8" radius={[0, 4, 4, 0]} />
+              <Tooltip cursor={{fill: 'transparent'}} />
+              <Legend wrapperStyle={{fontSize: '10px'}} />
+              <Bar dataKey="Male" fill="#3b82f6" radius={[0, 2, 2, 0]} />
+              <Bar dataKey="Female" fill="#ec4899" radius={[0, 2, 2, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

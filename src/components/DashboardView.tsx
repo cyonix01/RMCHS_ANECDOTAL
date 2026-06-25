@@ -45,56 +45,60 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
         </div>
 
         {/* Action controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center md:justify-end gap-2">
           <button
             id="register-student-trigger"
             onClick={() => setShowRegisterStudent(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#102604] hover:bg-[#102604]/5 hover:border-[#76DA0D] text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none"
+            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
           >
-            <UserPlus size={13} className="text-[#76DA0D]" />
-            <span>Register Student</span>
+            <UserPlus size={14} className="text-[#76DA0D] group-hover:scale-110 transition-transform" />
+            <span>Register</span>
           </button>
           
           <button
             onClick={() => setShowStudentSearch(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#102604] hover:bg-[#102604]/5 hover:border-[#76DA0D] text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none"
+            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
           >
-            <FileText size={13} className="text-[#76DA0D]" />
+            <FileText size={14} className="text-[#76DA0D] group-hover:scale-110 transition-transform" />
             <span>Report</span>
           </button>
 
           <button
             onClick={() => setShowCICLReport(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#102604] hover:bg-[#102604]/5 hover:border-[#76DA0D] text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none"
+            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-red-500 hover:bg-red-50/30 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
           >
-            <FileText size={13} className="text-red-500" />
-            <span>Report CICL</span>
+            <FileText size={14} className="text-red-500 group-hover:scale-110 transition-transform" />
+            <span>CICL</span>
           </button>
 
           <button
             onClick={() => setShowAnalytics(!showAnalytics)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#102604] hover:bg-[#102604]/5 hover:border-[#76DA0D] text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none"
+            className={`group flex items-center gap-2 px-4 py-2 border font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm ${
+              showAnalytics 
+              ? 'bg-[#102604] text-white border-[#102604]' 
+              : 'bg-white border-slate-200 hover:border-blue-500 hover:bg-blue-50/30 text-[#102604]'
+            }`}
           >
-            <BarChart3 size={13} className="text-blue-500" />
-            <span>Data Analytics</span>
+            <BarChart3 size={14} className={showAnalytics ? "text-[#76DA0D]" : "text-blue-500 group-hover:scale-110 transition-transform"} />
+            <span>Analytics</span>
           </button>
 
           <button
             id="settings-trigger"
             onClick={() => setShowSettings(true)}
-            className="flex items-center gap-2 px-4 py-2 border border-[#76DA0D] text-[#102604] hover:bg-[#76DA0D]/10 hover:border-[#FFEA00] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none"
+            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#FFEA00] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
           >
-            <Settings2 size={13} className="text-[#76DA0D]" />
-            <span>Account Settings</span>
+            <Settings2 size={14} className="text-[#76DA0D] group-hover:rotate-45 transition-transform" />
+            <span>Account</span>
           </button>
 
           <button
             id="logout-btn"
             onClick={onLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-[#76DA0D] hover:bg-[#88F015] text-[#102604] border border-[#FFEA00] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none shadow-xs"
+            className="group flex items-center gap-2 px-4 py-2 bg-[#76DA0D] hover:bg-[#88F015] text-[#102604] border border-[#FFEA00] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none shadow-sm h-10 min-w-[140px] justify-center"
           >
-            <LogOut size={13} />
-            <span>Logout Portal</span>
+            <LogOut size={14} className="group-hover:translate-x-1 transition-transform" />
+            <span>Logout</span>
           </button>
         </div>
       </header>

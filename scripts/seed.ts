@@ -95,34 +95,38 @@ async function seed() {
   console.log(`Students added: ${studentResult.successCount}. Errors: ${studentResult.errors.length}`);
 
   console.log("Adding General Student Reports...");
-  for (let i = 0; i < 20; i++) {
-    const lrn = lrns[Math.floor(Math.random() * lrns.length)];
-    const report: Report = {
-      studentLrn: lrn,
-      dateOfIncident: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
-      timeOfIncident: "10:00",
-      issue: studentIssues[Math.floor(Math.random() * studentIssues.length)],
-      description: "Dummy student report.",
-      actionTaken: "Counseled",
-      recommendation: "Monitor",
-      reportedBy: "Teacher A",
-      dateReported: new Date().toISOString().split('T')[0],
-      recordStatus: Math.random() > 0.5 ? "RESOLVED" : "ON GOING"
-    };
-    try { await saveReport(report); } catch (e) {}
+  // Ensure every student issue is represented at least twice
+  for (const issue of studentIssues) {
+    for (let j = 0; j < 2; j++) {
+      const lrn = lrns[Math.floor(Math.random() * lrns.length)];
+      const report: Report = {
+        studentLrn: lrn,
+        dateOfIncident: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+        timeOfIncident: "10:00",
+        issue: issue,
+        description: `Dummy report for ${issue}.`,
+        actionTaken: "Counseled",
+        recommendation: ["Warning", "Parent Conference", "Community Service", "Monitor", "Referral to Guidance"][Math.floor(Math.random() * 5)],
+        reportedBy: "Teacher A",
+        dateReported: new Date().toISOString().split('T')[0],
+        recordStatus: Math.random() > 0.5 ? "RESOLVED" : "ON GOING"
+      };
+      try { await saveReport(report); } catch (e) {}
+    }
   }
 
   console.log("Adding CICL Reports...");
-  for (let i = 0; i < 10; i++) {
+  // Ensure every CICL offense is represented
+  for (const offense of ciclOffenses) {
     const lrn = lrns[Math.floor(Math.random() * lrns.length)];
     const report: Report = {
       studentLrn: lrn,
       dateOfIncident: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
       timeOfIncident: "11:00",
-      issue: ciclOffenses[Math.floor(Math.random() * ciclOffenses.length)],
-      description: "Dummy CICL report.",
+      issue: offense,
+      description: `Dummy CICL report for ${offense}.`,
       actionTaken: "Referral to DSWD",
-      recommendation: "Legal assistance",
+      recommendation: ["Legal assistance", "Family counseling", "Rehabilitation Program"][Math.floor(Math.random() * 3)],
       reportedBy: "SPO1 Reyes",
       dateReported: new Date().toISOString().split('T')[0],
       recordStatus: "ON GOING"
@@ -131,16 +135,17 @@ async function seed() {
   }
 
   console.log("Adding Critical Incident Reports...");
-  for (let i = 0; i < 15; i++) {
+  // Ensure every critical issue is represented
+  for (const issue of criticalIssues) {
     const lrn = lrns[Math.floor(Math.random() * lrns.length)];
     const report: CriticalReport = {
       studentLrn: lrn,
       dateOfIncident: new Date(Date.now() - Math.floor(Math.random() * 15 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
       timeOfIncident: "14:30",
-      issue: criticalIssues[Math.floor(Math.random() * criticalIssues.length)],
-      description: "Critical incident dummy record.",
-      actionTaken: "Parental notification.",
-      recommendation: "Suspension",
+      issue: issue,
+      description: `Critical incident dummy record for ${issue}.`,
+      actionTaken: "Immediate intervention.",
+      recommendation: ["Psychological Referral", "Medical Assistance", "Suspension", "Expulsion", "DSWD Referral"][Math.floor(Math.random() * 5)],
       reportedBy: "Principal Office",
       dateReported: new Date().toISOString().split('T')[0]
     };

@@ -6,7 +6,6 @@
 import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { UserAccount } from "./types";
-import DBStatus from "./components/DBStatus";
 import LoginView from "./components/LoginView";
 import RegisterView from "./components/RegisterView";
 import DashboardView from "./components/DashboardView";
@@ -83,11 +82,6 @@ export default function App() {
   return (
     <div id="landing-layout" className="min-h-screen bg-[#FFFFFF] text-[#102604] font-sans flex flex-col md:flex-row relative overflow-x-hidden selection:bg-[#76DA0D]/20">
       
-      {/* Floating Database Sync status indicator - repositioned elegantly for Editorial */}
-      <div className="absolute top-4 right-4 z-50">
-        <DBStatus />
-      </div>
-
       {/* LEFT COLUMN: Deep Editorial Slate Header Area ({1/3} Width on modern layout) */}
       <div className="w-full md:w-1/3 bg-[#76DA0D] p-8 md:p-12 lg:p-16 flex flex-col justify-between text-[#102604] relative shrink-0">
         <div className="space-y-8 mt-4 md:mt-12">

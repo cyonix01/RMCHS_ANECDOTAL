@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { LogOut, Settings2, ShieldCheck, Sun, Clock, Calendar, Compass, Clipboard, UserPlus, FileText, Table, BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight, ShieldAlert, Database, Layers, Trash2, Plus, Edit, Download, CheckSquare, Square } from "lucide-react";
+import { LogOut, Settings2, ShieldCheck, Sun, Clock, Calendar, Compass, Clipboard, UserPlus, FileText, Table, BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight, ShieldAlert, Database, Layers, Trash2, Plus, Edit, Download, CheckSquare, Square, UserCheck } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { UserAccount, Report, CriticalReport } from "../types";
 import AccountSettingsView from "./AccountSettingsView";
@@ -69,6 +69,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   const [showAdviserAssignment, setShowAdviserAssignment] = useState(false);
   const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<{ month: string; count: number }[]>([]);
+  const [topStudents, setTopStudents] = useState<{ name: string; lrn: string; count: number }[]>([]);
   const [allTeacherReports, setAllTeacherReports] = useState<any[]>([]);
   const [trendData, setTrendData] = useState<{ totalChange: number; academicChange: number; behavioralChange: number }>({ totalChange: 0, academicChange: 0, behavioralChange: 0 });
   const [stats, setStats] = useState({
@@ -163,8 +164,9 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   useEffect(() => {
     Promise.all([
       fetch("/api/reports").then(res => res.json()),
-      fetch("/api/critical-reports").then(res => res.json())
-    ]).then(([reports, criticalReports]) => {
+      fetch("/api/critical-reports").then(res => res.json()),
+      fetch("/api/students").then(res => res.json())
+    ]).then(([reports, criticalReports, students]) => {
       const teacherName = `${user.firstName} ${user.lastName}`;
       const todayStr = new Date().toISOString().split('T')[0];
 
@@ -174,6 +176,27 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
       ].sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
 
       setAllTeacherReports(teacherReports);
+
+      // Calculate Top Students
+      const studentReferralCounts: Record<string, number> = {};
+      teacherReports.forEach((r: any) => {
+        const lrn = r.studentLrn;
+        studentReferralCounts[lrn] = (studentReferralCounts[lrn] || 0) + 1;
+      });
+
+      const sortedStudents = Object.entries(studentReferralCounts)
+        .map(([lrn, count]) => {
+          const student = students.find((s: any) => s.lrn === lrn);
+          return {
+            lrn,
+            count,
+            name: student ? `${student.firstName} ${student.lastName}` : `Student ${lrn}`
+          };
+        })
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      setTopStudents(sortedStudents);
 
       // Calculate Stats for Counters
       const generalReports = reports.filter((r: any) => (r.reportedBy === teacherName || r.createdBy === user.email) && !ciclOffenses.includes(r.issue));
@@ -440,7 +463,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                     if (hrs < 12) return "Good morning";
                     if (hrs < 18) return "Good afternoon";
                     return "Good evening";
-                  })()}, <span className="text-[#76DA0D]">{user.position} {user.lastName}</span>
+                  })()}, <span className="text-[#76DA0D]">{user.firstName} {user.lastName}</span>
                 </h2>
                 <p className="text-white/60 text-xs font-medium tracking-wide">
                   Welcome to your specialized RMCHS portal for the 2026 Academic Year.
@@ -549,6 +572,39 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                         <p className="text-3xl font-serif text-[#102604]">{stats.totalCICL}</p>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Top Students Summary Card */}
+                  <div className="bg-white border border-slate-100 p-6 shadow-sm">
+                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-1.5">
+                      <UserCheck size={12} className="text-[#76DA0D]" />
+                      Top Referred Students
+                    </h6>
+                    {topStudents.length > 0 ? (
+                      <div className="space-y-3">
+                        {topStudents.map((student, idx) => (
+                          <div key={student.lrn} className="flex items-center justify-between group">
+                            <div className="flex items-center gap-3">
+                              <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:bg-[#76DA0D] group-hover:text-white transition-colors">
+                                {idx + 1}
+                              </div>
+                              <div className="text-left">
+                                <p className="text-[11px] font-bold text-slate-900 leading-tight uppercase">{student.name}</p>
+                                <p className="text-[9px] font-medium text-slate-400 font-mono tracking-tighter">LRN: {student.lrn}</p>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end">
+                              <span className="text-[11px] font-black text-[#102604]">{student.count}</span>
+                              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Reports</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center border-2 border-dashed border-slate-50">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No Recent Referrals</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 

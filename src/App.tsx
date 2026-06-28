@@ -9,6 +9,7 @@ import { UserAccount } from "./types";
 import LoginView from "./components/LoginView";
 import RegisterView from "./components/RegisterView";
 import DashboardView from "./components/DashboardView";
+import { NotificationProvider } from "./components/NotificationProvider";
 import { GraduationCap } from "lucide-react";
 
 export default function App() {
@@ -60,27 +61,32 @@ export default function App() {
 
   if (isInitializing) {
     return (
-      <div id="init-loader" className="min-h-screen bg-[#FFFFFF] flex flex-col justify-center items-center">
-        <div className="w-10 h-[1px] bg-[#76DA0D] animate-pulse mb-4" />
-        <p className="serif italic text-[#102604] text-lg select-none">Retrieving Registry...</p>
-        <p className="text-[10px] uppercase tracking-widest text-slate-400 font-mono mt-1 animate-pulse">Handshaking securely</p>
-      </div>
+      <NotificationProvider>
+        <div id="init-loader" className="min-h-screen bg-[#FFFFFF] flex flex-col justify-center items-center">
+          <div className="w-10 h-[1px] bg-[#76DA0D] animate-pulse mb-4" />
+          <p className="serif italic text-[#102604] text-lg select-none">Retrieving Registry...</p>
+          <p className="text-[10px] uppercase tracking-widest text-slate-400 font-mono mt-1 animate-pulse">Handshaking securely</p>
+        </div>
+      </NotificationProvider>
     );
   }
 
   // Dashboard has its own navbar & immersive custom canvas layout, so we render it standalone
   if (viewState === "dashboard" && currentUser) {
     return (
-      <DashboardView
-        user={currentUser}
-        onLogout={handleLogout}
-        onUpdateUser={handleUpdateUser}
-      />
+      <NotificationProvider>
+        <DashboardView
+          user={currentUser}
+          onLogout={handleLogout}
+          onUpdateUser={handleUpdateUser}
+        />
+      </NotificationProvider>
     );
   }
 
   return (
-    <div id="landing-layout" className="min-h-screen bg-[#FFFFFF] text-[#102604] font-sans flex flex-col md:flex-row relative overflow-x-hidden selection:bg-[#76DA0D]/20">
+    <NotificationProvider>
+      <div id="landing-layout" className="min-h-screen bg-[#FFFFFF] text-[#102604] font-sans flex flex-col md:flex-row relative overflow-x-hidden selection:bg-[#76DA0D]/20">
       
       {/* LEFT COLUMN: Deep Editorial Slate Header Area ({1/3} Width on modern layout) */}
       <div className="w-full md:w-1/3 bg-[#76DA0D] p-8 md:p-12 lg:p-16 flex flex-col justify-between text-[#102604] relative shrink-0">
@@ -189,5 +195,6 @@ export default function App() {
 
       </div>
     </div>
+    </NotificationProvider>
   );
 }

@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Layers, Plus, Trash2, Edit, X, Save, AlertCircle } from "lucide-react";
+import { useNotification } from "./NotificationProvider";
 
 interface Section {
   gradeLevel: string;
@@ -21,6 +22,7 @@ const GRADE_LEVELS = [
 ];
 
 const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) => {
+  const { notify, confirm } = useNotification();
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGrade, setSelectedGrade] = useState("Grade 7");
@@ -59,13 +61,17 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
       if (res.ok) {
         setNewName("");
         setIsAdding(false);
+        notify("success", "New section added to registry.");
         fetchSections();
       } else {
         const data = await res.json();
-        setError(data.error || "Failed to add section.");
+        const msg = data.error || "Failed to add section.";
+        setError(msg);
+        notify("error", msg);
       }
     } catch (err) {
       setError("Error connecting to server.");
+      notify("error", "Network connection failed.");
     }
   };
 
@@ -85,30 +91,42 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
       if (res.ok) {
         setNewName("");
         setIsEditing(null);
+        notify("success", "Section details updated successfully.");
         fetchSections();
       } else {
         const data = await res.json();
-        setError(data.error || "Failed to update section.");
+        const msg = data.error || "Failed to update section.";
+        setError(msg);
+        notify("error", msg);
       }
     } catch (err) {
       setError("Error connecting to server.");
+      notify("error", "Network connection failed.");
     }
   };
 
   const handleDelete = async (section: Section) => {
-    if (!confirm(`Are you sure you want to delete section: ${section.name}?`)) return;
-    try {
-      const res = await fetch(`/api/admin/sections?gradeLevel=${encodeURIComponent(section.gradeLevel)}&name=${encodeURIComponent(section.name)}`, {
-        method: "DELETE"
-      });
-      if (res.ok) {
-        fetchSections();
-      } else {
-        alert("Failed to delete section.");
+    confirm({
+      title: "Delete Section",
+      message: `Are you sure you want to permanently delete section: ${section.name}? All student associations with this section might be affected.`,
+      confirmText: "Delete Section",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/admin/sections?gradeLevel=${encodeURIComponent(section.gradeLevel)}&name=${encodeURIComponent(section.name)}`, {
+            method: "DELETE"
+          });
+          if (res.ok) {
+            notify("success", "Section removed from registry.");
+            fetchSections();
+          } else {
+            notify("error", "Failed to remove section.");
+          }
+        } catch (err) {
+          notify("error", "Network error during deletion.");
+        }
       }
-    } catch (err) {
-      alert("Error connecting to server.");
-    }
+    });
   };
 
   return (

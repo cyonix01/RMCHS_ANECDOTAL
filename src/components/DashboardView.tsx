@@ -14,6 +14,7 @@ import CICLSearchModal from "./CICLSearchModal";
 import DataAnalyticsView from "./DataAnalyticsView";
 import AnecdoteChart from "./AnecdoteChart";
 import SectionManagerModal from "./SectionManagerModal";
+import { useNotification } from "./NotificationProvider";
 
 const ciclOffenses = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
 
@@ -53,6 +54,7 @@ interface DashboardViewProps {
 }
 
 export default function DashboardView({ user, onLogout, onUpdateUser }: DashboardViewProps) {
+  const { notify, confirm } = useNotification();
   const [showSettings, setShowSettings] = useState(false);
   const [showRegisterStudent, setShowRegisterStudent] = useState(false);
   const [showStudentSearch, setShowStudentSearch] = useState(false);
@@ -509,7 +511,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                                   </div>
                                 </td>
                                 <td className="py-4 px-2">
-                                  <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
+                                  <span className={`text-[8px] font-black uppercase tracking-[0.15em] px-2.5 py-0.5 border ${
                                     category === 'Attendance' ? 'border-blue-200 text-blue-600 bg-blue-50' :
                                     category === 'Academic' ? 'border-orange-200 text-orange-600 bg-orange-50' :
                                     category === 'Behavioral' ? 'border-red-200 text-red-600 bg-red-50' :
@@ -598,14 +600,20 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
 
               <div className="p-6 space-y-4">
                 <button
-                  onClick={async () => {
-                    if (confirm("Are you sure you want to clear ALL student reports? This cannot be undone.")) {
-                      try {
-                        const res = await fetch("/api/admin/clear-reports", { method: "DELETE" });
-                        if (res.ok) alert("Reports cleared successfully.");
-                        else alert("Failed to clear reports.");
-                      } catch (e) { alert("Error clearing reports."); }
-                    }
+                  onClick={() => {
+                    confirm({
+                      title: "Clear Reports",
+                      message: "Are you sure you want to clear ALL student reports? This action is permanent and cannot be undone.",
+                      confirmText: "Clear All",
+                      variant: "danger",
+                      onConfirm: async () => {
+                        try {
+                          const res = await fetch("/api/admin/clear-reports", { method: "DELETE" });
+                          if (res.ok) notify("success", "Institutional reports cleared successfully.");
+                          else notify("error", "System failed to clear reports.");
+                        } catch (e) { notify("error", "Network error during database operation."); }
+                      }
+                    });
                   }}
                   className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-red-50 border border-slate-100 hover:border-red-200 transition-all group"
                 >
@@ -617,14 +625,20 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                 </button>
 
                 <button
-                  onClick={async () => {
-                    if (confirm("Are you sure you want to clear ALL registered students? This cannot be undone.")) {
-                      try {
-                        const res = await fetch("/api/admin/clear-students", { method: "DELETE" });
-                        if (res.ok) alert("Students cleared successfully.");
-                        else alert("Failed to clear students.");
-                      } catch (e) { alert("Error clearing students."); }
-                    }
+                  onClick={() => {
+                    confirm({
+                      title: "Clear Student Registry",
+                      message: "Are you sure you want to clear ALL registered students? This will remove all student records from the portal.",
+                      confirmText: "Clear Registry",
+                      variant: "danger",
+                      onConfirm: async () => {
+                        try {
+                          const res = await fetch("/api/admin/clear-students", { method: "DELETE" });
+                          if (res.ok) notify("success", "Student registry cleared successfully.");
+                          else notify("error", "System failed to clear student registry.");
+                        } catch (e) { notify("error", "Network error during registry operation."); }
+                      }
+                    });
                   }}
                   className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-red-50 border border-slate-100 hover:border-red-200 transition-all group"
                 >
@@ -636,19 +650,25 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                 </button>
 
                 <button
-                  onClick={async () => {
+                  onClick={() => {
                     const email = prompt("Enter the teacher's email/username to delete:");
                     if (email) {
-                      if (confirm(`Are you sure you want to delete account: ${email}?`)) {
-                        try {
-                          const res = await fetch(`/api/admin/delete-teacher?email=${encodeURIComponent(email)}`, { method: "DELETE" });
-                          if (res.ok) alert("Account deleted successfully.");
-                          else {
-                            const data = await res.json();
-                            alert(data.error || "Failed to delete account.");
-                          }
-                        } catch (e) { alert("Error deleting account."); }
-                      }
+                      confirm({
+                        title: "Delete Staff Account",
+                        message: `Are you sure you want to permanently delete account: ${email}? This user will lose all access immediately.`,
+                        confirmText: "Delete Account",
+                        variant: "danger",
+                        onConfirm: async () => {
+                          try {
+                            const res = await fetch(`/api/admin/delete-teacher?email=${encodeURIComponent(email)}`, { method: "DELETE" });
+                            if (res.ok) notify("success", "Teacher account deleted successfully.");
+                            else {
+                              const data = await res.json();
+                              notify("error", data.error || "Failed to delete account.");
+                            }
+                          } catch (e) { notify("error", "Network error during account deletion."); }
+                        }
+                      });
                     }
                   }}
                   className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-red-50 border border-slate-100 hover:border-red-200 transition-all group"

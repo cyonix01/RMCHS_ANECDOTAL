@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { User, Phone, Building, Star, Lock, Eye, EyeOff, Save, X, Settings } from "lucide-react";
 import { motion } from "motion/react";
 import { Department, Position, UserAccount } from "../types";
+import { useNotification } from "./NotificationProvider";
 
 interface AccountSettingsViewProps {
   user: Partial<UserAccount>;
@@ -49,6 +50,7 @@ const POSITIONS: Position[] = [
 ];
 
 export default function AccountSettingsView({ user, onClose, onUpdateSuccess }: AccountSettingsViewProps) {
+  const { notify, confirm } = useNotification();
   const [firstName, setFirstName] = useState(user.firstName || "");
   const [middleName, setMiddleName] = useState(user.middleName || "");
   const [lastName, setLastName] = useState(user.lastName || "");
@@ -148,6 +150,7 @@ export default function AccountSettingsView({ user, onClose, onUpdateSuccess }: 
       }
 
       setSuccess("Profile settings successfully updated in the database!");
+      notify("success", "Institutional profile synchronized successfully.");
       onUpdateSuccess(data.user);
       
       // Wipe fields for безопасности
@@ -332,7 +335,18 @@ export default function AccountSettingsView({ user, onClose, onUpdateSuccess }: 
                   {sections.length === 0 && (
                     <button
                       type="button"
-                      onClick={() => fetch('/api/sections/seed', { method: 'POST' }).then(() => alert('Sections seeded! Please reload the page.')).catch(() => alert('Failed to seed!'))}
+                      onClick={() => {
+                        confirm({
+                          title: "Seed Sections",
+                          message: "This will populate the database with standard Grade 7-12 sections. Proceed?",
+                          confirmText: "Seed Data",
+                          onConfirm: () => {
+                            fetch('/api/sections/seed', { method: 'POST' })
+                              .then(() => notify("success", "Institutional sections seeded successfully."))
+                              .catch(() => notify("error", "Database seeding failed."));
+                          }
+                        });
+                      }}
                       className="text-[10px] text-blue-500 mt-1 hover:underline cursor-pointer"
                     >
                       Initialize Sections (if empty)

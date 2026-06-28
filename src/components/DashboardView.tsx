@@ -67,6 +67,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   const [showDatabaseActions, setShowDatabaseActions] = useState(false);
   const [showSectionManager, setShowSectionManager] = useState(false);
   const [showReportsViewer, setShowReportsViewer] = useState(false);
+  const [showResolvedReportsViewer, setShowResolvedReportsViewer] = useState(false);
   const [reportsViewerQuery, setReportsViewerQuery] = useState("");
   const [showAdviserAssignment, setShowAdviserAssignment] = useState(false);
   const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
@@ -406,6 +407,15 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
           >
             <FileText size={14} className="text-[#102604] group-hover:scale-110 transition-transform" />
             <span>View Reports</span>
+          </button>
+
+          <button
+            id="view-resolved-reports-btn"
+            onClick={() => setShowResolvedReportsViewer(true)}
+            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 font-bold text-[10px] tracking-widest uppercase transition-all hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] cursor-pointer select-none h-10 shadow-sm"
+          >
+            <FileText size={14} className="text-[#76DA0D] group-hover:scale-110 transition-transform" />
+            <span>View Resolved Report</span>
           </button>
 
           {/* Admin Button with Dropdown */}
@@ -1034,6 +1044,24 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
             userFirstName={user.firstName}
             userLastName={user.lastName}
             initialSearchQuery={reportsViewerQuery}
+            showOnlyResolved={false}
+          />
+        )}
+
+        {showResolvedReportsViewer && (
+          <ReportsViewerModal 
+            onClose={() => {
+              setShowResolvedReportsViewer(false);
+              setReportsViewerQuery("");
+            }} 
+            userEmail={user.email || ""}
+            userRole={user.role}
+            userGradeLevel={user.gradeLevel}
+            userSection={user.section}
+            userFirstName={user.firstName}
+            userLastName={user.lastName}
+            initialSearchQuery={reportsViewerQuery}
+            showOnlyResolved={true}
           />
         )}
 

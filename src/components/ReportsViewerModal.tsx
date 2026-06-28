@@ -18,6 +18,7 @@ interface ReportsViewerModalProps {
   userFirstName?: string;
   userLastName?: string;
   initialSearchQuery?: string;
+  showOnlyResolved?: boolean;
 }
 
 interface CombinedReport {
@@ -47,7 +48,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   userSection,
   userFirstName,
   userLastName,
-  initialSearchQuery = ""
+  initialSearchQuery = "",
+  showOnlyResolved = false
 }) => {
   const { notify } = useNotification();
   const [reports, setReports] = useState<CombinedReport[]>([]);
@@ -60,6 +62,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   const [recommendationEdit, setRecommendationEdit] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [movFile, setMovFile] = useState<File | null>(null);
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -188,8 +191,49 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
     }
   };
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64String = (reader.result as string).split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const handleUpdateStatus = async (newStatus: 'On Going' | 'RESOLVED') => {
     if (!selectedReportForView) return;
+
+    let filePayload = null;
+
+    if (newStatus === 'RESOLVED') {
+      if (!movFile) {
+        notify("error", "Mean of Verification (MOV) file is required to resolve this report.");
+        return;
+      }
+      setIsUpdating(true);
+      try {
+        const base64Data = await fileToBase64(movFile);
+        const originalName = movFile.name;
+        const extension = originalName.substring(originalName.lastIndexOf('.') + 1) || 'bin';
+        
+        // Exact format as requested: "Rerport id_grade level_section"
+        const formattedFileName = `Rerport ${selectedReportForView.id}_${selectedReportForView.grade}_${selectedReportForView.section}.${extension}`;
+
+        filePayload = {
+          name: formattedFileName,
+          base64: base64Data,
+          mimeType: movFile.type || "application/octet-stream"
+        };
+      } catch (err) {
+        notify("error", "Failed to process the MOV file.");
+        setIsUpdating(false);
+        return;
+      }
+    }
+
     setIsUpdating(true);
     try {
       const res = await fetch(`/api/reports/${selectedReportForView.id}/status`, {
@@ -197,11 +241,18 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: newStatus,
-          type: selectedReportForView.type
+          type: selectedReportForView.type,
+          file: filePayload
         })
       });
+
+      const data = await res.json();
+
       if (res.ok) {
-        notify("success", `Report marked as ${newStatus}`);
+        notify("success", newStatus === 'RESOLVED' 
+          ? "Report successfully resolved and MOV saved to Google Drive!" 
+          : `Report marked as ${newStatus}`
+        );
         // Update local state
         setReports(prev => prev.map(r => 
           (r.id === selectedReportForView.id && r.type === selectedReportForView.type)
@@ -209,8 +260,9 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
             : r
         ));
         setSelectedReportForView(prev => prev ? { ...prev, recordStatus: newStatus } : null);
+        setMovFile(null); // Clear file selection
       } else {
-        notify("error", "Failed to update record status.");
+        notify("error", data.error || "Failed to update record status.");
       }
     } catch (err) {
       notify("error", "Record status update failed.");
@@ -230,9 +282,16 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
       const matchesEnd = endDate ? reportDate <= new Date(endDate) : true;
       const matchesType = typeFilter === 'All' ? true : report.type === typeFilter;
 
+      const status = report.recordStatus || 'On Going';
+      if (showOnlyResolved) {
+        if (status !== 'RESOLVED') return false;
+      } else {
+        if (status === 'RESOLVED') return false;
+      }
+
       return matchesSearch && matchesStart && matchesEnd && matchesType;
     });
-  }, [reports, searchQuery, startDate, endDate, typeFilter]);
+  }, [reports, searchQuery, startDate, endDate, typeFilter, showOnlyResolved]);
 
   const handleExport = () => {
     if (filteredReports.length === 0) {
@@ -284,8 +343,12 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
               <FileText size={24} className="text-[#102604]" />
             </div>
             <div>
-              <h3 className="serif font-serif text-2xl text-slate-900 leading-tight">Institutional Record Archive</h3>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mt-1">Registry of all student reports and critical incidents</p>
+              <h3 className="serif font-serif text-2xl text-slate-900 leading-tight">
+                {showOnlyResolved ? "Resolved Reports Archive" : "Institutional Record Archive"}
+              </h3>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mt-1">
+                {showOnlyResolved ? "Registry of all resolved student reports and critical incidents" : "Registry of all student reports and critical incidents"}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-[#102604] hover:bg-slate-50 transition-all rounded-full">
@@ -555,33 +618,66 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                         <AlertCircle size={12} />
                         Record Status
                       </label>
-                      <div className="flex items-center gap-4">
-                        <div className={`px-4 py-2 border rounded font-bold text-[10px] uppercase tracking-wider ${
-                          selectedReportForView.recordStatus === 'RESOLVED' 
-                            ? 'bg-[#76DA0D]/10 border-[#76DA0D]/20 text-[#102604]' 
-                            : 'bg-orange-50 border-orange-100 text-orange-600'
-                        }`}>
-                          Current Status: {selectedReportForView.recordStatus || 'On Going'}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-4">
+                          <div className={`px-4 py-2 border rounded font-bold text-[10px] uppercase tracking-wider ${
+                            selectedReportForView.recordStatus === 'RESOLVED' 
+                              ? 'bg-[#76DA0D]/10 border-[#76DA0D]/20 text-[#102604]' 
+                              : 'bg-orange-50 border-orange-100 text-orange-600'
+                          }`}>
+                            Current Status: {selectedReportForView.recordStatus || 'On Going'}
+                          </div>
+                          
+                          {(userRole === 'Admin' || userRole === 'Guidance') && (
+                            <div className="flex gap-2">
+                              {selectedReportForView.recordStatus !== 'On Going' && (
+                                <button 
+                                  onClick={() => handleUpdateStatus('On Going')}
+                                  className="px-3 py-2 text-[9px] font-black uppercase tracking-widest border border-orange-200 text-orange-600 hover:bg-orange-50 transition-colors"
+                                >
+                                  Mark as On Going
+                                </button>
+                              )}
+                              {selectedReportForView.recordStatus !== 'RESOLVED' && (
+                                <button 
+                                  onClick={() => handleUpdateStatus('RESOLVED')}
+                                  className="px-3 py-2 text-[9px] font-black uppercase tracking-widest bg-[#102604] text-white hover:bg-slate-800 transition-colors"
+                                >
+                                  Mark as RESOLVED
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        
-                        {(userRole === 'Admin' || userRole === 'Guidance') && (
-                          <div className="flex gap-2">
-                            {selectedReportForView.recordStatus !== 'On Going' && (
-                              <button 
-                                onClick={() => handleUpdateStatus('On Going')}
-                                className="px-3 py-2 text-[9px] font-black uppercase tracking-widest border border-orange-200 text-orange-600 hover:bg-orange-50 transition-colors"
-                              >
-                                Mark as On Going
-                              </button>
-                            )}
-                            {selectedReportForView.recordStatus !== 'RESOLVED' && (
-                              <button 
-                                onClick={() => handleUpdateStatus('RESOLVED')}
-                                className="px-3 py-2 text-[9px] font-black uppercase tracking-widest bg-[#102604] text-white hover:bg-slate-800 transition-colors"
-                              >
-                                Mark as RESOLVED
-                              </button>
-                            )}
+
+                        {selectedReportForView.recordStatus !== 'RESOLVED' && (userRole === 'Admin' || userRole === 'Guidance') && (
+                          <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded space-y-3">
+                            <div className="space-y-1">
+                              <label className="block text-[9px] font-black uppercase tracking-widest text-slate-700">
+                                Required: Upload Mean of Verification (MOV)
+                              </label>
+                              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+                                File will be uploaded to Google Drive as: <span className="font-mono text-[#102604] lowercase select-all">Rerport {selectedReportForView.id}_{selectedReportForView.grade}_{selectedReportForView.section}.[ext]</span>
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <input 
+                                type="file" 
+                                id="mov-file-input"
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    setMovFile(e.target.files[0]);
+                                  }
+                                }}
+                                className="text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:border file:border-slate-300 file:rounded-sm file:font-sans file:font-bold file:text-[9px] file:uppercase file:tracking-wider file:bg-white file:text-slate-700 hover:file:bg-slate-50 cursor-pointer"
+                                required
+                              />
+                              {movFile && (
+                                <span className="text-[8px] font-black uppercase tracking-widest text-[#102604] bg-[#76DA0D]/10 border border-[#76DA0D]/20 px-2 py-1">
+                                  ✓ File Selected
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

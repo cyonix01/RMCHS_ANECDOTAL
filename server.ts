@@ -7,6 +7,8 @@ import express from "express";
 import * as path from "path";
 import * as crypto from "crypto";
 import { createServer as createViteServer } from "vite";
+import { google } from "googleapis";
+import { Readable } from "stream";
 import { 
   initDatabase, 
   getUserByEmail, 
@@ -49,6 +51,53 @@ import { UserAccount, Student, AppNotification } from "./src/types";
 // Hash utility
 function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
+}
+
+async function uploadFileToGoogleDrive(
+  base64Data: string,
+  fileName: string,
+  mimeType: string,
+  folderId: string
+) {
+  const saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const saPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+
+  if (!saEmail || !saPrivateKey) {
+    throw new Error("Google Service Account credentials are not configured in environment variables.");
+  }
+
+  const auth = new google.auth.JWT({
+    email: saEmail,
+    key: saPrivateKey.replace(/\\n/g, "\n"),
+    scopes: ["https://www.googleapis.com/auth/drive"]
+  });
+
+  await auth.authorize();
+
+  const drive = google.drive({ version: "v3", auth });
+
+  const buffer = Buffer.from(base64Data, "base64");
+  const mediaStream = new Readable();
+  mediaStream.push(buffer);
+  mediaStream.push(null);
+
+  const fileMetadata = {
+    name: fileName,
+    parents: [folderId],
+  };
+
+  const media = {
+    mimeType: mimeType,
+    body: mediaStream,
+  };
+
+  const response = await drive.files.create({
+    requestBody: fileMetadata,
+    media: media,
+    fields: "id, name, webViewLink",
+  });
+
+  return response.data;
 }
 
 async function startServer() {
@@ -419,7 +468,34 @@ async function startServer() {
   app.put("/api/reports/:id/status", async (req, res) => {
     try {
       const { id } = req.params;
-      const { status, type } = req.body;
+      const { status, type, file } = req.body;
+
+      if (status === 'RESOLVED') {
+        if (!file || !file.base64) {
+          return res.status(400).json({ error: "Mean of Verification (MOV) file is required to resolve this report." });
+        }
+
+        try {
+          const folderId = "1oWyTYIY2piGBHGpbUS6lUtuYlOnMxnBB";
+          await uploadFileToGoogleDrive(file.base64, file.name, file.mimeType, folderId);
+        } catch (uploadErr: any) {
+          console.error("Failed to upload MOV to Google Drive:", uploadErr);
+          
+          // Check if credentials are just missing, to give an extremely descriptive helpful instruction message
+          const saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+          const saPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+          if (!saEmail || !saPrivateKey) {
+            return res.status(500).json({ 
+              error: "Google Drive Upload Failed: Service Account credentials are not configured in environment variables. Please add GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY in Settings." 
+            });
+          }
+
+          return res.status(500).json({ 
+            error: `Google Drive Upload Failed: ${uploadErr.message || uploadErr}` 
+          });
+        }
+      }
+
       await updateReportStatus(Number(id), status, type);
       res.json({ message: "Status updated successfully" });
     } catch (err: any) {

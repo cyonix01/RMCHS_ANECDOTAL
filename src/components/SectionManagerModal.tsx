@@ -28,6 +28,7 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
   const [selectedGrade, setSelectedGrade] = useState("Grade 7");
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState<Section | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [newName, setNewName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +53,8 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
 
   const handleAdd = async () => {
     if (!newName.trim()) return;
+    setIsSaving(true);
+    setError(null);
     try {
       const res = await fetch("/api/admin/sections", {
         method: "POST",
@@ -72,11 +75,15 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
     } catch (err) {
       setError("Error connecting to server.");
       notify("error", "Network connection failed.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleUpdate = async () => {
     if (!isEditing || !newName.trim()) return;
+    setIsSaving(true);
+    setError(null);
     try {
       const res = await fetch("/api/admin/sections", {
         method: "PUT",
@@ -102,6 +109,8 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
     } catch (err) {
       setError("Error connecting to server.");
       notify("error", "Network connection failed.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -208,10 +217,15 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
                     />
                     <button
                       onClick={isAdding ? handleAdd : handleUpdate}
-                      className="px-4 py-2 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors flex items-center gap-2"
+                      disabled={isSaving}
+                      className="px-4 py-2 bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
-                      <Save size={14} />
-                      <span>Save</span>
+                      {isSaving ? (
+                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <Save size={14} />
+                      )}
+                      <span>{isSaving ? "Saving..." : "Save"}</span>
                     </button>
                     <button
                       onClick={() => {

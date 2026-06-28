@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import { X, FileText } from "lucide-react";
 import { Student, Report } from "../types";
+import { useNotification } from "./NotificationProvider";
 
 interface StudentReportModalProps {
   student: Student;
@@ -55,6 +56,8 @@ const RECOMMENDATION_OPTIONS = [
 ];
 
 export default function StudentReportModal({ student, userName, onClose }: StudentReportModalProps) {
+  const { notify } = useNotification();
+  const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState<Report>({
     studentLrn: student.lrn,
     dateOfIncident: "",
@@ -64,21 +67,35 @@ export default function StudentReportModal({ student, userName, onClose }: Stude
     actionTaken: ACTION_OPTIONS[0],
     recommendation: RECOMMENDATION_OPTIONS[0],
     reportedBy: userName,
-    dateReported: new Date().toLocaleString(),
+    dateReported: new Date().toISOString(),
+    individualFactors: [],
+    familyCommunityBehaviorFactors: [],
+    referralRecommendation: "N/A",
+    initialAssessmentMadeBy: "N/A",
+    designation: "N/A",
+    recordStatus: 'RESOLVED',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       const response = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!response.ok) throw new Error("Failed to save report");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save report");
+      }
+      notify("success", "Student report saved successfully!");
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      notify("error", err.message || "Failed to save report. Please try again.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -157,8 +174,19 @@ export default function StudentReportModal({ student, userName, onClose }: Stude
              Reported by: <span className="font-bold">{userName}</span> | Date Reported: {form.dateReported}
           </div>
 
-          <button type="submit" className="w-full py-2 bg-[#76DA0D] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#88F015]">
-            Save Report
+          <button 
+            type="submit" 
+            disabled={isSaving}
+            className="w-full py-2 bg-[#76DA0D] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#88F015] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isSaving ? (
+              <>
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Processing...
+              </>
+            ) : (
+              "Save Report"
+            )}
           </button>
         </form>
       </motion.div>

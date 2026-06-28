@@ -282,10 +282,19 @@ const AdviserAssignmentModal: React.FC<AdviserAssignmentModalProps> = ({ onClose
                   <button
                     onClick={handleSave}
                     disabled={isSaving || (assignedRole === 'Adviser' && (!assignedGrade || !assignedSection))}
-                    className="flex-1 bg-[#102604] text-white py-4 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-slate-800 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[#102604]/10"
+                    className="flex-1 bg-[#102604] text-white py-4 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-slate-800 transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg shadow-[#102604]/10 min-w-[200px]"
                   >
-                    <Save size={14} />
-                    {isSaving ? "Synchronizing..." : "Update Assignment"}
+                    {isSaving ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Synchronizing...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={14} />
+                        Update Assignment
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={() => setSelectedUser(null)}

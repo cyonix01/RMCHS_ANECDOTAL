@@ -1165,10 +1165,19 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                           type="submit"
                           disabled={isSubmitting}
                           onClick={handleIndividualSubmit}
-                          className="flex items-center gap-1 px-6 py-2 bg-[#102604] hover:bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest transition-all cursor-pointer"
+                          className="flex items-center gap-2 px-6 py-2 bg-[#102604] hover:bg-slate-900 text-white font-bold text-[10px] uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50 min-w-[160px] justify-center"
                         >
-                          <Check size={12} className="text-[#76DA0D]" />
-                          <span>{isSubmitting ? "Syncing..." : "Finalize Registration"}</span>
+                          {isSubmitting ? (
+                            <>
+                              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Syncing...
+                            </>
+                          ) : (
+                            <>
+                              <Check size={12} className="text-[#76DA0D]" />
+                              <span>Finalize Registration</span>
+                            </>
+                          )}
                         </button>
                       )}
                     </div>
@@ -1295,10 +1304,19 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                           type="button"
                           onClick={handleBulkSubmit}
                           disabled={isSubmitting}
-                          className="flex items-center gap-1.5 px-6 py-2.5 bg-[#102604] hover:bg-slate-900 text-white font-bold text-xs uppercase tracking-widest transition-all cursor-pointer shadow-md"
+                          className="flex items-center gap-2 px-6 py-2.5 bg-[#102604] hover:bg-slate-900 text-white font-bold text-xs uppercase tracking-widest transition-all cursor-pointer shadow-md disabled:opacity-50 min-w-[220px] justify-center"
                         >
-                          <Check size={14} className="text-[#76DA0D]" />
-                          <span>{isSubmitting ? "Syncing Bulk Registry..." : `Confirm & Save ${csvPreview.length} Students`}</span>
+                          {isSubmitting ? (
+                            <>
+                              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Syncing Bulk Registry...
+                            </>
+                          ) : (
+                            <>
+                              <Check size={14} className="text-[#76DA0D]" />
+                              <span>Confirm & Save {csvPreview.length} Students</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>

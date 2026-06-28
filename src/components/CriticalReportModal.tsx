@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import { X, AlertTriangle } from "lucide-react";
 import { Student, CriticalReport } from "../types";
+import { useNotification } from "./NotificationProvider";
 
 interface CriticalReportModalProps {
   student: Student;
@@ -62,6 +63,8 @@ const RECOMMENDATION_OPTIONS = [
 ];
 
 export default function CriticalReportModal({ student, userName, onClose }: CriticalReportModalProps) {
+  const { notify } = useNotification();
+  const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState<CriticalReport>({
     studentLrn: student.lrn,
     dateOfIncident: "",
@@ -71,21 +74,29 @@ export default function CriticalReportModal({ student, userName, onClose }: Crit
     actionTaken: ACTION_OPTIONS[0],
     recommendation: RECOMMENDATION_OPTIONS[0],
     reportedBy: userName,
-    dateReported: new Date().toLocaleString(),
+    dateReported: new Date().toISOString(),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       const response = await fetch("/api/critical-reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!response.ok) throw new Error("Failed to save critical report");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save critical report");
+      }
+      notify("success", "Critical report saved and archived successfully.");
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      notify("error", err.message || "Failed to save critical report.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -167,8 +178,19 @@ export default function CriticalReportModal({ student, userName, onClose }: Crit
              Reported by: <span className="font-bold">{userName}</span> | Date Reported: {form.dateReported}
           </div>
 
-          <button type="submit" className="w-full py-2 bg-red-600 text-white text-xs font-bold uppercase tracking-wider hover:bg-red-700">
-            Save Critical Report
+          <button 
+            type="submit" 
+            disabled={isSaving}
+            className="w-full py-2 bg-red-600 text-white text-xs font-bold uppercase tracking-wider hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isSaving ? (
+              <>
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Archiving...
+              </>
+            ) : (
+              "Save Critical Report"
+            )}
           </button>
         </form>
       </motion.div>

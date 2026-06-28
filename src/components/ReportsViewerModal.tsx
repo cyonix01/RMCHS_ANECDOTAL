@@ -18,8 +18,12 @@ interface CombinedReport {
   id: string | number;
   studentName: string;
   studentLrn: string;
+  grade: string;
+  section: string;
   issue: string;
   dateReported: string;
+  dateOfIncident: string;
+  timeOfIncident: string;
   reportedBy: string;
   details: string;
   actionTaken: string;
@@ -56,35 +60,49 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
         const critData: CriticalReport[] = await critRes.json();
         const students: any[] = await studentRes.json();
 
-        const studentMap = new Map(students.map(s => [s.lrn, `${s.firstName} ${s.lastName}`]));
+        const studentMap = new Map(students.map(s => [s.lrn, { name: `${s.firstName} ${s.lastName}`, grade: s.gradeLevel, section: s.section }]));
 
         const combined: CombinedReport[] = [
-          ...genData.map(r => ({
-            id: r.id || Math.random(),
-            studentName: studentMap.get(r.studentLrn) || "Unknown Student",
-            studentLrn: r.studentLrn,
-            issue: r.issue,
-            dateReported: r.dateReported,
-            reportedBy: r.reportedBy,
-            details: r.description || '',
-            actionTaken: r.actionTaken || 'N/A',
-            recommendation: r.recommendation || '',
-            type: 'General' as const,
-            lastUpdatedBy: r.lastUpdatedBy
-          })),
-          ...critData.map(r => ({
-            id: r.id || Math.random(),
-            studentName: studentMap.get(r.studentLrn) || "Unknown Student",
-            studentLrn: r.studentLrn,
-            issue: r.issue,
-            dateReported: r.dateReported,
-            reportedBy: r.reportedBy,
-            details: r.description || '',
-            actionTaken: r.actionTaken || 'N/A',
-            recommendation: r.recommendation || '',
-            type: 'Critical' as const,
-            lastUpdatedBy: r.lastUpdatedBy
-          }))
+          ...genData.map(r => {
+            const sInfo = studentMap.get(r.studentLrn) || { name: "Unknown Student", grade: "N/A", section: "N/A" };
+            return {
+              id: r.id || Math.random(),
+              studentName: sInfo.name,
+              studentLrn: r.studentLrn,
+              grade: sInfo.grade,
+              section: sInfo.section,
+              issue: r.issue,
+              dateReported: r.dateReported,
+              dateOfIncident: r.dateOfIncident,
+              timeOfIncident: r.timeOfIncident,
+              reportedBy: r.reportedBy,
+              details: r.description || '',
+              actionTaken: r.actionTaken || 'N/A',
+              recommendation: r.recommendation || '',
+              type: 'General' as const,
+              lastUpdatedBy: r.lastUpdatedBy
+            };
+          }),
+          ...critData.map(r => {
+            const sInfo = studentMap.get(r.studentLrn) || { name: "Unknown Student", grade: "N/A", section: "N/A" };
+            return {
+              id: r.id || Math.random(),
+              studentName: sInfo.name,
+              studentLrn: r.studentLrn,
+              grade: sInfo.grade,
+              section: sInfo.section,
+              issue: r.issue,
+              dateReported: r.dateReported,
+              dateOfIncident: r.dateOfIncident,
+              timeOfIncident: r.timeOfIncident,
+              reportedBy: r.reportedBy,
+              details: r.description || '',
+              actionTaken: r.actionTaken || 'N/A',
+              recommendation: r.recommendation || '',
+              type: 'Critical' as const,
+              lastUpdatedBy: r.lastUpdatedBy
+            };
+          })
         ];
 
           // Sort by date descending
@@ -161,12 +179,16 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
     }
     
     const csvContent = [
-      ["Type", "Date", "Student Name", "LRN", "Issue/Incident", "Reported By", "Details"],
+      ["Type", "Date Reported", "Incident Date", "Incident Time", "Student Name", "LRN", "Grade", "Section", "Issue/Incident", "Reported By", "Details"],
       ...filteredReports.map(r => [
         r.type,
         r.dateReported,
+        r.dateOfIncident,
+        r.timeOfIncident,
         r.studentName,
         r.studentLrn,
+        r.grade,
+        r.section,
         r.issue,
         r.reportedBy,
         `"${r.details.replace(/"/g, '""')}"`
@@ -390,19 +412,47 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
 
                 <div className="flex-1 overflow-y-auto p-8 space-y-8">
                   <div className="grid grid-cols-2 gap-8">
-                    <div>
-                      <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Subject Student</label>
-                      <p className="text-sm font-bold text-[#102604] uppercase tracking-wide">{selectedReportForView.studentName}</p>
-                      <p className="text-[10px] font-medium text-slate-500 tabular-nums">LRN: {selectedReportForView.studentLrn}</p>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Subject Student</label>
+                        <p className="text-sm font-bold text-[#102604] uppercase tracking-wide">{selectedReportForView.studentName}</p>
+                        <p className="text-[10px] font-medium text-slate-500 tabular-nums">LRN: {selectedReportForView.studentLrn}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Grade Level</label>
+                          <p className="text-[11px] font-bold text-slate-700">{selectedReportForView.grade}</p>
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Section</label>
+                          <p className="text-[11px] font-bold text-slate-700">{selectedReportForView.section}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Primary Incident</label>
-                      <p className="text-sm font-bold text-slate-800 leading-tight">{selectedReportForView.issue}</p>
-                      <span className={`inline-block mt-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
-                        selectedReportForView.type === 'Critical' ? 'border-red-100 text-red-600 bg-red-50' : 'border-blue-100 text-blue-600 bg-blue-50'
-                      }`}>
-                        {selectedReportForView.type} Incident
-                      </span>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Primary Incident</label>
+                        <p className="text-sm font-bold text-slate-800 leading-tight">{selectedReportForView.issue}</p>
+                        <span className={`inline-block mt-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
+                          selectedReportForView.type === 'Critical' ? 'border-red-100 text-red-600 bg-red-50' : 'border-blue-100 text-blue-600 bg-blue-50'
+                        }`}>
+                          {selectedReportForView.type} Incident
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Incident Date</label>
+                          <p className="text-[11px] font-bold text-slate-700">{selectedReportForView.dateOfIncident}</p>
+                        </div>
+                        <div>
+                          <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Incident Time</label>
+                          <p className="text-[11px] font-bold text-slate-700">{selectedReportForView.timeOfIncident}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Date Reported</label>
+                        <p className="text-[11px] font-bold text-slate-700">{selectedReportForView.dateReported}</p>
+                      </div>
                     </div>
                   </div>
 

@@ -87,5 +87,12 @@ create table if not exists reports (
   created_at text,
   created_by text,
   reported_by text,
-  date_reported text
+  date_reported text,
+  last_updated_by text,
+  individual_factors jsonb default '[]'::jsonb,
+  family_community_behavior_factors jsonb default '[]'::jsonb,
+  referral_recommendation text,
+  initial_assessment_made_by text,
+  designation text,
+  record_status text
 );

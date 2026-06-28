@@ -567,7 +567,16 @@ export async function saveReport(report: Report): Promise<any> {
       record_status: report.recordStatus,
     },
   ]);
-  if (error) throw error;
+  if (error) {
+    console.error("Supabase create report failure:", error);
+    let userMsg = error.message;
+    if (error.message.includes("column \"designation\" does not exist") || 
+        error.message.includes("column \"individual_factors\" does not exist") ||
+        error.message.includes("Could not find the 'designation' column")) {
+      userMsg = "Database schema mismatch. Required columns (designation, etc.) are missing in your Supabase 'reports' table. Please click the DB Status button at the top and follow the 'Schema Fix' instructions.";
+    }
+    throw new Error(userMsg);
+  }
   return data;
 }
 

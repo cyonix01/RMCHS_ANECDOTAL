@@ -141,6 +141,29 @@ create table if not exists students (
   internet_connectivity text,
   registered_at text,
   registered_by text
+);
+
+-- Create reports table
+create table if not exists reports (
+  id serial primary key,
+  student_lrn text references students(lrn),
+  date_of_incident text,
+  time_of_incident text,
+  issue text,
+  description text,
+  action_taken text,
+  recommendation text,
+  created_at text,
+  created_by text,
+  reported_by text,
+  date_reported text,
+  last_updated_by text,
+  individual_factors jsonb default '[]'::jsonb,
+  family_community_behavior_factors jsonb default '[]'::jsonb,
+  referral_recommendation text,
+  initial_assessment_made_by text,
+  designation text,
+  record_status text
 );`;
     navigator.clipboard.writeText(sql);
     setCopied(true);
@@ -380,18 +403,41 @@ create table if not exists students (
               <div className="p-3 bg-indigo-50/60 border border-indigo-200 text-indigo-950 space-y-2">
                 <div className="flex gap-1.5">
                   <Edit2 size={14} className="shrink-0 text-indigo-600 mt-0.5" />
-                  <p className="font-bold text-xs leading-tight">Missing 'Role' Column? (Schema Fix)</p>
+                  <p className="font-bold text-xs leading-tight">Missing Columns? (Schema Fix)</p>
                 </div>
                 <p className="text-[10px] leading-relaxed text-slate-600">
-                  If you already have a 'users' table but see an error about the 'role' column, run this in your Supabase SQL Editor:
+                  If you see an error about missing columns (role, designation, etc.), run these in your Supabase SQL Editor:
                 </p>
-                <div className="relative font-mono text-[8px] bg-indigo-950 text-indigo-200 p-2 border border-indigo-800 leading-normal">
-                  <pre>{`ALTER TABLE users ADD COLUMN IF NOT EXISTS role text;
+                <div className="relative font-mono text-[8px] bg-indigo-950 text-indigo-200 p-2 border border-indigo-800 leading-normal max-h-40 overflow-y-auto">
+                  <pre>{`-- Fix users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role text;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS grade_level text;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS section text;`}</pre>
+ALTER TABLE users ADD COLUMN IF NOT EXISTS section text;
+
+-- Fix reports table
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS last_updated_by text;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS individual_factors jsonb default '[]'::jsonb;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS family_community_behavior_factors jsonb default '[]'::jsonb;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS referral_recommendation text;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS initial_assessment_made_by text;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS designation text;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS record_status text;`}</pre>
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role text;\nALTER TABLE users ADD COLUMN IF NOT EXISTS grade_level text;\nALTER TABLE users ADD COLUMN IF NOT EXISTS section text;`);
+                      const fixSql = `-- Fix users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role text;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS grade_level text;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS section text;
+
+-- Fix reports table
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS last_updated_by text;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS individual_factors jsonb default '[]'::jsonb;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS family_community_behavior_factors jsonb default '[]'::jsonb;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS referral_recommendation text;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS initial_assessment_made_by text;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS designation text;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS record_status text;`;
+                      navigator.clipboard.writeText(fixSql);
                       setCopied(true);
                       setTimeout(() => setCopied(false), 2000);
                     }}

@@ -27,6 +27,8 @@ import {
   clearAllReports,
   clearAllStudents,
   deleteUser,
+  deleteReport,
+  deleteCriticalReport,
   createSection,
   updateSection,
   deleteSection
@@ -318,6 +320,17 @@ async function startServer() {
     }
   });
 
+  // API ROUTE 7.2: Delete Single Report
+  app.delete("/api/reports/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await deleteReport(id);
+      res.json({ message: "Report deleted successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // API ROUTE 7.5: Save Critical Report
   app.post("/api/critical-reports", async (req, res) => {
     try {
@@ -338,6 +351,17 @@ async function startServer() {
     } catch (err: any) {
       console.error("Failed to fetch critical reports:", err);
       res.status(500).json({ error: `Failed to fetch critical reports: ${err.message}` });
+    }
+  });
+
+  // API ROUTE 7.7: Delete Single Critical Report
+  app.delete("/api/critical-reports/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await deleteCriticalReport(id);
+      res.json({ message: "Critical report deleted successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 

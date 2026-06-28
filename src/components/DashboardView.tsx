@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { LogOut, Settings2, ShieldCheck, Sun, Clock, Calendar, Compass, Clipboard, UserPlus, FileText, Table, BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight, ShieldAlert, Database, Layers, Trash2, Plus, Edit } from "lucide-react";
+import { LogOut, Settings2, ShieldCheck, Sun, Clock, Calendar, Compass, Clipboard, UserPlus, FileText, Table, BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight, ShieldAlert, Database, Layers, Trash2, Plus, Edit, Download, CheckSquare, Square } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { UserAccount, Report, CriticalReport } from "../types";
 import AccountSettingsView from "./AccountSettingsView";
@@ -14,6 +14,7 @@ import CICLSearchModal from "./CICLSearchModal";
 import DataAnalyticsView from "./DataAnalyticsView";
 import AnecdoteChart from "./AnecdoteChart";
 import SectionManagerModal from "./SectionManagerModal";
+import ReportsViewerModal from "./ReportsViewerModal";
 import { useNotification } from "./NotificationProvider";
 
 const ciclOffenses = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
@@ -63,6 +64,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [showDatabaseActions, setShowDatabaseActions] = useState(false);
   const [showSectionManager, setShowSectionManager] = useState(false);
+  const [showReportsViewer, setShowReportsViewer] = useState(false);
   const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
   const [allTeacherReports, setAllTeacherReports] = useState<any[]>([]);
   const [trendData, setTrendData] = useState<{ totalChange: number; academicChange: number; behavioralChange: number }>({ totalChange: 0, academicChange: 0, behavioralChange: 0 });
@@ -73,6 +75,87 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
+  const [selectedReports, setSelectedReports] = useState<{id: string | number, type: string}[]>([]);
+
+  const handleSelectReport = (report: any) => {
+    setSelectedReports(prev => {
+      const isSelected = prev.some(r => r.id === report.id && r.type === report.type);
+      if (isSelected) {
+        return prev.filter(r => !(r.id === report.id && r.type === report.type));
+      } else {
+        return [...prev, { id: report.id, type: report.type }];
+      }
+    });
+  };
+
+  const handleSelectAll = (reportsInView: any[]) => {
+    if (selectedReports.length === reportsInView.length) {
+      setSelectedReports([]);
+    } else {
+      setSelectedReports(reportsInView.map(r => ({ id: r.id, type: r.type })));
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedReports.length === 0) return;
+
+    confirm({
+      title: "Bulk Deletion",
+      message: `Are you sure you want to permanently delete ${selectedReports.length} selected reports? This action is irreversible.`,
+      confirmText: "Delete All",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          const results = await Promise.all(selectedReports.map(report => {
+            const endpoint = report.type === 'General' ? `/api/reports/${report.id}` : `/api/critical-reports/${report.id}`;
+            return fetch(endpoint, { method: 'DELETE' });
+          }));
+
+          if (results.every(r => r.ok)) {
+            notify("success", `${selectedReports.length} reports successfully removed.`);
+            setSelectedReports([]);
+            // Refresh data
+            window.location.reload(); // Simple refresh for now, or I could re-fetch
+          } else {
+            notify("error", "Some records failed to delete.");
+          }
+        } catch (err) {
+          notify("error", "Network error during bulk operation.");
+        }
+      }
+    });
+  };
+
+  const handleExportSelected = () => {
+    if (selectedReports.length === 0) return;
+
+    const reportsToExport = allTeacherReports.filter(r => 
+      selectedReports.some(sr => sr.id === r.id && sr.type === r.type)
+    );
+
+    const csvContent = [
+      ["Type", "Date", "LRN", "Issue", "Description", "Status"],
+      ...reportsToExport.map(r => [
+        r.type,
+        r.dateReported,
+        r.studentLrn,
+        r.issue,
+        `"${(r.description || "").replace(/"/g, '""')}"`,
+        r.recordStatus || "N/A"
+      ])
+    ].map(e => e.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Bulk_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    notify("success", `${selectedReports.length} records archived to CSV.`);
+  };
 
   useEffect(() => {
     Promise.all([
@@ -226,6 +309,15 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
           >
             <Settings2 size={14} className="text-[#76DA0D] group-hover:rotate-45 transition-transform" />
             <span>Account</span>
+          </button>
+
+          <button
+            id="view-reports-btn"
+            onClick={() => setShowReportsViewer(true)}
+            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 font-bold text-[10px] tracking-widest uppercase transition-all hover:border-[#102604] hover:bg-slate-50 text-[#102604] cursor-pointer select-none h-10 shadow-sm"
+          >
+            <FileText size={14} className="text-[#102604] group-hover:scale-110 transition-transform" />
+            <span>View Reports</span>
           </button>
 
           {/* Admin Button with Dropdown */}
@@ -452,6 +544,32 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                     </div>
                     
                     <div className="flex flex-wrap items-center gap-3">
+                      <AnimatePresence>
+                        {selectedReports.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="flex items-center gap-2 pr-4 border-r border-slate-200 mr-2"
+                          >
+                            <span className="text-[10px] font-black uppercase text-blue-500 mr-2 tabular-nums">{selectedReports.length} Selected</span>
+                            <button
+                              onClick={handleExportSelected}
+                              className="p-2 text-slate-400 hover:text-blue-500 transition-colors"
+                              title="Export Selected"
+                            >
+                              <Download size={16} />
+                            </button>
+                            <button
+                              onClick={handleDeleteSelected}
+                              className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                              title="Delete Selected"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       {/* Search Bar */}
                       <div className="relative">
                         <input
@@ -483,6 +601,17 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                     <table className="w-full border-collapse">
                       <thead>
                         <tr className="border-b border-slate-100 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+                          <th className="py-4 px-2 text-left w-10">
+                            <button 
+                              onClick={() => handleSelectAll(filteredReports.slice(0, 10))}
+                              className="text-slate-300 hover:text-[#76DA0D] transition-colors"
+                            >
+                              {selectedReports.length === filteredReports.slice(0, 10).length && selectedReports.length > 0 
+                                ? <CheckSquare size={16} className="text-[#76DA0D]" /> 
+                                : <Square size={16} />
+                              }
+                            </button>
+                          </th>
                           <th className="py-4 px-2 text-left w-24">Date</th>
                           <th className="py-4 px-2 text-left w-32">Student LRN</th>
                           <th className="py-4 px-2 text-left">Issue / Concern</th>
@@ -500,8 +629,19 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: idx * 0.05 }}
-                                className="group hover:bg-slate-50/50 transition-colors"
+                                className={`group hover:bg-slate-50/50 transition-colors ${selectedReports.some(r => r.id === report.id && r.type === report.type) ? 'bg-blue-50/30' : ''}`}
                               >
+                                <td className="py-4 px-2">
+                                  <button 
+                                    onClick={() => handleSelectReport(report)}
+                                    className="text-slate-300 hover:text-[#76DA0D] transition-colors"
+                                  >
+                                    {selectedReports.some(r => r.id === report.id && r.type === report.type)
+                                      ? <CheckSquare size={16} className="text-[#76DA0D]" /> 
+                                      : <Square size={16} />
+                                    }
+                                  </button>
+                                </td>
                                 <td className="py-4 px-2 text-[10px] font-mono text-slate-500 whitespace-nowrap">{report.dateReported}</td>
                                 <td className="py-4 px-2 text-[11px] font-bold text-[#102604]">{report.studentLrn}</td>
                                 <td className="py-4 px-2">
@@ -531,7 +671,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                           })
                         ) : (
                           <tr>
-                            <td colSpan={5} className="py-12 text-center text-[11px] text-slate-400 font-medium italic">
+                            <td colSpan={6} className="py-12 text-center text-[11px] text-slate-400 font-medium italic">
                               No anecdotes found matching your criteria.
                             </td>
                           </tr>
@@ -695,6 +835,13 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
 
         {showSectionManager && (
           <SectionManagerModal onClose={() => setShowSectionManager(false)} />
+        )}
+
+        {showReportsViewer && (
+          <ReportsViewerModal 
+            onClose={() => setShowReportsViewer(false)} 
+            userEmail={user.email || ""}
+          />
         )}
 
         {showRegisterStudent && (

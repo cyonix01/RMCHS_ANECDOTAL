@@ -566,6 +566,7 @@ export async function getAllReports(): Promise<Report[]> {
     return [];
   }
   return (data || []).map((row: any) => ({
+    id: row.id,
     studentLrn: row.student_lrn,
     dateOfIncident: row.date_of_incident,
     timeOfIncident: row.time_of_incident,
@@ -596,6 +597,7 @@ export async function getAllCriticalReports(): Promise<CriticalReport[]> {
     return [];
   }
   return (data || []).map((row: any) => ({
+    id: row.id,
     studentLrn: row.student_lrn,
     dateOfIncident: row.date_of_incident,
     timeOfIncident: row.time_of_incident,
@@ -627,6 +629,26 @@ export async function getAllStudents(): Promise<Student[]> {
     console.error("Supabase read students exception, falling back to local cache:", err);
     return loadLocalStudents();
   }
+}
+
+/**
+ * Delete a single student report.
+ */
+export async function deleteReport(id: string | number): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  const { error } = await supabase.from("reports").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * Delete a single critical student report.
+ */
+export async function deleteCriticalReport(id: string | number): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  const { error } = await supabase.from("critical_reports").delete().eq("id", id);
+  if (error) throw error;
 }
 
 /**

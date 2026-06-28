@@ -14,6 +14,8 @@ import CICLSearchModal from "./CICLSearchModal";
 import DataAnalyticsView from "./DataAnalyticsView";
 import AnecdoteChart from "./AnecdoteChart";
 
+const ciclOffenses = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
+
 const mapToCategory = (issue: string) => {
   const attendanceIssues = [
     "Habitual tardiness", 
@@ -58,6 +60,11 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
   const [allTeacherReports, setAllTeacherReports] = useState<any[]>([]);
   const [trendData, setTrendData] = useState<{ totalChange: number; academicChange: number; behavioralChange: number }>({ totalChange: 0, academicChange: 0, behavioralChange: 0 });
+  const [stats, setStats] = useState({
+    dailyGeneral: 0, totalGeneral: 0,
+    dailyCritical: 0, totalCritical: 0,
+    dailyCICL: 0, totalCICL: 0
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
 
@@ -67,12 +74,28 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
       fetch("/api/critical-reports").then(res => res.json())
     ]).then(([reports, criticalReports]) => {
       const teacherName = `${user.firstName} ${user.lastName}`;
+      const todayStr = new Date().toISOString().split('T')[0];
+
       const teacherReports = [
         ...reports.filter((r: any) => r.reportedBy === teacherName || r.createdBy === user.email).map((r: any) => ({ ...r, type: 'General' })),
         ...criticalReports.filter((r: any) => r.reportedBy === teacherName).map((r: any) => ({ ...r, type: 'Critical' }))
       ].sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
 
       setAllTeacherReports(teacherReports);
+
+      // Calculate Stats for Counters
+      const generalReports = reports.filter((r: any) => (r.reportedBy === teacherName || r.createdBy === user.email) && !ciclOffenses.includes(r.issue));
+      const ciclReports = reports.filter((r: any) => (r.reportedBy === teacherName || r.createdBy === user.email) && ciclOffenses.includes(r.issue));
+      const teacherCritical = criticalReports.filter((r: any) => r.reportedBy === teacherName);
+
+      setStats({
+        totalGeneral: generalReports.length,
+        dailyGeneral: generalReports.filter((r: any) => r.dateReported === todayStr).length,
+        totalCICL: ciclReports.length,
+        dailyCICL: ciclReports.filter((r: any) => r.dateReported === todayStr).length,
+        totalCritical: teacherCritical.length,
+        dailyCritical: teacherCritical.filter((r: any) => r.dateReported === todayStr).length
+      });
 
       const counts: Record<string, number> = {
         Attendance: 0,
@@ -243,6 +266,63 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                     <p id="workspace-description" className="text-xs leading-relaxed text-slate-500 font-sans max-w-sm mx-auto">
                       Your institutional workspace is synchronized. Review your recent report distribution and student engagements below.
                     </p>
+                  </div>
+                </div>
+
+                {/* Metrics Bar */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                  <div className="bg-white border border-slate-100 p-6 shadow-sm text-left relative overflow-hidden group hover:border-[#76DA0D] transition-colors">
+                    <div className="absolute top-0 right-0 p-2 opacity-5">
+                      <FileText size={48} className="text-[#102604]" />
+                    </div>
+                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">General Reports</h6>
+                    <div className="flex items-end gap-6">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Today</span>
+                        <p className="text-3xl font-serif text-[#102604]">{stats.dailyGeneral}</p>
+                      </div>
+                      <div className="h-8 w-[1px] bg-slate-100 self-center" />
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Total</span>
+                        <p className="text-3xl font-serif text-[#102604]">{stats.totalGeneral}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-slate-100 p-6 shadow-sm text-left relative overflow-hidden group hover:border-red-500 transition-colors">
+                    <div className="absolute top-0 right-0 p-2 opacity-5">
+                      <FileText size={48} className="text-red-500" />
+                    </div>
+                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">Critical Incidents</h6>
+                    <div className="flex items-end gap-6">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Today</span>
+                        <p className="text-3xl font-serif text-[#102604]">{stats.dailyCritical}</p>
+                      </div>
+                      <div className="h-8 w-[1px] bg-slate-100 self-center" />
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Total</span>
+                        <p className="text-3xl font-serif text-[#102604]">{stats.totalCritical}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-slate-100 p-6 shadow-sm text-left relative overflow-hidden group hover:border-orange-500 transition-colors">
+                    <div className="absolute top-0 right-0 p-2 opacity-5">
+                      <FileText size={48} className="text-orange-500" />
+                    </div>
+                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">CICL Reports</h6>
+                    <div className="flex items-end gap-6">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Today</span>
+                        <p className="text-3xl font-serif text-[#102604]">{stats.dailyCICL}</p>
+                      </div>
+                      <div className="h-8 w-[1px] bg-slate-100 self-center" />
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Total</span>
+                        <p className="text-3xl font-serif text-[#102604]">{stats.totalCICL}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

@@ -26,14 +26,58 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGrade, setSelectedGrade] = useState("Grade 7");
+  const [selectedSections, setSelectedSections] = useState<Section[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState<Section | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [newName, setNewName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  const toggleSectionSelection = (section: Section) => {
+    setSelectedSections(prev => 
+      prev.some(s => s.gradeLevel === section.gradeLevel && s.name === section.name)
+        ? prev.filter(s => !(s.gradeLevel === section.gradeLevel && s.name === section.name))
+        : [...prev, section]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedSections.length === sections.length) {
+      setSelectedSections([]);
+    } else {
+      setSelectedSections(sections);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    confirm({
+      title: "Delete Selected Sections",
+      message: `Are you sure you want to permanently delete ${selectedSections.length} sections? This action cannot be undone.`,
+      confirmText: "Delete Selected",
+      variant: "danger",
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          await Promise.all(selectedSections.map(section => 
+            fetch(`/api/admin/sections?gradeLevel=${encodeURIComponent(section.gradeLevel)}&name=${encodeURIComponent(section.name)}`, {
+              method: "DELETE"
+            })
+          ));
+          notify("success", `${selectedSections.length} sections removed.`);
+          setSelectedSections([]);
+          fetchSections();
+        } catch (err) {
+          notify("error", "Network error during deletion.");
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
+
   const fetchSections = async () => {
     setLoading(true);
+    setSelectedSections([]);
     try {
       const res = await fetch(`/api/sections?gradeLevel=${encodeURIComponent(selectedGrade)}`);
       if (res.ok) {
@@ -181,18 +225,29 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
               <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">
                 {selectedGrade} Sections
               </h4>
-              <button
-                onClick={() => {
-                  setIsAdding(true);
-                  setIsEditing(null);
-                  setNewName("");
-                  setError(null);
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 bg-[#102604] text-white text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors"
-              >
-                <Plus size={14} />
-                <span>Add Section</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {selectedSections.length > 0 && (
+                  <button
+                    onClick={handleDeleteSelected}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-red-600 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                    <span>Delete {selectedSections.length} Selected</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setIsAdding(true);
+                    setIsEditing(null);
+                    setNewName("");
+                    setError(null);
+                  }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#102604] text-white text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                >
+                  <Plus size={14} />
+                  <span>Add Section</span>
+                </button>
+              </div>
             </div>
 
             <AnimatePresence mode="wait">
@@ -253,35 +308,54 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
               {loading ? (
                 <div className="py-12 text-center text-slate-400 italic text-[11px]">Loading sections...</div>
               ) : sections.length > 0 ? (
-                sections.map((section, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 bg-white border border-slate-100 hover:border-slate-300 transition-colors group"
-                  >
-                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">{section.name}</span>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => {
-                          setIsEditing(section);
-                          setIsAdding(false);
-                          setNewName(section.name);
-                          setError(null);
-                        }}
-                        className="p-1.5 text-blue-500 hover:bg-blue-50 transition-colors"
-                        title="Edit Section"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(section)}
-                        className="p-1.5 text-red-500 hover:bg-red-50 transition-colors"
-                        title="Delete Section"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                <>
+                  <div className="flex items-center gap-3 px-3 mb-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedSections.length === sections.length}
+                      onChange={toggleSelectAll}
+                      className="cursor-pointer"
+                    />
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Select All</span>
                   </div>
-                ))
+                  {sections.map((section, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3 bg-white border border-slate-100 hover:border-slate-300 transition-colors group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedSections.some(s => s.gradeLevel === section.gradeLevel && s.name === section.name)}
+                          onChange={() => toggleSectionSelection(section)}
+                          className="cursor-pointer"
+                        />
+                        <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">{section.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => {
+                            setIsEditing(section);
+                            setIsAdding(false);
+                            setNewName(section.name);
+                            setError(null);
+                          }}
+                          className="p-1.5 text-blue-500 hover:bg-blue-50 transition-colors"
+                          title="Edit Section"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(section)}
+                          className="p-1.5 text-red-500 hover:bg-red-50 transition-colors"
+                          title="Delete Section"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </>
               ) : (
                 <div className="py-12 text-center text-slate-400 italic text-[11px]">
                   No sections registered for this grade level.

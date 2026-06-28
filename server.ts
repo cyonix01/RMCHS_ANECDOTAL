@@ -519,7 +519,7 @@ async function startServer() {
           driveUploadWarning = "Google Drive upload bypassed (Service Account credentials are not configured in Settings).";
         } else {
           try {
-            const folderId = "1oWyTYIY2piGBHGpbUS6lUtuYlOnMxnBB";
+            const folderId = "1pdK5pnnPn0y8smqxwc6qfgS3Lqm5upAu";
             driveFile = await uploadFileToGoogleDrive(file.base64, file.name, file.mimeType, folderId);
             console.log("Uploaded successfully to Google Drive:", driveFile);
           } catch (uploadErr: any) {
@@ -528,7 +528,7 @@ async function startServer() {
             
             const errMsg = uploadErr.message || String(uploadErr);
             if (errMsg.includes("not found") || errMsg.includes("permission") || errMsg.includes("access")) {
-              driveUploadWarning = `Google Drive upload failed. Please ensure you have shared your Google Drive Folder (ID: 1oWyTYIY2piGBHGpbUS6lUtuYlOnMxnBB) with the Service Account email (${saEmail}) as an Editor! (Error: ${errMsg})`;
+              driveUploadWarning = `Google Drive upload failed. Please ensure you have shared your Google Drive Folder (ID: 1pdK5pnnPn0y8smqxwc6qfgS3Lqm5upAu) with the Service Account email (${saEmail}) as an Editor! (Error: ${errMsg})`;
             } else {
               driveUploadWarning = `Google Drive upload failed (${errMsg}), but report status was successfully updated.`;
             }

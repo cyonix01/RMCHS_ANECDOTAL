@@ -8,6 +8,7 @@ interface CriticalReportModalProps {
   student: Student;
   userName: string;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 const ISSUE_OPTIONS = [
@@ -62,7 +63,7 @@ const RECOMMENDATION_OPTIONS = [
   "Others (please specify)"
 ];
 
-export default function CriticalReportModal({ student, userName, onClose }: CriticalReportModalProps) {
+export default function CriticalReportModal({ student, userName, onClose, onSuccess }: CriticalReportModalProps) {
   const { notify } = useNotification();
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState<CriticalReport>({
@@ -92,6 +93,7 @@ export default function CriticalReportModal({ student, userName, onClose }: Crit
         throw new Error(errorData.error || "Failed to save critical report");
       }
       notify("success", "Critical report saved and archived successfully.");
+      if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
       console.error(err);

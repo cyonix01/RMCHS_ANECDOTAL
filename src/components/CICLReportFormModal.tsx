@@ -8,6 +8,7 @@ interface CICLReportFormModalProps {
   student: Student;
   userName: string;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 const OFFENSE_OPTIONS = [
@@ -48,7 +49,7 @@ const RECOMMENDATION_OPTIONS = [
   "Counseling", "Behavioral Contract", "Community Service", "Parent-Teacher Conference", "Other"
 ];
 
-export default function CICLReportFormModal({ student, userName, onClose }: CICLReportFormModalProps) {
+export default function CICLReportFormModal({ student, userName, onClose, onSuccess }: CICLReportFormModalProps) {
   const { notify } = useNotification();
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState<Report>({
@@ -84,6 +85,7 @@ export default function CICLReportFormModal({ student, userName, onClose }: CICL
         throw new Error(errorData.error || "Failed to save report");
       }
       notify("success", "CICL report saved successfully!");
+      if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
       console.error(err);

@@ -8,6 +8,7 @@ interface StudentReportModalProps {
   student: Student;
   userName: string;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 const ISSUE_OPTIONS = [
@@ -55,7 +56,7 @@ const RECOMMENDATION_OPTIONS = [
   "Others (please specify)"
 ];
 
-export default function StudentReportModal({ student, userName, onClose }: StudentReportModalProps) {
+export default function StudentReportModal({ student, userName, onClose, onSuccess }: StudentReportModalProps) {
   const { notify } = useNotification();
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState<Report>({
@@ -90,6 +91,7 @@ export default function StudentReportModal({ student, userName, onClose }: Stude
         throw new Error(errorData.error || "Failed to save report");
       }
       notify("success", "Student report saved successfully!");
+      if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
       console.error(err);

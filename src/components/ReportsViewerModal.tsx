@@ -257,7 +257,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
           notify("warning", `Archive updated! ${driveUploadWarning}`);
         } else {
           const successMsg = statusEdit === 'RESOLVED' && selectedReportForView.recordStatus !== 'RESOLVED'
-            ? `Report successfully resolved and MOV saved to Google Drive!${driveFileResult?.webViewLink ? " File Link: " + driveFileResult.webViewLink : ""}`
+            ? `Report successfully resolved and MOV saved to Supabase Storage!${driveFileResult?.webViewLink ? " File Link: " + driveFileResult.webViewLink : ""}`
             : "Archive successfully updated and saved.";
           notify("success", successMsg);
         }
@@ -741,7 +741,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                                 Required: Upload Mean of Verification (MOV)
                               </label>
                               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
-                                File will be uploaded to Google Drive as: <span className="font-mono text-[#102604] lowercase select-all">Rerport {selectedReportForView.id}_{selectedReportForView.grade}_{selectedReportForView.section}.[ext]</span>
+                                File will be uploaded to Supabase Storage as: <span className="font-mono text-[#102604] lowercase select-all">Rerport {selectedReportForView.id}_{selectedReportForView.grade}_{selectedReportForView.section}.[ext]</span>
                               </p>
                             </div>
                             <div className="flex items-center gap-3">

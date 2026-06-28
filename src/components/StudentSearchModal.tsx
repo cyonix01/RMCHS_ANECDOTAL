@@ -8,9 +8,10 @@ import CriticalReportModal from "./CriticalReportModal";
 interface StudentSearchModalProps {
   userName: string;
   onClose: () => void;
+  onReportFiled?: () => void;
 }
 
-export default function StudentSearchModal({ userName, onClose }: StudentSearchModalProps) {
+export default function StudentSearchModal({ userName, onClose, onReportFiled }: StudentSearchModalProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
@@ -120,6 +121,7 @@ export default function StudentSearchModal({ userName, onClose }: StudentSearchM
             student={selectedStudent} 
             userName={userName}
             onClose={() => setSelectedStudent(null)} 
+            onSuccess={onReportFiled}
           />
         )}
         {selectedCriticalStudent && (
@@ -127,6 +129,7 @@ export default function StudentSearchModal({ userName, onClose }: StudentSearchM
             student={selectedCriticalStudent}
             userName={userName}
             onClose={() => setSelectedCriticalStudent(null)} 
+            onSuccess={onReportFiled}
           />
         )}
       </AnimatePresence>

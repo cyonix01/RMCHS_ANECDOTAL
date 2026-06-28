@@ -1173,5 +1173,52 @@ export async function getStudentByLrn(lrn: string): Promise<Student | null> {
   return null;
 }
 
+/**
+ * Uploads a base64 encoded file to Supabase Storage 'MOVs' bucket.
+ * Returns the public URL of the uploaded file.
+ */
+export async function uploadFileToSupabaseStorage(
+  base64Data: string,
+  fileName: string,
+  mimeType: string
+): Promise<{ fileName: string; publicUrl: string }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    throw new Error("Supabase client is not initialized.");
+  }
+
+  const timestamp = Date.now();
+  const cleanFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const uniqueFileName = `${timestamp}_${cleanFileName}`;
+
+  const buffer = Buffer.from(base64Data, "base64");
+
+  const { data, error } = await supabase.storage
+    .from("MOVs")
+    .upload(uniqueFileName, buffer, {
+      contentType: mimeType,
+      upsert: true,
+    });
+
+  if (error) {
+    console.error("Supabase Storage upload error details:", error);
+    throw error;
+  }
+
+  // Get public URL
+  const { data: publicUrlData } = supabase.storage
+    .from("MOVs")
+    .getPublicUrl(uniqueFileName);
+
+  if (!publicUrlData || !publicUrlData.publicUrl) {
+    throw new Error("Failed to generate public URL for uploaded file.");
+  }
+
+  return {
+    fileName: uniqueFileName,
+    publicUrl: publicUrlData.publicUrl,
+  };
+}
+
 
 

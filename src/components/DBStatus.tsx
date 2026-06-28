@@ -29,29 +29,29 @@ export default function DBStatus() {
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);
 
-  // Google Drive Diagnostics states
-  const [driveDiagnostic, setDriveDiagnostic] = useState<{
+  // Supabase Storage Diagnostics states
+  const [storageDiagnostic, setStorageDiagnostic] = useState<{
     running: boolean;
     result: any;
     error: any;
   } | null>(null);
 
-  const runDriveDiagnostics = async () => {
-    setDriveDiagnostic({ running: true, result: null, error: null });
+  const runStorageDiagnostics = async () => {
+    setStorageDiagnostic({ running: true, result: null, error: null });
     try {
-      const res = await fetch("/api/diagnose-drive");
+      const res = await fetch("/api/diagnose-storage");
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          setDriveDiagnostic({ running: false, result: data, error: null });
+          setStorageDiagnostic({ running: false, result: data, error: null });
         } else {
-          setDriveDiagnostic({ running: false, result: null, error: data.error || data });
+          setStorageDiagnostic({ running: false, result: null, error: data.error || data });
         }
       } else {
         throw new Error(`HTTP Error ${res.status}`);
       }
     } catch (err: any) {
-      setDriveDiagnostic({
+      setStorageDiagnostic({
         running: false,
         result: null,
         error: { message: err.message || "Unknown error occurred" }
@@ -545,70 +545,72 @@ CREATE TABLE IF NOT EXISTS notifications (
               </div>
             </div>
 
-            {/* Google Drive Diagnostics Section */}
+            {/* Supabase Storage Diagnostics Section */}
             <div className="p-3 bg-slate-50 border border-slate-200 text-slate-900 space-y-2">
               <div className="flex justify-between items-center">
                 <div className="flex gap-1.5 items-center">
                   <Database size={14} className="text-[#102604]" />
-                  <p className="font-bold text-xs leading-tight">Google Drive Diagnostics</p>
+                  <p className="font-bold text-xs leading-tight">Supabase Storage 'MOVs' Diagnostics</p>
                 </div>
                 <button
                   type="button"
-                  onClick={runDriveDiagnostics}
-                  disabled={driveDiagnostic?.running}
+                  onClick={runStorageDiagnostics}
+                  disabled={storageDiagnostic?.running}
                   className="px-2 py-1 text-[8px] font-black uppercase tracking-wider bg-[#102604] hover:bg-[#102604]/90 text-white rounded-none cursor-pointer disabled:opacity-50"
                 >
-                  {driveDiagnostic?.running ? "Running..." : "Run Test"}
+                  {storageDiagnostic?.running ? "Running..." : "Run Test"}
                 </button>
               </div>
               <p className="text-[10px] leading-relaxed text-slate-500">
-                Verify if your Service Account credentials can locate and access the Google Drive folder for Mean of Verification (MOV) attachments.
+                Verify if your Supabase configurations can successfully locate, connect, and retrieve read/write metadata from the 'MOVs' storage bucket.
               </p>
 
-              {driveDiagnostic && (
+              {storageDiagnostic && (
                 <div className="mt-2 text-[10px] space-y-1.5 p-2 bg-white border border-slate-200">
-                  {driveDiagnostic.running && (
-                    <p className="text-slate-500 animate-pulse font-bold">Running GAPI connection test...</p>
+                  {storageDiagnostic.running && (
+                    <p className="text-slate-500 animate-pulse font-bold">Running Supabase Storage connection test...</p>
                   )}
 
-                  {driveDiagnostic.result && (
+                  {storageDiagnostic.result && (
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-1 text-emerald-700 font-bold">
                         <CheckCircle size={12} />
-                        <span>GAPI Connection Successful!</span>
+                        <span>Supabase 'MOVs' Storage Bucket Found!</span>
                       </div>
-                      <p className="text-[9px] text-slate-600">
-                        <strong>Folder Name:</strong> {driveDiagnostic.result.metadata?.name || "Unknown"}<br />
-                        <strong>ID:</strong> {driveDiagnostic.result.folderId}<br />
-                        <strong>Type:</strong> {driveDiagnostic.result.metadata?.mimeType || "Unknown"}
+                      <p className="text-[9px] text-slate-600 font-mono">
+                        <strong>Bucket Name:</strong> {storageDiagnostic.result.bucket?.name || "Unknown"}<br />
+                        <strong>ID:</strong> {storageDiagnostic.result.bucket?.id || "Unknown"}<br />
+                        <strong>MIME Filters:</strong> {storageDiagnostic.result.bucket?.allowed_mime_types?.join(", ") || "Any type allowed"}<br />
+                        <strong>Access Mode:</strong> {storageDiagnostic.result.bucket?.public ? "Public Access (Shared)" : "Private Storage"}<br />
+                        <strong>Existing File Count (Limit 5):</strong> {storageDiagnostic.result.filesCount} file(s) scanned
                       </p>
                       <details className="cursor-pointer text-[8px]">
-                        <summary className="text-[#102604] font-bold underline">Show detailed GAPI logs</summary>
+                        <summary className="text-[#102604] font-bold underline">Show detailed diagnostics logs</summary>
                         <pre className="mt-1 bg-slate-950 text-slate-300 p-1.5 overflow-x-auto text-[8px] font-mono leading-normal max-h-32">
-                          {driveDiagnostic.result.logs?.join("\n")}
+                          {storageDiagnostic.result.logs?.join("\n")}
                         </pre>
                       </details>
                     </div>
                   )}
 
-                  {driveDiagnostic.error && (
+                  {storageDiagnostic.error && (
                     <div className="space-y-1.5 text-red-800">
                       <div className="flex items-center gap-1 font-bold">
                         <AlertTriangle size={12} className="text-red-600" />
-                        <span>GAPI Request Failed</span>
+                        <span>Supabase Storage Test Failed</span>
                       </div>
                       <p className="text-[9px] bg-red-50 p-1.5 border border-red-100 font-mono break-words leading-tight">
-                        {driveDiagnostic.error.message || JSON.stringify(driveDiagnostic.error)}
+                        {storageDiagnostic.error.message || JSON.stringify(storageDiagnostic.error)}
                       </p>
-                      {driveDiagnostic.error.code && (
+                      {storageDiagnostic.error.status && (
                         <p className="text-[9px] font-semibold text-red-600">
-                          Error Code: {driveDiagnostic.error.code} {driveDiagnostic.error.status ? `(${driveDiagnostic.error.status})` : ""}
+                          Status Code: {storageDiagnostic.error.status}
                         </p>
                       )}
                       <details className="cursor-pointer text-[8px]">
                         <summary className="text-red-700 font-bold underline">Show execution log</summary>
                         <pre className="mt-1 bg-slate-950 text-slate-300 p-1.5 overflow-x-auto text-[8px] font-mono leading-normal max-h-32">
-                          {JSON.stringify(driveDiagnostic.error, null, 2)}
+                          {JSON.stringify(storageDiagnostic.error, null, 2)}
                         </pre>
                       </details>
                     </div>

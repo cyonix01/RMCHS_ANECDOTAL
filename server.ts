@@ -48,7 +48,8 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   clearNotifications,
-  getStudentByLrn
+  getStudentByLrn,
+  uploadFileToSupabaseStorage
 } from "./server/database";
 import { UserAccount, Student, AppNotification } from "./src/types";
 
@@ -182,57 +183,50 @@ async function startServer() {
     res.json(status);
   });
 
-  // API ROUTE 1.05: Diagnose Google Drive Connection, Folders and Permissions
-  app.get("/api/diagnose-drive", async (req, res) => {
+  // API ROUTE 1.05: Diagnose Supabase Storage Bucket Access
+  app.get("/api/diagnose-storage", async (req, res) => {
     const diagnosticLog: string[] = [];
     const log = (...args: any[]) => {
       const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(" ");
-      console.log("[DRIVE-DIAGNOSIS]", msg);
+      console.log("[STORAGE-DIAGNOSIS]", msg);
       diagnosticLog.push(msg);
     };
 
-    log("Starting Google Drive diagnostic test...");
+    log("Starting Supabase Storage bucket ('MOVs') diagnostic test...");
     try {
-      const { saEmail, saPrivateKey } = getGoogleCredentials();
-      log(`Service Account Email: ${saEmail || "NOT CONFIGURED"}`);
-      log(`Private Key Exists: ${saPrivateKey ? "YES (Length: " + saPrivateKey.length + ")" : "NO"}`);
-
-      if (!saEmail || !saPrivateKey) {
-        throw new Error("Google Service Account credentials are not configured in environment variables.");
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        throw new Error("Supabase client is not initialized. Please verify your Supabase URL and Anon Key configurations.");
       }
 
-      log("Initializing Google Auth client with JWT...");
-      const auth = new google.auth.JWT({
-        email: saEmail,
-        key: saPrivateKey.replace(/\\n/g, "\n"),
-        scopes: ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/drive.file"]
-      });
-
-      log("Authorizing client with Google Drive API...");
-      const token = await auth.authorize();
-      log("Auth token successfully acquired!");
-
-      const drive = google.drive({ version: "v3", auth });
-      const folderId = "1pdK5pnnPn0y8smqxwc6qfgS3Lqm5upAu";
-
-      log(`Fetching folder metadata for ID: '${folderId}'`);
+      log("Supabase client successfully initialized.");
+      log("Checking if 'MOVs' bucket exists and is accessible...");
       
-      const response = await drive.files.get({
-        fileId: folderId,
-        supportsAllDrives: true,
-        fields: "id, name, mimeType, parents, owners, capabilities, description"
-      });
+      const { data: bucket, error: bucketError } = await supabase.storage.getBucket('MOVs');
+      
+      if (bucketError) {
+        log("Failed to find or access 'MOVs' bucket.");
+        throw bucketError;
+      }
 
+      log("Successfully found 'MOVs' bucket. Metadata:");
+      log(bucket);
+
+      log("Listing files in 'MOVs' bucket to test read access permissions...");
+      const { data: files, error: filesError } = await supabase.storage.from('MOVs').list('', { limit: 5 });
+
+      if (filesError) {
+        log("Successfully accessed bucket, but failed to list files (likely a policy or permission issue).");
+        throw filesError;
+      }
+
+      log(`Successfully listed ${files ? files.length : 0} file(s) in 'MOVs' bucket.`);
       log("DIAGNOSTIC TEST SUCCESSFUL!");
-      log("Response status:", response.status);
-      log("Folder metadata response data:");
-      log(response.data);
 
       res.json({
         success: true,
-        credentialsFound: true,
-        folderId,
-        metadata: response.data,
+        bucket,
+        filesCount: files ? files.length : 0,
         logs: diagnosticLog
       });
     } catch (err: any) {
@@ -241,8 +235,7 @@ async function startServer() {
         message: err.message || String(err),
         code: err.code,
         status: err.status,
-        errors: err.errors,
-        stack: err.stack
+        details: err.details
       };
       log("Error details:");
       log(errorObj);
@@ -662,46 +655,28 @@ async function startServer() {
           return res.status(400).json({ error: "Mean of Verification (MOV) file is required to resolve this report." });
         }
 
-        const { saEmail, saPrivateKey } = getGoogleCredentials();
-        if (!saEmail || !saPrivateKey) {
-          console.warn("Google Drive credentials not configured. Falling back to local server storage.");
+        try {
+          console.log(`[MOV-UPLOAD] Attempting to upload '${file.name}' to Supabase Storage 'MOVs' bucket.`);
+          const uploaded = await uploadFileToSupabaseStorage(file.base64, file.name, file.mimeType);
+          savedFileUrl = uploaded.publicUrl;
+          savedFileName = uploaded.fileName;
+          // Set driveFile for backwards compatibility with the client success link
+          driveFile = { webViewLink: savedFileUrl };
+          console.log(`[MOV-UPLOAD] Upload successful! Public URL: ${savedFileUrl}`);
+        } catch (uploadErr: any) {
+          console.error("Failed to upload MOV to Supabase Storage 'MOVs' bucket:", uploadErr);
+          const errMsg = uploadErr.message || String(uploadErr);
+          console.warn(`Supabase Storage upload failed (${errMsg}). Falling back to local server storage.`);
+          
           try {
             const localFile = saveFileLocally(file.base64, file.name);
             savedFileUrl = localFile.fileUrl;
             savedFileName = file.name;
-            driveUploadWarning = "Uploaded to Local Server Storage (Google Drive credentials are not configured in Settings).";
+            driveFile = { webViewLink: savedFileUrl };
+            driveUploadWarning = `Supabase storage upload failed (${errMsg}). File successfully saved to Local Server Storage instead!`;
           } catch (localErr: any) {
-            console.error("Local storage fallback failed:", localErr);
-            driveUploadWarning = `All storage options failed. Local error: ${localErr.message}`;
-          }
-        } else {
-          try {
-            const folderId = "1pdK5pnnPn0y8smqxwc6qfgS3Lqm5upAu";
-            driveFile = await uploadFileToGoogleDrive(file.base64, file.name, file.mimeType, folderId);
-            console.log("Uploaded successfully to Google Drive:", driveFile);
-            savedFileUrl = driveFile.webViewLink;
-            savedFileName = file.name;
-          } catch (uploadErr: any) {
-            console.error("Failed to upload MOV to Google Drive:", uploadErr);
-            const errMsg = uploadErr.message || String(uploadErr);
-            console.warn(`Google Drive upload failed (${errMsg}). Falling back to local server storage.`);
-            
-            try {
-              const localFile = saveFileLocally(file.base64, file.name);
-              savedFileUrl = localFile.fileUrl;
-              savedFileName = file.name;
-              
-              if (errMsg.includes("storageQuotaExceeded") || errMsg.includes("storage quota")) {
-                driveUploadWarning = `Google Drive storage quota exceeded for Service Account. File successfully saved to Local Server Storage instead!`;
-              } else if (errMsg.includes("not found") || errMsg.includes("permission") || errMsg.includes("access")) {
-                driveUploadWarning = `Google Drive folder not shared with Service Account (${saEmail}). File successfully saved to Local Server Storage instead!`;
-              } else {
-                driveUploadWarning = `Google Drive upload failed (${errMsg}). File successfully saved to Local Server Storage instead!`;
-              }
-            } catch (localErr: any) {
-              console.error("Local storage fallback failed after Google Drive failed:", localErr);
-              driveUploadWarning = `Google Drive upload failed (${errMsg}) and Local Storage also failed (${localErr.message})`;
-            }
+            console.error("Local storage fallback failed after Supabase upload failed:", localErr);
+            driveUploadWarning = `Supabase storage upload failed (${errMsg}) and Local Storage also failed (${localErr.message})`;
           }
         }
       }

@@ -11,7 +11,7 @@ import { google } from "googleapis";
 import { Readable } from "stream";
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ override: true });
 import { 
   initDatabase, 
   getUserByEmail, 
@@ -125,6 +125,7 @@ async function uploadFileToGoogleDrive(
   const response = await drive.files.create({
     requestBody: fileMetadata,
     media: media,
+    supportsAllDrives: true,
     fields: "id, name, webViewLink",
   });
 

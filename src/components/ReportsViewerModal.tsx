@@ -172,6 +172,11 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
         })
       });
 
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch (jsonErr) {}
+
       if (res.ok) {
         notify("success", "Recommendation updated and signed.");
         // Update local state
@@ -182,7 +187,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
         ));
         setSelectedReportForView(prev => prev ? { ...prev, recommendation: recommendationEdit, lastUpdatedBy: userEmail } : null);
       } else {
-        notify("error", "Failed to commit update to registry.");
+        notify("error", data.error || "Failed to commit update to registry.");
       }
     } catch (err) {
       notify("error", "Registry connection failed.");

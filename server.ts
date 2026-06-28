@@ -478,6 +478,7 @@ async function startServer() {
       await updateReportRecommendation(id, recommendation, updatedBy);
       res.json({ message: "Recommendation updated successfully" });
     } catch (err: any) {
+      console.error("Failed to update report recommendation:", err);
       res.status(500).json({ error: err.message });
     }
   });
@@ -592,6 +593,7 @@ async function startServer() {
       await updateCriticalReportRecommendation(id, recommendation, updatedBy);
       res.json({ message: "Recommendation updated successfully" });
     } catch (err: any) {
+      console.error("Failed to update critical report recommendation:", err);
       res.status(500).json({ error: err.message });
     }
   });

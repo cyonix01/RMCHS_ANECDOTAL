@@ -53,14 +53,30 @@ function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
 
+function getGoogleCredentials() {
+  let saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  let saPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+
+  if (saPrivateKey && saPrivateKey.trim().startsWith("{")) {
+    try {
+      const parsed = JSON.parse(saPrivateKey);
+      saPrivateKey = parsed.private_key;
+      saEmail = parsed.client_email || saEmail;
+    } catch (err) {
+      console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY as JSON:", err);
+    }
+  }
+
+  return { saEmail, saPrivateKey };
+}
+
 async function uploadFileToGoogleDrive(
   base64Data: string,
   fileName: string,
   mimeType: string,
   folderId: string
 ) {
-  const saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const saPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+  const { saEmail, saPrivateKey } = getGoogleCredentials();
 
   if (!saEmail || !saPrivateKey) {
     throw new Error("Google Service Account credentials are not configured in environment variables.");
@@ -113,7 +129,9 @@ async function startServer() {
 
   // API ROUTE 1: Check Database Configuration Status
   app.get("/api/db-status", (req, res) => {
-    res.json(getDatabaseStatus());
+    const status: any = getDatabaseStatus();
+    status.google_env_keys = Object.keys(process.env).filter(k => k.startsWith("GOOGLE"));
+    res.json(status);
   });
 
   // API ROUTE 1.6: Update Custom Supabase Configurations
@@ -482,8 +500,7 @@ async function startServer() {
           console.error("Failed to upload MOV to Google Drive:", uploadErr);
           
           // Check if credentials are just missing, to give an extremely descriptive helpful instruction message
-          const saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-          const saPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+          const { saEmail, saPrivateKey } = getGoogleCredentials();
           if (!saEmail || !saPrivateKey) {
             return res.status(500).json({ 
               error: "Google Drive Upload Failed: Service Account credentials are not configured in environment variables. Please add GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY in Settings." 

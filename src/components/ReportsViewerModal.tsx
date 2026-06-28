@@ -13,6 +13,10 @@ interface ReportsViewerModalProps {
   onClose: () => void;
   userEmail: string;
   userRole?: string;
+  userGradeLevel?: string;
+  userSection?: string;
+  userFirstName?: string;
+  userLastName?: string;
 }
 
 interface CombinedReport {
@@ -34,7 +38,15 @@ interface CombinedReport {
   recordStatus?: 'On Going' | 'RESOLVED';
 }
 
-const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEmail, userRole }) => {
+const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ 
+  onClose, 
+  userEmail, 
+  userRole,
+  userGradeLevel,
+  userSection,
+  userFirstName,
+  userLastName
+}) => {
   const { notify } = useNotification();
   const [reports, setReports] = useState<CombinedReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,9 +121,22 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
           })
         ];
 
+          const teacherName = `${userFirstName || ''} ${userLastName || ''}`.trim();
+          let filteredCombined = combined;
+
+          if (userRole === 'Admin' || userRole === 'Guidance') {
+            // Admin and Guidance see all records across entire school
+          } else if (userRole === 'Adviser') {
+            // Advisers see only records under their sections/gradeLevel
+            filteredCombined = combined.filter(r => r.grade === userGradeLevel && r.section === userSection);
+          } else {
+            // Fallback or Non-Adviser (only see reports they reported)
+            filteredCombined = combined.filter(r => r.reportedBy === teacherName);
+          }
+
           // Sort by date descending
-          combined.sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
-          setReports(combined);
+          filteredCombined.sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
+          setReports(filteredCombined);
         } else {
           notify("error", "Failed to retrieve institutional records.");
         }

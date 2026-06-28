@@ -171,9 +171,35 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
       // Use local date (YYYY-MM-DD) instead of UTC to match "Today's" reports correctly
       const todayStr = new Date().toLocaleDateString('en-CA');
 
+      let filteredGeneral = reports;
+      let filteredCritical = criticalReports;
+
+      if (user.role === 'Admin' || user.role === 'Guidance') {
+        // Admin and Guidance see all records across entire school
+      } else if (user.role === 'Adviser') {
+        // Advisers see only records of students in their assigned gradeLevel and section
+        const adviserGrade = user.gradeLevel;
+        const adviserSection = user.section;
+        const studentMap = new Map<string, any>(students.map((s: any) => [s.lrn, s]));
+        
+        filteredGeneral = reports.filter((r: any) => {
+          const student = studentMap.get(r.studentLrn);
+          return student && student.gradeLevel === adviserGrade && student.section === adviserSection;
+        });
+        
+        filteredCritical = criticalReports.filter((r: any) => {
+          const student = studentMap.get(r.studentLrn);
+          return student && student.gradeLevel === adviserGrade && student.section === adviserSection;
+        });
+      } else {
+        // Fallback or Non-Adviser (only see reports they reported or created)
+        filteredGeneral = reports.filter((r: any) => r.reportedBy === teacherName || r.createdBy === user.email);
+        filteredCritical = criticalReports.filter((r: any) => r.reportedBy === teacherName);
+      }
+
       const teacherReports = [
-        ...reports.filter((r: any) => r.reportedBy === teacherName || r.createdBy === user.email).map((r: any) => ({ ...r, type: 'General' })),
-        ...criticalReports.filter((r: any) => r.reportedBy === teacherName).map((r: any) => ({ ...r, type: 'Critical' }))
+        ...filteredGeneral.map((r: any) => ({ ...r, type: 'General' })),
+        ...filteredCritical.map((r: any) => ({ ...r, type: 'Critical' }))
       ].sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
 
       setAllTeacherReports(teacherReports);
@@ -200,9 +226,9 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
       setTopStudents(sortedStudents);
 
       // Calculate Stats for Counters
-      const generalReports = reports.filter((r: any) => (r.reportedBy === teacherName || r.createdBy === user.email) && !ciclOffenses.includes(r.issue));
-      const ciclReports = reports.filter((r: any) => (r.reportedBy === teacherName || r.createdBy === user.email) && ciclOffenses.includes(r.issue));
-      const teacherCritical = criticalReports.filter((r: any) => r.reportedBy === teacherName);
+      const generalReports = filteredGeneral.filter((r: any) => !ciclOffenses.includes(r.issue));
+      const ciclReports = filteredGeneral.filter((r: any) => ciclOffenses.includes(r.issue));
+      const teacherCritical = filteredCritical;
 
       setStats({
         totalGeneral: generalReports.length,
@@ -990,6 +1016,10 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
             onClose={() => setShowReportsViewer(false)} 
             userEmail={user.email || ""}
             userRole={user.role}
+            userGradeLevel={user.gradeLevel}
+            userSection={user.section}
+            userFirstName={user.firstName}
+            userLastName={user.lastName}
           />
         )}
 

@@ -23,7 +23,13 @@ import {
   saveCriticalReport,
   getAllCriticalReports,
   getSectionsByGradeLevel,
-  getSupabaseClient
+  getSupabaseClient,
+  clearAllReports,
+  clearAllStudents,
+  deleteUser,
+  createSection,
+  updateSection,
+  deleteSection
 } from "./server/database";
 import { UserAccount, Student } from "./src/types";
 
@@ -339,15 +345,89 @@ async function startServer() {
   app.get("/api/sections", async (req, res) => {
     try {
       const { gradeLevel } = req.query;
-      if (!gradeLevel || typeof gradeLevel !== "string") {
-        return res.status(400).json({ error: "Grade Level is required." });
+      if (gradeLevel && typeof gradeLevel === "string") {
+        const sections = await getSectionsByGradeLevel(gradeLevel);
+        return res.json(sections);
       }
-      const sections = await getSectionsByGradeLevel(gradeLevel);
-      console.log(`Fetching sections for ${gradeLevel}:`, sections);
-      res.json(sections);
+      // If no gradeLevel, maybe return all? Or error.
+      // For now, let's keep it consistent with the UI's needs.
+      res.status(400).json({ error: "Grade Level is required." });
     } catch (err: any) {
       console.error("Failed to fetch sections:", err);
       res.status(500).json({ error: `Failed to fetch sections: ${err.message}` });
+    }
+  });
+
+  // ADMIN API: Clear Reports
+  app.delete("/api/admin/clear-reports", async (req, res) => {
+    try {
+      await clearAllReports();
+      res.json({ message: "All reports cleared." });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ADMIN API: Clear Students
+  app.delete("/api/admin/clear-students", async (req, res) => {
+    try {
+      await clearAllStudents();
+      res.json({ message: "All students cleared." });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ADMIN API: Delete Teacher Account
+  app.delete("/api/admin/delete-teacher", async (req, res) => {
+    try {
+      const { email } = req.query;
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ error: "Email is required." });
+      }
+      await deleteUser(email);
+      res.json({ message: `User ${email} deleted.` });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ADMIN API: Add Section
+  app.post("/api/admin/sections", async (req, res) => {
+    try {
+      const { gradeLevel, name } = req.body;
+      if (!gradeLevel || !name) {
+        return res.status(400).json({ error: "Grade level and name are required." });
+      }
+      await createSection(gradeLevel, name);
+      res.status(201).json({ message: "Section added." });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ADMIN API: Update Section
+  app.put("/api/admin/sections", async (req, res) => {
+    try {
+      const { oldGrade, oldName, newGrade, newName } = req.body;
+      await updateSection(oldGrade, oldName, newGrade, newName);
+      res.json({ message: "Section updated." });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ADMIN API: Delete Section
+  app.delete("/api/admin/sections", async (req, res) => {
+    try {
+      const { gradeLevel, name } = req.query;
+      if (!gradeLevel || !name || typeof gradeLevel !== "string" || typeof name !== "string") {
+        return res.status(400).json({ error: "Grade level and name are required." });
+      }
+      await deleteSection(gradeLevel, name);
+      res.json({ message: "Section deleted." });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 

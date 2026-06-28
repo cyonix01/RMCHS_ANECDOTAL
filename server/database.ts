@@ -630,6 +630,89 @@ export async function getAllStudents(): Promise<Student[]> {
 }
 
 /**
+ * Administrative: Clear all reports from database.
+ */
+export async function clearAllReports(): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  
+  const { error: error1 } = await supabase.from("reports").delete().neq("student_lrn", "");
+  const { error: error2 } = await supabase.from("critical_reports").delete().neq("student_lrn", "");
+  
+  if (error1) console.error("Error clearing reports:", error1);
+  if (error2) console.error("Error clearing critical reports:", error2);
+}
+
+/**
+ * Administrative: Clear all students from database.
+ */
+export async function clearAllStudents(): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  
+  const { error } = await supabase.from("students").delete().neq("lrn", "");
+  if (error) console.error("Error clearing students:", error);
+  
+  // Also clear local cache
+  if (fs.existsSync(STUDENTS_DB_PATH)) {
+    fs.writeFileSync(STUDENTS_DB_PATH, JSON.stringify([], null, 2), "utf-8");
+  }
+}
+
+/**
+ * Administrative: Delete a user account.
+ */
+export async function deleteUser(email: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  
+  const { error } = await supabase.from("users").delete().eq("email", email.trim().toLowerCase());
+  if (error) {
+    console.error(`Error deleting user ${email}:`, error);
+    throw new Error(error.message);
+  }
+}
+
+/**
+ * Administrative: Create a new section.
+ */
+export async function createSection(grade: string, name: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  
+  const { error } = await supabase.from("sections").insert({ grade_level: grade, section_name: name });
+  if (error) throw error;
+}
+
+/**
+ * Administrative: Update an existing section.
+ */
+export async function updateSection(oldGrade: string, oldName: string, newGrade: string, newName: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  
+  const { error } = await supabase.from("sections")
+    .update({ grade_level: newGrade, section_name: newName })
+    .match({ grade_level: oldGrade, section_name: oldName });
+    
+  if (error) throw error;
+}
+
+/**
+ * Administrative: Delete a section.
+ */
+export async function deleteSection(grade: string, name: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  
+  const { error } = await supabase.from("sections")
+    .delete()
+    .match({ grade_level: grade, section_name: name });
+    
+  if (error) throw error;
+}
+
+/**
  * Registers a single student into Supabase with localized JSON write-through backup.
  */
 export async function createStudent(student: Student): Promise<void> {

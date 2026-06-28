@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { LogOut, Settings2, ShieldCheck, Sun, Clock, Calendar, Compass, Clipboard, UserPlus, FileText, Table, BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { LogOut, Settings2, ShieldCheck, Sun, Clock, Calendar, Compass, Clipboard, UserPlus, FileText, Table, BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight, ShieldAlert, Database, Layers, Trash2, Plus, Edit } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { UserAccount, Report, CriticalReport } from "../types";
 import AccountSettingsView from "./AccountSettingsView";
@@ -13,6 +13,7 @@ import StudentSearchModal from "./StudentSearchModal";
 import CICLSearchModal from "./CICLSearchModal";
 import DataAnalyticsView from "./DataAnalyticsView";
 import AnecdoteChart from "./AnecdoteChart";
+import SectionManagerModal from "./SectionManagerModal";
 
 const ciclOffenses = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
 
@@ -57,6 +58,9 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   const [showStudentSearch, setShowStudentSearch] = useState(false);
   const [showCICLReport, setShowCICLReport] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const [showDatabaseActions, setShowDatabaseActions] = useState(false);
+  const [showSectionManager, setShowSectionManager] = useState(false);
   const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
   const [allTeacherReports, setAllTeacherReports] = useState<any[]>([]);
   const [trendData, setTrendData] = useState<{ totalChange: number; academicChange: number; behavioralChange: number }>({ totalChange: 0, academicChange: 0, behavioralChange: 0 });
@@ -221,6 +225,56 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
             <Settings2 size={14} className="text-[#76DA0D] group-hover:rotate-45 transition-transform" />
             <span>Account</span>
           </button>
+
+          {/* Admin Button with Dropdown */}
+          {user.role === 'Admin' && (
+            <div className="relative">
+              <button
+                id="admin-menu-trigger"
+                onClick={() => setShowAdminMenu(!showAdminMenu)}
+                className={`group flex items-center gap-2 px-4 py-2 border font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm ${
+                  showAdminMenu || showDatabaseActions || showSectionManager
+                  ? 'bg-[#102604] text-white border-[#102604]' 
+                  : 'bg-white border-slate-200 hover:border-red-500 hover:bg-slate-50 text-[#102604]'
+                }`}
+              >
+                <ShieldAlert size={14} className={showAdminMenu ? "text-[#76DA0D]" : "text-red-500 group-hover:scale-110 transition-transform"} />
+                <span>Admin</span>
+              </button>
+
+              <AnimatePresence>
+                {showAdminMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 shadow-xl z-50 py-1"
+                  >
+                    <button
+                      onClick={() => {
+                        setShowDatabaseActions(true);
+                        setShowAdminMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors"
+                    >
+                      <Database size={14} className="text-[#76DA0D]" />
+                      <span>Database</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSectionManager(true);
+                        setShowAdminMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors"
+                    >
+                      <Layers size={14} className="text-blue-500" />
+                      <span>Sections</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
 
           <button
             id="logout-btn"
@@ -524,6 +578,105 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
 
       {/* Register Student Overlay */}
       <AnimatePresence>
+        {showDatabaseActions && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#102604]/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white w-full max-w-md shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Database size={20} className="text-[#76DA0D]" />
+                  <h3 className="serif font-serif text-xl text-slate-900">Database Administration</h3>
+                </div>
+                <button onClick={() => setShowDatabaseActions(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                  <Settings2 size={18} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <button
+                  onClick={async () => {
+                    if (confirm("Are you sure you want to clear ALL student reports? This cannot be undone.")) {
+                      try {
+                        const res = await fetch("/api/admin/clear-reports", { method: "DELETE" });
+                        if (res.ok) alert("Reports cleared successfully.");
+                        else alert("Failed to clear reports.");
+                      } catch (e) { alert("Error clearing reports."); }
+                    }
+                  }}
+                  className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-red-50 border border-slate-100 hover:border-red-200 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <Trash2 size={18} className="text-red-500" />
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">Clear Reports</span>
+                  </div>
+                  <ArrowUpRight size={14} className="text-slate-300 group-hover:text-red-500 transition-colors" />
+                </button>
+
+                <button
+                  onClick={async () => {
+                    if (confirm("Are you sure you want to clear ALL registered students? This cannot be undone.")) {
+                      try {
+                        const res = await fetch("/api/admin/clear-students", { method: "DELETE" });
+                        if (res.ok) alert("Students cleared successfully.");
+                        else alert("Failed to clear students.");
+                      } catch (e) { alert("Error clearing students."); }
+                    }
+                  }}
+                  className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-red-50 border border-slate-100 hover:border-red-200 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <Trash2 size={18} className="text-red-500" />
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">Clear Students</span>
+                  </div>
+                  <ArrowUpRight size={14} className="text-slate-300 group-hover:text-red-500 transition-colors" />
+                </button>
+
+                <button
+                  onClick={async () => {
+                    const email = prompt("Enter the teacher's email/username to delete:");
+                    if (email) {
+                      if (confirm(`Are you sure you want to delete account: ${email}?`)) {
+                        try {
+                          const res = await fetch(`/api/admin/delete-teacher?email=${encodeURIComponent(email)}`, { method: "DELETE" });
+                          if (res.ok) alert("Account deleted successfully.");
+                          else {
+                            const data = await res.json();
+                            alert(data.error || "Failed to delete account.");
+                          }
+                        } catch (e) { alert("Error deleting account."); }
+                      }
+                    }
+                  }}
+                  className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-red-50 border border-slate-100 hover:border-red-200 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <Trash2 size={18} className="text-red-500" />
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-widest">Delete Teacher Account</span>
+                  </div>
+                  <ArrowUpRight size={14} className="text-slate-300 group-hover:text-red-500 transition-colors" />
+                </button>
+              </div>
+
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button
+                  onClick={() => setShowDatabaseActions(false)}
+                  className="px-6 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showSectionManager && (
+          <SectionManagerModal onClose={() => setShowSectionManager(false)} />
+        )}
+
         {showRegisterStudent && (
           <RegisterStudentModal
             registeredByEmail={user.email || ""}

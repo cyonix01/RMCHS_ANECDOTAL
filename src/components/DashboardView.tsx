@@ -15,6 +15,7 @@ import DataAnalyticsView from "./DataAnalyticsView";
 import AnecdoteChart from "./AnecdoteChart";
 import SectionManagerModal from "./SectionManagerModal";
 import ReportsViewerModal from "./ReportsViewerModal";
+import AdviserAssignmentModal from "./AdviserAssignmentModal";
 import { useNotification } from "./NotificationProvider";
 
 const ciclOffenses = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
@@ -65,6 +66,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   const [showDatabaseActions, setShowDatabaseActions] = useState(false);
   const [showSectionManager, setShowSectionManager] = useState(false);
   const [showReportsViewer, setShowReportsViewer] = useState(false);
+  const [showAdviserAssignment, setShowAdviserAssignment] = useState(false);
   const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
   const [allTeacherReports, setAllTeacherReports] = useState<any[]>([]);
   const [trendData, setTrendData] = useState<{ totalChange: number; academicChange: number; behavioralChange: number }>({ totalChange: 0, academicChange: 0, behavioralChange: 0 });
@@ -363,6 +365,16 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                     >
                       <Layers size={14} className="text-blue-500" />
                       <span>Sections</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAdviserAssignment(true);
+                        setShowAdminMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors"
+                    >
+                      <UserPlus size={14} className="text-[#76DA0D]" />
+                      <span>Set Adviser</span>
                     </button>
                   </motion.div>
                 )}
@@ -842,6 +854,10 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
             onClose={() => setShowReportsViewer(false)} 
             userEmail={user.email || ""}
           />
+        )}
+
+        {showAdviserAssignment && (
+          <AdviserAssignmentModal onClose={() => setShowAdviserAssignment(false)} />
         )}
 
         {showRegisterStudent && (

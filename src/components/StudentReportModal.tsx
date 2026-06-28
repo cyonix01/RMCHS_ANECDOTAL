@@ -18,27 +18,40 @@ const ISSUE_OPTIONS = [
 ];
 
 const ACTION_OPTIONS = [
-  "Isolated the student from peers to ensure safety", "Conducted initial counseling or psychological first aid", 
-  "Reported the case immediately to the school guidance counselor or admin", 
-  "Documented the incident in the anecdotal record (flagged as Critical Issue)", 
-  "Called the parent/guardian for urgent meeting or pick-up", "Coordinated with Child Protection Committee (CPC)", 
-  "Temporarily suspended or removed the student from the classroom environment", 
-  "Issued an incident report for administrative filing", "Escorted student to clinic or guidance office for further evaluation", 
-  "Secured written statements from involved students or witnesses", "Ensured safety of others (if the case involved violence, threat or weapon)", 
-  "Referred the case to the School Head or designated authority", 
-  "Contacted external agencies (e.g. DSWD, PNP, Women and Children’s Desk) if needed", 
-  "Initiated a case conference among teachers, guidance and admin", "Created a behavior monitoring log for follow-up", "Others (please specify)"
+  "Gave verbal warning to the student",
+  "Conducted brief one-on-one counseling or conversation",
+  "Documented the behavior in the anecdotal record",
+  "Informed the class adviser or guidance office",
+  "Called the attention of the student during class",
+  "Separated the student temporarily from the group",
+  "Confiscated gadget or prohibited item",
+  "Gave a reflective activity (e.g. writing what was done wrong and how to improve)",
+  "Noted the incident for further reference or monitoring",
+  "Held a short peer mediation session (if involving classmates)",
+  "Referred to class adviser for further handling",
+  "Reprimanded with emphasis on expected behavior",
+  "Issued a reminder on school/classroom rules",
+  "Notified parent / guardian through communication notebook or call",
+  "Others (please specify)"
 ];
 
 const RECOMMENDATION_OPTIONS = [
-  "Encourage student to attend guidance sessions", "Recommend consistent monitoring by subject teacher or adviser", 
-  "Suggest regular parent check – in or home monitoring", "Recommend participation in character building or values formation activities", 
-  "Advise improved time management and task prioritization", "Recommend journaling or reflection writing at home", 
-  "Suggest limiting gadget use at hoe or implementing screen time rules", "Encourage student to observe classroom rules consistently", 
-  "Recommend peer mentoring or buddy system", "Advise parent to talk to the student about the incident at home", 
-  "Suggest inclusion in homeroom guidance follow-up", "Recommend positive reinforcement strategies by teachers/parents", 
-  "Advise more active engagement in school – based activities to improve behavior", 
-  "Suggest teacher – parent conference if behavior becomes repetitive", "Recommend behavior contract for repeated petit issues", "Others (please specify)"
+  "Encourage student to attend guidance sessions",
+  "Recommend consistent monitoring by subject teacher or adviser",
+  "Suggest regular parent check – in or home monitoring",
+  "Recommend participation in character building or values formation activities",
+  "Advise improved time management and task prioritization",
+  "Recommend journaling or reflection writing at home",
+  "Suggest limiting gadget use at hoe or implementing screen time rules",
+  "Encourage student to observe classroom rules consistently",
+  "Recommend peer mentoring or buddy system",
+  "Advise parent to talk to the student about the incident at home",
+  "Suggest inclusion in homeroom guidance follow-up",
+  "Recommend positive reinforcement strategies by teachers/parents",
+  "Advise more active engagement in school – based activities to improve behavior",
+  "Suggest teacher – parent conference if behavior becomes repetitive",
+  "Recommend behavior contract for repeated petit issues",
+  "Others (please specify)"
 ];
 
 export default function StudentReportModal({ student, userName, onClose }: StudentReportModalProps) {

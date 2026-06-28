@@ -22,11 +22,13 @@ import {
   getAllReports,
   saveCriticalReport,
   getAllCriticalReports,
+  getSections,
   getSectionsByGradeLevel,
   getSupabaseClient,
   clearAllReports,
   clearAllStudents,
   deleteUser,
+  updateAdvisoryAssignment,
   deleteReport,
   deleteCriticalReport,
   updateReportRecommendation,
@@ -77,6 +79,29 @@ async function startServer() {
     } catch (err: any) {
       console.error("Failed to update Supabase configurations:", err);
       res.status(500).json({ error: `Failed to update Supabase: ${err.message}` });
+    }
+  });
+
+  // API ROUTE 1.1: Get All Users
+  app.get("/api/users", async (req, res) => {
+    try {
+      const { getAllUsers } = await import("./server/database");
+      const users = await getAllUsers();
+      res.json(users);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // API ROUTE 1.2: Update Advisory Assignment
+  app.put("/api/users/:email/advisory", async (req, res) => {
+    try {
+      const { email } = req.params;
+      const { role, gradeLevel, section } = req.body;
+      await updateAdvisoryAssignment(email, role, gradeLevel, section);
+      res.json({ message: "Advisory assignment updated successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 
@@ -405,6 +430,16 @@ async function startServer() {
     } catch (err: any) {
       console.error("Failed to fetch sections:", err);
       res.status(500).json({ error: `Failed to fetch sections: ${err.message}` });
+    }
+  });
+
+  // API ROUTE 8.1: Get All Sections
+  app.get("/api/sections/all", async (req, res) => {
+    try {
+      const sections = await getSections();
+      res.json(sections);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 

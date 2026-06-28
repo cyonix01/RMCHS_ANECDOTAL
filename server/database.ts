@@ -146,6 +146,9 @@ function mapUserToSupabaseRow(user: UserAccount) {
     position: user.position,
     password_hash: user.passwordHash,
     registered_at: user.registeredAt,
+    role: user.role,
+    grade_level: user.gradeLevel,
+    section: user.section
   };
   return row;
 }
@@ -707,6 +710,24 @@ export async function clearAllStudents(): Promise<void> {
   if (fs.existsSync(STUDENTS_DB_PATH)) {
     fs.writeFileSync(STUDENTS_DB_PATH, JSON.stringify([], null, 2), "utf-8");
   }
+}
+
+/**
+ * Administrative: Update user role and section.
+ */
+export async function updateAdvisoryAssignment(email: string, role: string, gradeLevel: string | null, section: string | null): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  
+  const { error } = await supabase.from("users")
+    .update({ 
+      role, 
+      grade_level: gradeLevel, 
+      section: section 
+    })
+    .eq("email", email.trim().toLowerCase());
+    
+  if (error) throw error;
 }
 
 /**

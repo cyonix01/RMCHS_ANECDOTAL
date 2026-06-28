@@ -350,9 +350,7 @@ export default function RegisterView({ onRegisterSuccess, onNavigateToLogin }: R
                 className="editorial-input w-full bg-white select cursor-pointer"
               >
                 <option value="Non-Adviser">Non-Adviser</option>
-                <option value="Adviser">Adviser</option>
                 <option value="Guidance">Guidance</option>
-                <option value="Admin">Admin</option>
               </select>
             </div>
           </div>

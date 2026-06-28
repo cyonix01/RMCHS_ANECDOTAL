@@ -517,233 +517,15 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
       </header>
 
       {/* Main Workspace Stage */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-8 flex flex-col gap-8">
+      <div className="flex-1 max-w-7xl w-full mx-auto p-8 flex flex-col gap-8">
         
         {/* Right column: Expansive aesthetic blank dashboard placeholder */}
         <div id="dashboard-content-col" className="flex-1 flex flex-col gap-8">
           {showAnalytics ? (
             <DataAnalyticsView />
           ) : (
-            <>
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-[#102604] p-8 text-white shadow-lg border-b-4 border-[#76DA0D]"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-[#76DA0D] mb-2">
-                  <Sun size={16} className="animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">Institutional Dashboard</span>
-                </div>
-                <h2 className="serif font-serif text-3xl md:text-4xl tracking-tight leading-tight">
-                  {(() => {
-                    const hrs = new Date().getHours();
-                    if (hrs < 12) return "Good morning";
-                    if (hrs < 18) return "Good afternoon";
-                    return "Good evening";
-                  })()}, <span className="text-[#76DA0D]">{user.firstName} {user.lastName}</span>
-                </h2>
-                <p className="text-white/60 text-xs font-medium tracking-wide">
-                  Welcome to your specialized RMCHS portal for the 2026 Academic Year.
-                </p>
-              </div>
-              
-              <div className="flex flex-col items-start md:items-end gap-1">
-                <div className="flex items-center gap-2 text-[#76DA0D]">
-                  <Calendar size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">System Date</span>
-                </div>
-                <div className="text-xl font-serif tracking-tight">
-                  {new Date().toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </div>
-                <div className="flex items-center gap-2 text-white/40 mt-1">
-                  <Clock size={12} />
-                  <span className="text-[9px] font-bold uppercase tracking-tighter">Real-time Sync Active</span>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              id="workspace-stage"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.15 }}
-              className="bg-white border border-slate-200 rounded-none p-12 shadow-xs min-h-[500px] flex flex-col items-center text-center relative"
-            >
-              {/* Elegant decorative background compass */}
-              <div className="absolute top-8 left-8 text-left opacity-15 select-none pointer-events-none">
-                <Compass size={44} className="text-[#76DA0D]" />
-              </div>
-
-              <div className="w-full max-w-4xl space-y-12">
-                <div className="space-y-6">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-[#76DA0D]/10 text-[#102604] rounded-none border border-[#76DA0D]/30 shadow-xs mb-2">
-                    <Clipboard size={28} />
-                  </div>
-
-                  <div id="dashboard-message-group" className="space-y-3">
-                    <h4 id="workspace-title" className="serif font-serif text-3xl text-slate-900 tracking-tight font-light uppercase">
-                      Workspace Distribution
-                    </h4>
-                    <p id="workspace-description" className="text-xs leading-relaxed text-slate-500 font-sans max-w-sm mx-auto">
-                      Review your recent report distribution and student engagements below.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Metrics Bar */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-                  <div className="bg-white border border-slate-100 p-6 shadow-sm text-left relative overflow-hidden group hover:border-[#76DA0D] transition-colors">
-                    <div className="absolute top-0 right-0 p-2 opacity-5">
-                      <FileText size={48} className="text-[#102604]" />
-                    </div>
-                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">Student Reports</h6>
-                    <div className="flex items-end gap-6">
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Today's Report</span>
-                        <p className="text-3xl font-serif text-[#102604]">{stats.dailyGeneral}</p>
-                      </div>
-                      <div className="h-8 w-[1px] bg-slate-100 self-center" />
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Overall Total</span>
-                        <p className="text-3xl font-serif text-[#102604]">{stats.totalGeneral}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-slate-100 p-6 shadow-sm text-left relative overflow-hidden group hover:border-red-500 transition-colors">
-                    <div className="absolute top-0 right-0 p-2 opacity-5">
-                      <FileText size={48} className="text-red-500" />
-                    </div>
-                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">Critical Incident Reports</h6>
-                    <div className="flex items-end gap-6">
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Today's Report</span>
-                        <p className="text-3xl font-serif text-[#102604]">{stats.dailyCritical}</p>
-                      </div>
-                      <div className="h-8 w-[1px] bg-slate-100 self-center" />
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Overall Total</span>
-                        <p className="text-3xl font-serif text-[#102604]">{stats.totalCritical}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-slate-100 p-6 shadow-sm text-left relative overflow-hidden group hover:border-orange-500 transition-colors">
-                    <div className="absolute top-0 right-0 p-2 opacity-5">
-                      <FileText size={48} className="text-orange-500" />
-                    </div>
-                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">CICL Student Reports</h6>
-                    <div className="flex items-end gap-6">
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Today's Report</span>
-                        <p className="text-3xl font-serif text-[#102604]">{stats.dailyCICL}</p>
-                      </div>
-                      <div className="h-8 w-[1px] bg-slate-100 self-center" />
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Overall Total</span>
-                        <p className="text-3xl font-serif text-[#102604]">{stats.totalCICL}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Top Students Summary Card */}
-                  <div className="bg-white border border-slate-100 p-6 shadow-sm">
-                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-1.5">
-                      <UserCheck size={12} className="text-[#76DA0D]" />
-                      Top Referred Students
-                    </h6>
-                    {topStudents.length > 0 ? (
-                      <div className="space-y-3">
-                        {topStudents.map((student, idx) => (
-                          <div key={student.lrn} className="flex items-center justify-between group">
-                            <div className="flex items-center gap-3">
-                              <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:bg-[#76DA0D] group-hover:text-white transition-colors">
-                                {idx + 1}
-                              </div>
-                              <div className="text-left">
-                                <p className="text-[11px] font-bold text-slate-900 leading-tight uppercase">{student.name}</p>
-                                <p className="text-[9px] font-medium text-slate-400 font-mono tracking-tighter">LRN: {student.lrn}</p>
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end">
-                              <span className="text-[11px] font-black text-[#102604]">{student.count}</span>
-                              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Reports</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="py-8 text-center border-2 border-dashed border-slate-50">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No Recent Referrals</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-                  <div className="lg:col-span-3 bg-white border border-slate-100 p-8 shadow-sm">
-                    <div className="flex items-center gap-2 mb-6">
-                      <TrendingUp size={16} className="text-[#76DA0D]" />
-                      <h5 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Your Anecdote Distribution</h5>
-                    </div>
-                    <AnecdoteChart data={chartData} monthlyData={monthlyTrend} />
-                  </div>
-
-                  <div className="lg:col-span-2 space-y-4 text-left">
-                    <div className="bg-slate-50 border border-slate-100 p-6">
-                      <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">Workspace Stats</h6>
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-end border-b border-slate-200 pb-2">
-                          <span className="text-[10px] font-bold text-slate-500">Total Reports</span>
-                          <div className="flex items-center gap-2">
-                            {trendData.totalChange !== 0 && (
-                              <div className={`flex items-center text-[10px] font-bold ${trendData.totalChange > 0 ? 'text-red-500' : 'text-[#76DA0D]'}`}>
-                                {trendData.totalChange > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                                <span>{Math.abs(trendData.totalChange)}%</span>
-                              </div>
-                            )}
-                            <span className="text-xl font-serif text-slate-900 leading-none">{chartData.reduce((acc, curr) => acc + curr.count, 0)}</span>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-end border-b border-slate-200 pb-2">
-                          <span className="text-[10px] font-bold text-slate-500">Academic Focus</span>
-                          <div className="flex items-center gap-2">
-                            {trendData.academicChange !== 0 && (
-                              <div className={`flex items-center text-[10px] font-bold ${trendData.academicChange > 0 ? 'text-orange-500' : 'text-blue-500'}`}>
-                                {trendData.academicChange > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                                <span>{Math.abs(trendData.academicChange)}%</span>
-                              </div>
-                            )}
-                            <span className="text-xl font-serif text-slate-900 leading-none">{chartData.find(d => d.category === 'Academic')?.count || 0}</span>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-end">
-                          <span className="text-[10px] font-bold text-slate-500">Behavioral Focus</span>
-                          <div className="flex items-center gap-2">
-                            {trendData.behavioralChange !== 0 && (
-                              <div className={`flex items-center text-[10px] font-bold ${trendData.behavioralChange > 0 ? 'text-red-500' : 'text-blue-500'}`}>
-                                {trendData.behavioralChange > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                                <span>{Math.abs(trendData.behavioralChange)}%</span>
-                              </div>
-                            )}
-                            <span className="text-xl font-serif text-slate-900 leading-none">{chartData.find(d => d.category === 'Behavioral')?.count || 0}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 border border-slate-100 flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-[#76DA0D] animate-pulse" />
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Live Database Sync Active</span>
-                    </div>
-                  </div>
-                </div>
+            <div>Dashboard Content</div>
+          )}
 
                 {/* New Search and Filterable Anecdote List */}
                 <div className="w-full bg-white border border-slate-100 p-8 shadow-sm text-left mt-8">
@@ -910,13 +692,8 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                     <span>Session Active</span>
                   </span>
                 </div>
-              </div>
-            </motion.div>
-            </>
-          )}
-        </div>
 
-      </main>
+      </div>
 
       {/* Account Settings Overlay */}
       <AnimatePresence>
@@ -1117,6 +894,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
           />
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

@@ -342,20 +342,20 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   });
 
   return (
-    <div id="dashboard-layout" className="min-h-screen bg-[#FFFFFF] flex flex-col font-sans text-[#102604]">
+    <div id="dashboard-layout" className="min-h-screen bg-slate-50 flex flex-col font-sans text-[#102604]">
       
-      {/* Top Navbar */}
-      <header id="dashboard-navbar" className="bg-white border-b border-slate-200 px-8 py-4 shrink-0 shadow-xs flex flex-col md:flex-row justify-between items-center gap-4">
+      {/* Institutional Top Navbar */}
+      <header id="dashboard-navbar" className="bg-white border-b border-slate-200 px-8 py-4 shrink-0 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-3">
           <img 
             src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Ramon_Magsaysay_%28Cubao%29_High_School.svg/500px-Ramon_Magsaysay_%28Cubao%29_High_School.svg.png"
             alt="RMCHS Crest"
-            className="w-12 h-12 object-contain rounded-full bg-white p-1 border-2 border-[#FFEA00] shadow-xs"
+            className="w-12 h-12 object-contain rounded-full bg-white p-1 border border-[#FFEA00] shadow-sm"
             referrerPolicy="no-referrer"
           />
           <div>
             <h1 id="navbar-app-title" className="serif font-serif font-bold text-[#102604] tracking-tight text-lg">RMCHS Anecdotal Portal</h1>
-            <p className="text-[9px] text-[#888] font-bold font-sans uppercase tracking-widest">Faculty & Staff Sync</p>
+            <p className="text-[9px] text-slate-500 font-bold font-sans uppercase tracking-widest">Faculty & Staff Management System</p>
           </div>
         </div>
 
@@ -365,9 +365,9 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
             <button
               id="register-student-trigger"
               onClick={() => setShowRegisterStudent(true)}
-              className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
+              className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 shadow-sm"
             >
-              <UserPlus size={14} className="text-[#76DA0D] group-hover:scale-110 transition-transform" />
+              <UserPlus size={14} className="text-[#76DA0D]" />
               <span>Register</span>
             </button>
           )}
@@ -375,9 +375,9 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
           {(user.role === 'Admin' || user.role === 'Adviser' || user.role === 'Guidance') && (
             <button
               onClick={() => setShowStudentSearch(true)}
-              className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
+              className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 shadow-sm"
             >
-              <FileText size={14} className="text-[#76DA0D] group-hover:scale-110 transition-transform" />
+              <FileText size={14} className="text-[#76DA0D]" />
               <span>Report</span>
             </button>
           )}
@@ -385,9 +385,9 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
           {(user.role === 'Admin' || user.role === 'Adviser' || user.role === 'Guidance') && (
             <button
               onClick={() => setShowCICLReport(true)}
-              className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-red-500 hover:bg-red-50/30 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
+              className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-red-500 hover:bg-red-50/30 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 shadow-sm"
             >
-              <FileText size={14} className="text-red-500 group-hover:scale-110 transition-transform" />
+              <FileText size={14} className="text-red-500" />
               <span>CICL</span>
             </button>
           )}
@@ -395,13 +395,13 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
           {(user.role === 'Admin' || user.role === 'Adviser' || user.role === 'Guidance') && (
             <button
               onClick={() => setShowAnalytics(!showAnalytics)}
-              className={`group flex items-center gap-2 px-4 py-2 border font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm ${
+              className={`group flex items-center gap-2 px-4 py-2 border font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 shadow-sm ${
                 showAnalytics 
                 ? 'bg-[#102604] text-white border-[#102604]' 
                 : 'bg-white border-slate-200 hover:border-blue-500 hover:bg-blue-50/30 text-[#102604]'
               }`}
             >
-              <BarChart3 size={14} className={showAnalytics ? "text-[#76DA0D]" : "text-blue-500 group-hover:scale-110 transition-transform"} />
+              <BarChart3 size={14} className={showAnalytics ? "text-[#76DA0D]" : "text-blue-500"} />
               <span>Analytics</span>
             </button>
           )}
@@ -409,10 +409,10 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
           <button
             id="settings-trigger"
             onClick={() => setShowSettings(true)}
-            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#FFEA00] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
+            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#FFEA00] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 shadow-sm"
           >
-            <Settings2 size={14} className="text-[#76DA0D] group-hover:rotate-45 transition-transform" />
-            <span>Account</span>
+            <Settings2 size={14} className="text-[#76DA0D]" />
+            <span>Profile</span>
           </button>
 
           {(user.role === 'Admin' || user.role === 'Guidance') && (
@@ -421,7 +421,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
               onClick={() => setShowReportsViewer(true)}
               className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 font-bold text-[10px] tracking-widest uppercase transition-all hover:border-[#102604] hover:bg-slate-50 text-[#102604] cursor-pointer select-none h-10 shadow-sm"
             >
-              <FileText size={14} className="text-[#102604] group-hover:scale-110 transition-transform" />
+              <FileText size={14} className="text-[#102604]" />
               <span>View Reports</span>
             </button>
           )}
@@ -432,8 +432,8 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
               onClick={() => setShowResolvedReportsViewer(true)}
               className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 font-bold text-[10px] tracking-widest uppercase transition-all hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] cursor-pointer select-none h-10 shadow-sm"
             >
-              <FileText size={14} className="text-[#76DA0D] group-hover:scale-110 transition-transform" />
-              <span>View Resolved Report</span>
+              <FileText size={14} className="text-[#76DA0D]" />
+              <span>View Resolved</span>
             </button>
           )}
 
@@ -443,13 +443,13 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
               <button
                 id="admin-menu-trigger"
                 onClick={() => setShowAdminMenu(!showAdminMenu)}
-                className={`group flex items-center gap-2 px-4 py-2 border font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm ${
+                className={`group flex items-center gap-2 px-4 py-2 border font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 shadow-sm ${
                   showAdminMenu || showDatabaseActions || showSectionManager
                   ? 'bg-[#102604] text-white border-[#102604]' 
                   : 'bg-white border-slate-200 hover:border-red-500 hover:bg-slate-50 text-[#102604]'
                 }`}
               >
-                <ShieldAlert size={14} className={showAdminMenu ? "text-[#76DA0D]" : "text-red-500 group-hover:scale-110 transition-transform"} />
+                <ShieldAlert size={14} className={showAdminMenu ? "text-[#76DA0D]" : "text-red-500"} />
                 <span>Admin</span>
               </button>
 
@@ -508,9 +508,9 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
           <button
             id="logout-btn"
             onClick={onLogout}
-            className="group flex items-center gap-2 px-4 py-2 bg-[#76DA0D] hover:bg-[#88F015] text-[#102604] border border-[#FFEA00] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none shadow-sm h-10 min-w-[140px] justify-center"
+            className="group flex items-center gap-2 px-4 py-2 bg-[#76DA0D] hover:bg-[#88F015] text-[#102604] border border-[#FFEA00] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none shadow-sm h-10"
           >
-            <LogOut size={14} className="group-hover:translate-x-1 transition-transform" />
+            <LogOut size={14} />
             <span>Logout</span>
           </button>
         </div>
@@ -519,12 +519,35 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
       {/* Main Workspace Stage */}
       <div className="flex-1 max-w-7xl w-full mx-auto p-8 flex flex-col gap-8">
         
-        {/* Right column: Expansive aesthetic blank dashboard placeholder */}
+        {/* Stats Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white p-6 border border-slate-200 shadow-sm">
+            <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Total Reports</h6>
+            <p className="text-3xl font-bold text-[#102604]">{stats.totalGeneral + stats.totalCritical + stats.totalCICL}</p>
+          </div>
+          <div className="bg-white p-6 border border-slate-200 shadow-sm">
+            <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">General</h6>
+            <p className="text-3xl font-bold text-[#76DA0D]">{stats.totalGeneral}</p>
+          </div>
+          <div className="bg-white p-6 border border-slate-200 shadow-sm">
+            <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Critical</h6>
+            <p className="text-3xl font-bold text-red-600">{stats.totalCritical}</p>
+          </div>
+          <div className="bg-white p-6 border border-slate-200 shadow-sm">
+            <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">CICL</h6>
+            <p className="text-3xl font-bold text-orange-600">{stats.totalCICL}</p>
+          </div>
+        </div>
+        
+        {/* Content Area */}
         <div id="dashboard-content-col" className="flex-1 flex flex-col gap-8">
           {showAnalytics ? (
-            <DataAnalyticsView />
+            <DataAnalyticsView user={user} />
           ) : (
-            <div>Dashboard Content</div>
+            <div className="bg-white p-12 border border-slate-200 shadow-sm">
+              <h2 className="text-2xl font-bold text-[#102604] mb-4">Welcome, {user.firstName}</h2>
+              <p className="text-slate-600">Please select an action from the menu above to manage reports or view data.</p>
+            </div>
           )}
 
                 {/* New Search and Filterable Anecdote List */}

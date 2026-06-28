@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, FileText, Clipboard, Users, TrendingUp } from "lucide-react";
-import { Student, Report, CriticalReport } from "../types";
+import { Student, Report, CriticalReport, UserAccount } from "../types";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 const GRADE_LEVELS = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'] as const;
@@ -35,7 +35,7 @@ const CICL_OFFENSE_TYPES = [
   "Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"
 ];
 
-export default function DataAnalyticsView() {
+export default function DataAnalyticsView({ user }: { user: Partial<UserAccount> }) {
   const [students, setStudents] = useState<Student[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [criticalReports, setCriticalReports] = useState<CriticalReport[]>([]);
@@ -46,15 +46,27 @@ export default function DataAnalyticsView() {
       fetch("/api/students").then(res => res.json()),
       fetch("/api/reports").then(res => res.json()),
       fetch("/api/critical-reports").then(res => res.json())
-    ]).then(([students, reports, criticalReports]) => {
-      setStudents(students);
-      setReports(reports);
-      setCriticalReports(criticalReports);
+    ]).then(([allStudents, allReports, allCriticalReports]) => {
+      let filteredStudents = allStudents;
+      let filteredReports = allReports;
+      let filteredCriticalReports = allCriticalReports;
+
+      if (user.role === 'Admin' && user.gradeLevel && user.section) {
+        filteredStudents = allStudents.filter((s: Student) => s.gradeLevel === user.gradeLevel && s.section === user.section);
+        const lrnSet = new Set(filteredStudents.map((s: Student) => s.lrn));
+        
+        filteredReports = allReports.filter((r: Report) => lrnSet.has(r.studentLrn));
+        filteredCriticalReports = allCriticalReports.filter((r: CriticalReport) => lrnSet.has(r.studentLrn));
+      }
+
+      setStudents(filteredStudents);
+      setReports(filteredReports);
+      setCriticalReports(filteredCriticalReports);
       setLoading(false);
     }).catch(console.error);
-  }, []);
+  }, [user]);
 
-  if (loading) return <p className="text-xs text-slate-500">Loading analytics...</p>;
+// ...
 
   const getStatsByGrade = (items: { studentLrn: string }[]) => {
     const stats: { [key: string]: { male: number; female: number; total: number } } = {};
@@ -75,27 +87,33 @@ export default function DataAnalyticsView() {
   const getStatsByIssue = (items: { issue: string; studentLrn: string }[], masterList: string[]) => {
     const stats: { [key: string]: { Male: number; Female: number } } = {};
     
-    // Initialize with all items from master list to show zero counts
+    // Normalize master list to lowercase for matching
+    const normalizedMaster = masterList.map(i => i.toLowerCase());
+    
     masterList.forEach(issue => {
-      stats[issue] = { Male: 0, Female: 0 };
+      stats[issue.toLowerCase()] = { Male: 0, Female: 0 };
     });
 
     items.forEach(item => {
       const student = students.find(s => s.lrn === item.studentLrn);
       const gender = student?.gender === 'Male' ? 'Male' : 'Female';
+      const issueKey = item.issue?.toLowerCase();
       
-      if (stats[item.issue]) {
-        stats[item.issue][gender]++;
-      } else if (item.issue && item.issue.toLowerCase().startsWith("others") && stats["Others (please specify)"]) {
-        stats["Others (please specify)"][gender]++;
+      if (issueKey && stats[issueKey]) {
+        stats[issueKey][gender]++;
+      } else if (issueKey && issueKey.startsWith("others") && stats["others (please specify)"]) {
+        stats["others (please specify)"][gender]++;
       }
     });
 
-    return Object.entries(stats).map(([issue, genderCounts]) => ({
-        issue,
+    return Object.entries(stats)
+      .filter(([_, counts]) => counts.Male + counts.Female > 0)
+      .map(([issue, genderCounts]) => ({
+        issue: masterList.find(m => m.toLowerCase() === issue) || issue,
         ...genderCounts
     }));
   };
+// ...
 
   const getTopStudents = (items: { studentLrn: string }[]) => {
     const counts: { [key: string]: number } = {};

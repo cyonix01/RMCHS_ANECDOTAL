@@ -97,3 +97,18 @@ create table if not exists reports (
   designation text,
   record_status text default 'On Going'
 );
+
+-- Create notifications table
+create table if not exists notifications (
+  id serial primary key,
+  message text not null,
+  type text not null, -- 'General' | 'Critical' | 'CICL'
+  student_lrn text,
+  student_name text,
+  reported_by text,
+  target_role text not null, -- 'Guidance' | 'Admin' | 'All'
+  is_read boolean default false,
+  read_by jsonb default '[]'::jsonb, -- array of user emails who have read it
+  created_at text not null
+);
+

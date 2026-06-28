@@ -17,6 +17,7 @@ interface ReportsViewerModalProps {
   userSection?: string;
   userFirstName?: string;
   userLastName?: string;
+  initialSearchQuery?: string;
 }
 
 interface CombinedReport {
@@ -45,12 +46,13 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   userGradeLevel,
   userSection,
   userFirstName,
-  userLastName
+  userLastName,
+  initialSearchQuery = ""
 }) => {
   const { notify } = useNotification();
   const [reports, setReports] = useState<CombinedReport[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [typeFilter, setTypeFilter] = useState<'All' | 'General' | 'Critical'>('All');

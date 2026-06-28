@@ -36,9 +36,15 @@ import {
   updateCriticalReportRecommendation,
   createSection,
   updateSection,
-  deleteSection
+  deleteSection,
+  saveNotification,
+  getAllNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  clearNotifications,
+  getStudentByLrn
 } from "./server/database";
-import { UserAccount, Student } from "./src/types";
+import { UserAccount, Student, AppNotification } from "./src/types";
 
 // Hash utility
 function hashPassword(password: string): string {
@@ -332,6 +338,42 @@ async function startServer() {
     try {
       const report = req.body;
       await saveReport(report);
+
+      try {
+        const student = await getStudentByLrn(report.studentLrn);
+        const studentName = student ? `${student.firstName} ${student.lastName}` : `Student (LRN: ${report.studentLrn})`;
+        const ciclOffensesList = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
+        const isCicl = ciclOffensesList.includes(report.issue);
+
+        // Always notify Guidance
+        await saveNotification({
+          message: isCicl 
+            ? `New CICL Report received: ${studentName} - ${report.issue}` 
+            : `New General Report received: ${studentName} - ${report.issue}`,
+          type: isCicl ? 'CICL' : 'General',
+          studentLrn: report.studentLrn,
+          studentName: studentName,
+          reportedBy: report.reportedBy,
+          targetRole: 'Guidance',
+          createdAt: new Date().toISOString()
+        });
+
+        // Notify Admin for CICL report
+        if (isCicl) {
+          await saveNotification({
+            message: `New CICL Report received: ${studentName} - ${report.issue}`,
+            type: 'CICL',
+            studentLrn: report.studentLrn,
+            studentName: studentName,
+            reportedBy: report.reportedBy,
+            targetRole: 'Admin',
+            createdAt: new Date().toISOString()
+          });
+        }
+      } catch (notifErr: any) {
+        console.error("Failed to dispatch notifications for general/cicl report:", notifErr.message);
+      }
+
       res.status(201).json({ message: "Report saved successfully" });
     } catch (err: any) {
       console.error("Failed to save report:", err);
@@ -390,6 +432,36 @@ async function startServer() {
     try {
       const report = req.body;
       await saveCriticalReport(report);
+
+      try {
+        const student = await getStudentByLrn(report.studentLrn);
+        const studentName = student ? `${student.firstName} ${student.lastName}` : `Student (LRN: ${report.studentLrn})`;
+
+        // Always notify Guidance
+        await saveNotification({
+          message: `New Critical Report received: ${studentName} - ${report.issue}`,
+          type: 'Critical',
+          studentLrn: report.studentLrn,
+          studentName: studentName,
+          reportedBy: report.reportedBy,
+          targetRole: 'Guidance',
+          createdAt: new Date().toISOString()
+        });
+
+        // Notify Admin
+        await saveNotification({
+          message: `New Critical Report received: ${studentName} - ${report.issue}`,
+          type: 'Critical',
+          studentLrn: report.studentLrn,
+          studentName: studentName,
+          reportedBy: report.reportedBy,
+          targetRole: 'Admin',
+          createdAt: new Date().toISOString()
+        });
+      } catch (notifErr: any) {
+        console.error("Failed to dispatch notifications for critical report:", notifErr.message);
+      }
+
       res.status(201).json({ message: "Critical report saved successfully" });
     } catch (err: any) {
       console.error("Failed to save critical report:", err);
@@ -427,6 +499,59 @@ async function startServer() {
       await updateCriticalReportRecommendation(id, recommendation, updatedBy);
       res.json({ message: "Recommendation updated successfully" });
     } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // API ROUTE 15: Get All Notifications
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      const list = await getAllNotifications();
+      res.json(list);
+    } catch (err: any) {
+      console.error("Failed to fetch notifications:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // API ROUTE 16: Mark Single Notification as Read
+  app.post("/api/notifications/:id/read", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "User email is required to mark notification as read." });
+      }
+      await markNotificationAsRead(id, email);
+      res.json({ message: "Notification marked as read successfully" });
+    } catch (err: any) {
+      console.error("Failed to mark notification as read:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // API ROUTE 17: Mark All Notifications as Read for Role
+  app.post("/api/notifications/read-all", async (req, res) => {
+    try {
+      const { email, role } = req.body;
+      if (!email || !role) {
+        return res.status(400).json({ error: "Email and role are required." });
+      }
+      await markAllNotificationsAsRead(email, role);
+      res.json({ message: "All notifications marked as read successfully" });
+    } catch (err: any) {
+      console.error("Failed to mark all notifications as read:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // API ROUTE 18: Clear All Notifications
+  app.delete("/api/notifications", async (req, res) => {
+    try {
+      await clearNotifications();
+      res.json({ message: "Notifications cleared successfully" });
+    } catch (err: any) {
+      console.error("Failed to clear notifications:", err);
       res.status(500).json({ error: err.message });
     }
   });

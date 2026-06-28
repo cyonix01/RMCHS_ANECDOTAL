@@ -6,7 +6,7 @@
 import { createClient } from "@supabase/supabase-js";
 import * as fs from "fs";
 import * as path from "path";
-import { UserAccount, Student, Report, CriticalReport } from "../src/types";
+import { UserAccount, Student, Report, CriticalReport, AppNotification } from "../src/types";
 
 const LOCAL_DB_DIR = path.join(process.cwd(), "data");
 const CONFIG_PATH = path.join(LOCAL_DB_DIR, "config.json");
@@ -923,4 +923,225 @@ export async function createStudentsBulk(students: Student[]): Promise<{ success
 
   return response;
 }
+
+// ==========================================
+// PERSISTENT NOTIFICATIONS SYSTEM (HYBRID)
+// ==========================================
+const NOTIFICATIONS_DB_PATH = path.join(LOCAL_DB_DIR, "notifications.json");
+
+function getNotificationsLocally(): AppNotification[] {
+  try {
+    if (fs.existsSync(NOTIFICATIONS_DB_PATH)) {
+      const data = fs.readFileSync(NOTIFICATIONS_DB_PATH, "utf-8");
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error("Failed to read local notifications:", err);
+  }
+  return [];
+}
+
+function saveNotificationsLocally(notifications: AppNotification[]): void {
+  try {
+    if (!fs.existsSync(LOCAL_DB_DIR)) {
+      fs.mkdirSync(LOCAL_DB_DIR, { recursive: true });
+    }
+    fs.writeFileSync(NOTIFICATIONS_DB_PATH, JSON.stringify(notifications, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to save local notifications:", err);
+  }
+}
+
+export async function saveNotification(notification: Omit<AppNotification, "id">): Promise<AppNotification> {
+  const localList = getNotificationsLocally();
+  const newId = localList.length > 0 ? Math.max(...localList.map(n => typeof n.id === "number" ? n.id : 0)) + 1 : 1;
+  const newNotification: AppNotification = {
+    ...notification,
+    id: newId,
+    isRead: false,
+    readBy: []
+  };
+
+  localList.unshift(newNotification); // Newest first
+  saveNotificationsLocally(localList);
+
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from("notifications").insert([
+        {
+          message: newNotification.message,
+          type: newNotification.type,
+          student_lrn: newNotification.studentLrn,
+          student_name: newNotification.studentName,
+          reported_by: newNotification.reportedBy,
+          target_role: newNotification.targetRole,
+          is_read: false,
+          read_by: [],
+          created_at: newNotification.createdAt
+        }
+      ]).select();
+      if (!error && data && data.length > 0) {
+        newNotification.id = data[0].id;
+        const updatedLocal = getNotificationsLocally();
+        const index = updatedLocal.findIndex(n => n.createdAt === newNotification.createdAt && n.message === newNotification.message);
+        if (index !== -1) {
+          updatedLocal[index].id = data[0].id;
+          saveNotificationsLocally(updatedLocal);
+        }
+      } else {
+        console.warn("Supabase notification insert skipped or errored:", error ? error.message : "no data returned");
+      }
+    } catch (e: any) {
+      console.error("Exception inserting notification to Supabase:", e.message);
+    }
+  }
+
+  return newNotification;
+}
+
+export async function getAllNotifications(): Promise<AppNotification[]> {
+  const localList = getNotificationsLocally();
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return localList;
+  }
+  try {
+    const { data, error } = await supabase.from("notifications").select("*").order("created_at", { ascending: false });
+    if (error) {
+      console.warn("Failed to fetch notifications from Supabase, using local:", error.message);
+      return localList;
+    }
+    const mapped: AppNotification[] = (data || []).map((row: any) => ({
+      id: row.id,
+      message: row.message,
+      type: row.type,
+      studentLrn: row.student_lrn,
+      studentName: row.student_name,
+      reportedBy: row.reported_by,
+      targetRole: row.target_role,
+      isRead: row.is_read,
+      readBy: Array.isArray(row.read_by) ? row.read_by : (typeof row.read_by === "string" ? JSON.parse(row.read_by) : []),
+      createdAt: row.created_at
+    }));
+
+    saveNotificationsLocally(mapped);
+    return mapped;
+  } catch (err: any) {
+    console.error("Exception fetching notifications from Supabase:", err.message);
+    return localList;
+  }
+}
+
+export async function markNotificationAsRead(id: string | number, userEmail: string): Promise<void> {
+  const localList = getNotificationsLocally();
+  const index = localList.findIndex(n => String(n.id) === String(id));
+  if (index !== -1) {
+    const n = localList[index];
+    if (!n.readBy) n.readBy = [];
+    if (!n.readBy.includes(userEmail)) {
+      n.readBy.push(userEmail);
+    }
+    n.isRead = true;
+    saveNotificationsLocally(localList);
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  try {
+    const { data, error: getError } = await supabase.from("notifications").select("read_by").eq("id", id).maybeSingle();
+    if (!getError && data) {
+      let currentReadBy: string[] = Array.isArray(data.read_by) ? data.read_by : (typeof data.read_by === "string" ? JSON.parse(data.read_by) : []);
+      if (!currentReadBy.includes(userEmail)) {
+        currentReadBy.push(userEmail);
+      }
+      await supabase.from("notifications").update({
+        read_by: currentReadBy,
+        is_read: true
+      }).eq("id", id);
+    } else {
+      await supabase.from("notifications").update({
+        read_by: [userEmail],
+        is_read: true
+      }).eq("id", id);
+    }
+  } catch (err: any) {
+    console.error(`Failed to mark notification ${id} as read on Supabase:`, err.message);
+  }
+}
+
+export async function markAllNotificationsAsRead(userEmail: string, targetRole: 'Guidance' | 'Admin'): Promise<void> {
+  const localList = getNotificationsLocally();
+  let changed = false;
+  localList.forEach(n => {
+    if (n.targetRole === targetRole || n.targetRole === 'All') {
+      if (!n.readBy) n.readBy = [];
+      if (!n.readBy.includes(userEmail)) {
+        n.readBy.push(userEmail);
+        n.isRead = true;
+        changed = true;
+      }
+    }
+  });
+  if (changed) {
+    saveNotificationsLocally(localList);
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  try {
+    const { data, error } = await supabase.from("notifications").select("id, read_by").eq("target_role", targetRole);
+    if (!error && data) {
+      for (const item of data) {
+        let currentReadBy: string[] = Array.isArray(item.read_by) ? item.read_by : (typeof item.read_by === "string" ? JSON.parse(item.read_by) : []);
+        if (!currentReadBy.includes(userEmail)) {
+          currentReadBy.push(userEmail);
+          await supabase.from("notifications").update({
+            read_by: currentReadBy,
+            is_read: true
+          }).eq("id", item.id);
+        }
+      }
+    }
+  } catch (err: any) {
+    console.error("Failed to mark all notifications as read on Supabase:", err.message);
+  }
+}
+
+export async function clearNotifications(): Promise<void> {
+  saveNotificationsLocally([]);
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  try {
+    await supabase.from("notifications").delete().neq("id", 0);
+  } catch (err: any) {
+    console.error("Failed to clear notifications in Supabase:", err.message);
+  }
+}
+
+export async function getStudentByLrn(lrn: string): Promise<Student | null> {
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from("students").select("*").eq("lrn", lrn).maybeSingle();
+      if (!error && data) {
+        return mapSupabaseRowToStudent(data);
+      }
+    } catch (e) {}
+  }
+  try {
+    const STUDENTS_DB_PATH = path.join(LOCAL_DB_DIR, "students.json");
+    if (fs.existsSync(STUDENTS_DB_PATH)) {
+      const data = fs.readFileSync(STUDENTS_DB_PATH, "utf-8");
+      const list: Student[] = JSON.parse(data);
+      const student = list.find(s => s.lrn.trim() === lrn.trim());
+      if (student) return student;
+    }
+  } catch (e) {}
+  return null;
+}
+
+
 

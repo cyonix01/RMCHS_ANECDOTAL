@@ -16,6 +16,7 @@ import AnecdoteChart from "./AnecdoteChart";
 import SectionManagerModal from "./SectionManagerModal";
 import ReportsViewerModal from "./ReportsViewerModal";
 import AdviserAssignmentModal from "./AdviserAssignmentModal";
+import NotificationBell from "./NotificationBell";
 import { useNotification } from "./NotificationProvider";
 
 const ciclOffenses = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
@@ -66,6 +67,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   const [showDatabaseActions, setShowDatabaseActions] = useState(false);
   const [showSectionManager, setShowSectionManager] = useState(false);
   const [showReportsViewer, setShowReportsViewer] = useState(false);
+  const [reportsViewerQuery, setReportsViewerQuery] = useState("");
   const [showAdviserAssignment, setShowAdviserAssignment] = useState(false);
   const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<{ month: string; count: number }[]>([]);
@@ -465,6 +467,14 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
               </AnimatePresence>
             </div>
           )}
+
+          <NotificationBell 
+            user={user} 
+            onSelectNotification={(lrn) => {
+              setReportsViewerQuery(lrn);
+              setShowReportsViewer(true);
+            }} 
+          />
 
           <button
             id="logout-btn"
@@ -1013,13 +1023,17 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
 
         {showReportsViewer && (
           <ReportsViewerModal 
-            onClose={() => setShowReportsViewer(false)} 
+            onClose={() => {
+              setShowReportsViewer(false);
+              setReportsViewerQuery("");
+            }} 
             userEmail={user.email || ""}
             userRole={user.role}
             userGradeLevel={user.gradeLevel}
             userSection={user.section}
             userFirstName={user.firstName}
             userLastName={user.lastName}
+            initialSearchQuery={reportsViewerQuery}
           />
         )}
 

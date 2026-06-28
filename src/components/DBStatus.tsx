@@ -179,6 +179,20 @@ create table if not exists critical_reports (
   reported_by text,
   date_reported text,
   record_status text default 'On Going'
+);
+
+-- Create notifications table
+create table if not exists notifications (
+  id serial primary key,
+  message text not null,
+  type text not null,
+  student_lrn text,
+  student_name text,
+  reported_by text,
+  target_role text not null,
+  is_read boolean default false,
+  read_by jsonb default '[]'::jsonb,
+  created_at text not null
 );`;
     navigator.clipboard.writeText(sql);
     setCopied(true);
@@ -439,7 +453,21 @@ ALTER TABLE reports ADD COLUMN IF NOT EXISTS designation text;
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS record_status text default 'On Going';
 
 -- Fix critical_reports table
-ALTER TABLE critical_reports ADD COLUMN IF NOT EXISTS record_status text default 'On Going';`}</pre>
+ALTER TABLE critical_reports ADD COLUMN IF NOT EXISTS record_status text default 'On Going';
+
+-- Create notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id serial primary key,
+  message text not null,
+  type text not null,
+  student_lrn text,
+  student_name text,
+  reported_by text,
+  target_role text not null,
+  is_read boolean default false,
+  read_by jsonb default '[]'::jsonb,
+  created_at text not null
+);`}</pre>
                   <button
                     onClick={() => {
                       const fixSql = `-- Fix users table
@@ -457,7 +485,21 @@ ALTER TABLE reports ADD COLUMN IF NOT EXISTS designation text;
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS record_status text default 'On Going';
 
 -- Fix critical_reports table
-ALTER TABLE critical_reports ADD COLUMN IF NOT EXISTS record_status text default 'On Going';`;
+ALTER TABLE critical_reports ADD COLUMN IF NOT EXISTS record_status text default 'On Going';
+
+-- Create notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id serial primary key,
+  message text not null,
+  type text not null,
+  student_lrn text,
+  student_name text,
+  reported_by text,
+  target_role text not null,
+  is_read boolean default false,
+  read_by jsonb default '[]'::jsonb,
+  created_at text not null
+);`;
                       navigator.clipboard.writeText(fixSql);
                       setCopied(true);
                       setTimeout(() => setCopied(false), 2000);

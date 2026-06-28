@@ -139,3 +139,17 @@ export interface Student {
   registeredBy?: string; // Teacher email who registered
 }
 
+export interface AppNotification {
+  id: string | number;
+  message: string;
+  type: 'General' | 'Critical' | 'CICL';
+  studentLrn?: string;
+  studentName?: string;
+  reportedBy?: string;
+  targetRole: 'Guidance' | 'Admin' | 'All';
+  isRead?: boolean;
+  readBy?: string[]; // user emails who read it
+  createdAt: string;
+}
+
+

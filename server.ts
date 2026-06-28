@@ -512,7 +512,13 @@ async function startServer() {
           } catch (uploadErr: any) {
             console.error("Failed to upload MOV to Google Drive:", uploadErr);
             console.warn("Bypassing Google Drive upload error and proceeding with resolving report.");
-            driveUploadWarning = `Google Drive upload failed (${uploadErr.message || uploadErr}), but report status was successfully updated.`;
+            
+            const errMsg = uploadErr.message || String(uploadErr);
+            if (errMsg.includes("not found") || errMsg.includes("permission") || errMsg.includes("access")) {
+              driveUploadWarning = `Google Drive upload failed. Please ensure you have shared your Google Drive Folder (ID: 1oWyTYIY2piGBHGpbUS6lUtuYlOnMxnBB) with the Service Account email (${saEmail}) as an Editor! (Error: ${errMsg})`;
+            } else {
+              driveUploadWarning = `Google Drive upload failed (${errMsg}), but report status was successfully updated.`;
+            }
           }
         }
       }

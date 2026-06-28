@@ -989,6 +989,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
           <ReportsViewerModal 
             onClose={() => setShowReportsViewer(false)} 
             userEmail={user.email || ""}
+            userRole={user.role}
           />
         )}
 

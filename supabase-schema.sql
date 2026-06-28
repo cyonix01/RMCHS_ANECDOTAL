@@ -71,7 +71,8 @@ create table if not exists critical_reports (
   action_taken text,
   recommendation text,
   reported_by text,
-  date_reported text
+  date_reported text,
+  record_status text default 'On Going'
 );
 
 -- Create reports table
@@ -94,5 +95,5 @@ create table if not exists reports (
   referral_recommendation text,
   initial_assessment_made_by text,
   designation text,
-  record_status text
+  record_status text default 'On Going'
 );

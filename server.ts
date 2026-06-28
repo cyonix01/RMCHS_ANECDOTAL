@@ -22,6 +22,7 @@ import {
   getAllReports,
   saveCriticalReport,
   getAllCriticalReports,
+  updateReportStatus,
   getSections,
   getSectionsByGradeLevel,
   getSupabaseClient,
@@ -367,6 +368,18 @@ async function startServer() {
       const { recommendation, updatedBy } = req.body;
       await updateReportRecommendation(id, recommendation, updatedBy);
       res.json({ message: "Recommendation updated successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // API ROUTE 7.4: Update Report Status
+  app.put("/api/reports/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, type } = req.body;
+      await updateReportStatus(Number(id), status, type);
+      res.json({ message: "Status updated successfully" });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

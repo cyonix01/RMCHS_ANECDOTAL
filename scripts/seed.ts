@@ -114,7 +114,7 @@ async function seed() {
         designation: "Class Adviser",
         reportedBy: "Teacher A",
         dateReported: new Date().toISOString().split('T')[0],
-        recordStatus: Math.random() > 0.5 ? "RESOLVED" : "ON GOING"
+        recordStatus: Math.random() > 0.5 ? "RESOLVED" : "On Going"
       };
       try { await saveReport(report); } catch (e) {}
     }
@@ -139,7 +139,7 @@ async function seed() {
       designation: "Police Officer",
       reportedBy: "SPO1 Reyes",
       dateReported: new Date().toISOString().split('T')[0],
-      recordStatus: "ON GOING"
+      recordStatus: "On Going"
     };
     try { await saveReport(report); } catch (e) {}
   }
@@ -157,7 +157,8 @@ async function seed() {
       actionTaken: "Immediate intervention.",
       recommendation: ["Psychological Referral", "Medical Assistance", "Suspension", "Expulsion", "DSWD Referral"][Math.floor(Math.random() * 5)],
       reportedBy: "Principal Office",
-      dateReported: new Date().toISOString().split('T')[0]
+      dateReported: new Date().toISOString().split('T')[0],
+      recordStatus: "On Going"
     };
     try { await saveCriticalReport(report); } catch (e) {}
   }

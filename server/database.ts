@@ -508,6 +508,7 @@ export async function saveCriticalReport(report: CriticalReport): Promise<any> {
       recommendation: report.recommendation,
       reported_by: report.reportedBy,
       date_reported: report.dateReported,
+      record_status: report.recordStatus || 'On Going',
     },
   ]);
   if (error) throw error;
@@ -564,7 +565,7 @@ export async function saveReport(report: Report): Promise<any> {
       referral_recommendation: report.referralRecommendation,
       initial_assessment_made_by: report.initialAssessmentMadeBy,
       designation: report.designation,
-      record_status: report.recordStatus,
+      record_status: report.recordStatus || 'On Going',
     },
   ]);
   if (error) {
@@ -635,7 +636,19 @@ export async function getAllCriticalReports(): Promise<CriticalReport[]> {
     reportedBy: row.reported_by,
     dateReported: row.date_reported,
     lastUpdatedBy: row.last_updated_by,
+    recordStatus: row.record_status,
   }));
+}
+
+/**
+ * Update report status.
+ */
+export async function updateReportStatus(id: number, status: string, type: 'General' | 'Critical'): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  const table = type === 'Critical' ? 'critical_reports' : 'reports';
+  const { error } = await supabase.from(table).update({ record_status: status }).eq("id", id);
+  if (error) throw error;
 }
 
 /**

@@ -163,7 +163,22 @@ create table if not exists reports (
   referral_recommendation text,
   initial_assessment_made_by text,
   designation text,
-  record_status text
+  record_status text default 'On Going'
+);
+
+-- Create critical_reports table
+create table if not exists critical_reports (
+  id serial primary key,
+  student_lrn text references students(lrn),
+  date_of_incident text,
+  time_of_incident text,
+  issue text,
+  description text,
+  action_taken text,
+  recommendation text,
+  reported_by text,
+  date_reported text,
+  record_status text default 'On Going'
 );`;
     navigator.clipboard.writeText(sql);
     setCopied(true);
@@ -421,7 +436,10 @@ ALTER TABLE reports ADD COLUMN IF NOT EXISTS family_community_behavior_factors j
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS referral_recommendation text;
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS initial_assessment_made_by text;
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS designation text;
-ALTER TABLE reports ADD COLUMN IF NOT EXISTS record_status text;`}</pre>
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS record_status text default 'On Going';
+
+-- Fix critical_reports table
+ALTER TABLE critical_reports ADD COLUMN IF NOT EXISTS record_status text default 'On Going';`}</pre>
                   <button
                     onClick={() => {
                       const fixSql = `-- Fix users table
@@ -436,7 +454,10 @@ ALTER TABLE reports ADD COLUMN IF NOT EXISTS family_community_behavior_factors j
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS referral_recommendation text;
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS initial_assessment_made_by text;
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS designation text;
-ALTER TABLE reports ADD COLUMN IF NOT EXISTS record_status text;`;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS record_status text default 'On Going';
+
+-- Fix critical_reports table
+ALTER TABLE critical_reports ADD COLUMN IF NOT EXISTS record_status text default 'On Going';`;
                       navigator.clipboard.writeText(fixSql);
                       setCopied(true);
                       setTimeout(() => setCopied(false), 2000);

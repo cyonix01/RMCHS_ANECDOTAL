@@ -12,6 +12,7 @@ import { useNotification } from "./NotificationProvider";
 interface ReportsViewerModalProps {
   onClose: () => void;
   userEmail: string;
+  userRole?: string;
 }
 
 interface CombinedReport {
@@ -30,9 +31,10 @@ interface CombinedReport {
   recommendation: string;
   type: 'General' | 'Critical';
   lastUpdatedBy?: string;
+  recordStatus?: 'On Going' | 'RESOLVED';
 }
 
-const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEmail }) => {
+const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEmail, userRole }) => {
   const { notify } = useNotification();
   const [reports, setReports] = useState<CombinedReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
               actionTaken: r.actionTaken || 'N/A',
               recommendation: r.recommendation || '',
               type: 'General' as const,
-              lastUpdatedBy: r.lastUpdatedBy
+              lastUpdatedBy: r.lastUpdatedBy,
+              recordStatus: r.recordStatus
             };
           }),
           ...critData.map(r => {
@@ -100,7 +103,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
               actionTaken: r.actionTaken || 'N/A',
               recommendation: r.recommendation || '',
               type: 'Critical' as const,
-              lastUpdatedBy: r.lastUpdatedBy
+              lastUpdatedBy: r.lastUpdatedBy,
+              recordStatus: r.recordStatus
             };
           })
         ];
@@ -157,6 +161,37 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
     }
   };
 
+  const handleUpdateStatus = async (newStatus: 'On Going' | 'RESOLVED') => {
+    if (!selectedReportForView) return;
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/reports/${selectedReportForView.id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: newStatus,
+          type: selectedReportForView.type
+        })
+      });
+      if (res.ok) {
+        notify("success", `Report marked as ${newStatus}`);
+        // Update local state
+        setReports(prev => prev.map(r => 
+          (r.id === selectedReportForView.id && r.type === selectedReportForView.type)
+            ? { ...r, recordStatus: newStatus }
+            : r
+        ));
+        setSelectedReportForView(prev => prev ? { ...prev, recordStatus: newStatus } : null);
+      } else {
+        notify("error", "Failed to update record status.");
+      }
+    } catch (err) {
+      notify("error", "Record status update failed.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const filteredReports = useMemo(() => {
     return reports.filter(report => {
       const matchesSearch = 
@@ -179,9 +214,10 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
     }
     
     const csvContent = [
-      ["Type", "Date Reported", "Incident Date", "Incident Time", "Student Name", "LRN", "Grade", "Section", "Issue/Incident", "Reported By", "Details"],
+      ["Type", "Status", "Date Reported", "Incident Date", "Incident Time", "Student Name", "LRN", "Grade", "Section", "Issue/Incident", "Reported By", "Details"],
       ...filteredReports.map(r => [
         r.type,
+        r.recordStatus || 'On Going',
         r.dateReported,
         r.dateOfIncident,
         r.timeOfIncident,
@@ -303,6 +339,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Student Identity</th>
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Issue / Incident</th>
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500 text-center">Type</th>
+                    <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500 text-center">Status</th>
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Reported By</th>
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500 w-10"></th>
                   </tr>
@@ -345,6 +382,15 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
                             : 'border-blue-100 text-blue-600 bg-blue-50'
                         }`}>
                           {report.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
+                          report.recordStatus === 'RESOLVED' 
+                            ? 'border-[#76DA0D]/20 text-[#102604] bg-[#76DA0D]/10' 
+                            : 'border-orange-100 text-orange-600 bg-orange-50'
+                        }`}>
+                          {report.recordStatus || 'On Going'}
                         </span>
                       </td>
                       <td className="px-6 py-5">
@@ -475,6 +521,48 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
                       <div className="p-4 bg-slate-50 border border-slate-100 rounded text-[11px] text-slate-600 leading-relaxed font-medium">
                         {selectedReportForView.actionTaken}
                       </div>
+                    </section>
+
+                    <section>
+                      <label className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                        <AlertCircle size={12} />
+                        Record Status
+                      </label>
+                      <div className="flex items-center gap-4">
+                        <div className={`px-4 py-2 border rounded font-bold text-[10px] uppercase tracking-wider ${
+                          selectedReportForView.recordStatus === 'RESOLVED' 
+                            ? 'bg-[#76DA0D]/10 border-[#76DA0D]/20 text-[#102604]' 
+                            : 'bg-orange-50 border-orange-100 text-orange-600'
+                        }`}>
+                          Current Status: {selectedReportForView.recordStatus || 'On Going'}
+                        </div>
+                        
+                        {(userRole === 'Admin' || userRole === 'Guidance') && (
+                          <div className="flex gap-2">
+                            {selectedReportForView.recordStatus !== 'On Going' && (
+                              <button 
+                                onClick={() => handleUpdateStatus('On Going')}
+                                className="px-3 py-2 text-[9px] font-black uppercase tracking-widest border border-orange-200 text-orange-600 hover:bg-orange-50 transition-colors"
+                              >
+                                Mark as On Going
+                              </button>
+                            )}
+                            {selectedReportForView.recordStatus !== 'RESOLVED' && (
+                              <button 
+                                onClick={() => handleUpdateStatus('RESOLVED')}
+                                className="px-3 py-2 text-[9px] font-black uppercase tracking-widest bg-[#102604] text-white hover:bg-slate-800 transition-colors"
+                              >
+                                Mark as RESOLVED
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {(userRole !== 'Admin' && userRole !== 'Guidance') && (
+                        <p className="mt-2 text-[8px] font-medium text-slate-400 italic">
+                          * Only Admin or Guidance accounts can modify record status.
+                        </p>
+                      )}
                     </section>
 
                     <section>

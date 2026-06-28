@@ -98,13 +98,19 @@ async function uploadFileToGoogleDrive(
     throw new Error("Google Service Account credentials are not configured in environment variables.");
   }
 
+  console.log(`[GAPI] Initializing JWT client. Service Account Email: ${saEmail}`);
   const auth = new google.auth.JWT({
     email: saEmail,
     key: saPrivateKey.replace(/\\n/g, "\n"),
     scopes: ["https://www.googleapis.com/auth/drive"]
   });
 
-  await auth.authorize();
+  console.log("[GAPI] Requesting/refreshing authorization token...");
+  const credentials = await auth.authorize();
+  if (!credentials.access_token) {
+    throw new Error("Google GAPI Authorization failed: Access token was not retrieved successfully.");
+  }
+  console.log("[GAPI] Authorization token successfully refreshed and verified! Token length:", credentials.access_token.length);
 
   const drive = google.drive({ version: "v3", auth });
 
@@ -123,6 +129,7 @@ async function uploadFileToGoogleDrive(
     body: mediaStream,
   };
 
+  console.log(`[GAPI] Executing file upload for '${fileName}' into folder '${folderId}'...`);
   const response = await drive.files.create({
     requestBody: fileMetadata,
     media: media,
@@ -130,6 +137,7 @@ async function uploadFileToGoogleDrive(
     fields: "id, name, webViewLink",
   });
 
+  console.log("[GAPI] File upload succeeded. Drive File ID:", response.data.id);
   return response.data;
 }
 
@@ -390,6 +398,48 @@ async function startServer() {
     } catch (err: any) {
       console.error("Login endpoint crashed:", err);
       res.status(500).json({ error: `Internal authentication fault: ${err.message}` });
+    }
+  });
+
+  // API ROUTE 3.5: Forgot Password Recovery & Reset
+  app.post("/api/forgot-password", async (req, res) => {
+    try {
+      const { email, firstName, lastName, contactNumber, newPassword } = req.body;
+
+      if (!email || !firstName || !lastName || !contactNumber || !newPassword) {
+        return res.status(400).json({ error: "All fields are required to verify identity and reset your password." });
+      }
+
+      const emailTrim = email.trim().toLowerCase();
+      const user = await getUserByEmail(emailTrim);
+
+      if (!user) {
+        return res.status(404).json({ error: "Username/Email is not registered in the system." });
+      }
+
+      // Check if details match (case-insensitive and trimmed)
+      const userFirstName = user.firstName.trim().toLowerCase();
+      const userLastName = user.lastName.trim().toLowerCase();
+      const userContact = user.contactNumber.trim();
+
+      const inputFirstName = firstName.trim().toLowerCase();
+      const inputLastName = lastName.trim().toLowerCase();
+      const inputContact = contactNumber.trim();
+
+      if (userFirstName !== inputFirstName || userLastName !== inputLastName || userContact !== inputContact) {
+        return res.status(403).json({ error: "Identity verification failed. The provided details do not match the registered profile." });
+      }
+
+      // Create secure SHA-256 hash of new password
+      const newHash = hashPassword(newPassword);
+      await updateUser(emailTrim, { passwordHash: newHash });
+
+      res.json({
+        message: "Your passcode has been successfully recovered and updated! Please log in with your new passcode."
+      });
+    } catch (err: any) {
+      console.error("Forgot password recovery crashed:", err);
+      res.status(500).json({ error: `Internal recovery fault: ${err.message}` });
     }
   });
 

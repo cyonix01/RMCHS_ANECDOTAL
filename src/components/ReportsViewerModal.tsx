@@ -704,7 +704,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => setStatusEdit('On Going')}
-                                  className={`flex-1 py-1.5 px-3 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm ${
+                                  disabled={isUpdating}
+                                  className={`flex-1 py-1.5 px-3 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 ${
                                     statusEdit === 'On Going'
                                       ? 'bg-white text-orange-600 shadow-sm border border-slate-200/50 font-bold'
                                       : 'text-slate-500 hover:text-slate-700'
@@ -715,7 +716,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => setStatusEdit('RESOLVED')}
-                                  className={`flex-1 py-1.5 px-3 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm ${
+                                  disabled={isUpdating}
+                                  className={`flex-1 py-1.5 px-3 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 ${
                                     statusEdit === 'RESOLVED'
                                       ? 'bg-[#102604] text-white shadow-sm font-bold'
                                       : 'text-slate-500 hover:text-[#102604]'
@@ -746,12 +748,13 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                               <input 
                                 type="file" 
                                 id="mov-file-input"
+                                disabled={isUpdating}
                                 onChange={(e) => {
                                   if (e.target.files && e.target.files[0]) {
                                     setMovFile(e.target.files[0]);
                                   }
                                 }}
-                                className="text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:border file:border-slate-300 file:rounded-sm file:font-sans file:font-bold file:text-[9px] file:uppercase file:tracking-wider file:bg-white file:text-slate-700 hover:file:bg-slate-50 cursor-pointer"
+                                className="text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:border file:border-slate-300 file:rounded-sm file:font-sans file:font-bold file:text-[9px] file:uppercase file:tracking-wider file:bg-white file:text-slate-700 hover:file:bg-slate-50 cursor-pointer disabled:opacity-50"
                                 required
                               />
                               {movFile && (
@@ -773,9 +776,10 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                       </label>
                       <textarea
                         value={recommendationEdit}
+                        disabled={isUpdating}
                         onChange={(e) => setRecommendationEdit(e.target.value)}
                         placeholder="Provide guidance or follow-up recommendations..."
-                        className="w-full p-4 bg-white border-2 border-slate-100 text-[11px] text-slate-800 leading-relaxed focus:outline-none focus:border-[#76DA0D] min-h-[120px] transition-colors"
+                        className="w-full p-4 bg-white border-2 border-slate-100 text-[11px] text-slate-800 leading-relaxed focus:outline-none focus:border-[#76DA0D] min-h-[120px] transition-colors disabled:opacity-50"
                       />
                       {selectedReportForView.lastUpdatedBy && (
                         <p className="mt-2 text-[9px] font-bold italic text-slate-400 flex items-center gap-1">

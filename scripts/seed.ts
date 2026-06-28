@@ -107,6 +107,11 @@ async function seed() {
         description: `Dummy report for ${issue}.`,
         actionTaken: "Counseled",
         recommendation: ["Warning", "Parent Conference", "Community Service", "Monitor", "Referral to Guidance"][Math.floor(Math.random() * 5)],
+        individualFactors: ["Personal choice"],
+        familyCommunityBehaviorFactors: ["Peer influence"],
+        referralRecommendation: "Counseling",
+        initialAssessmentMadeBy: "Teacher A",
+        designation: "Class Adviser",
         reportedBy: "Teacher A",
         dateReported: new Date().toISOString().split('T')[0],
         recordStatus: Math.random() > 0.5 ? "RESOLVED" : "ON GOING"
@@ -127,6 +132,11 @@ async function seed() {
       description: `Dummy CICL report for ${offense}.`,
       actionTaken: "Referral to DSWD",
       recommendation: ["Legal assistance", "Family counseling", "Rehabilitation Program"][Math.floor(Math.random() * 3)],
+      individualFactors: ["Lack of supervision"],
+      familyCommunityBehaviorFactors: ["Community environment"],
+      referralRecommendation: "DSWD Referral",
+      initialAssessmentMadeBy: "SPO1 Reyes",
+      designation: "Police Officer",
       reportedBy: "SPO1 Reyes",
       dateReported: new Date().toISOString().split('T')[0],
       recordStatus: "ON GOING"

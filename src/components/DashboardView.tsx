@@ -4,14 +4,44 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { LogOut, Settings2, ShieldCheck, Sun, Clock, Calendar, Compass, Clipboard, UserPlus, FileText, Table, BarChart3 } from "lucide-react";
+import { LogOut, Settings2, ShieldCheck, Sun, Clock, Calendar, Compass, Clipboard, UserPlus, FileText, Table, BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { UserAccount } from "../types";
+import { UserAccount, Report, CriticalReport } from "../types";
 import AccountSettingsView from "./AccountSettingsView";
 import RegisterStudentModal from "./RegisterStudentModal";
 import StudentSearchModal from "./StudentSearchModal";
 import CICLSearchModal from "./CICLSearchModal";
 import DataAnalyticsView from "./DataAnalyticsView";
+import AnecdoteChart from "./AnecdoteChart";
+
+const mapToCategory = (issue: string) => {
+  const attendanceIssues = [
+    "Habitual tardiness", 
+    "Cutting classes / Unexcused absences", 
+    "Truancy or Child labor", 
+    "Repeated or severe cases of cutting classes"
+  ];
+  const academicIssues = [
+    "Inattentiveness / sleeping in class", 
+    "Using gadgets during class hour without permission", 
+    "Copying assignments or mild cheating"
+  ];
+  const behavioralIssues = [
+    "Talking back to teachers", 
+    "Dress code violations", 
+    "Minor class disturbances (e.g. noise, jokes)", 
+    "Peer misunderstanding or minor peer conflicts", 
+    "Vandalism (minor cases like writing on desks)", 
+    "Extreme defiance of authority or insubordination", 
+    "Physical altercation or Fights", 
+    "Bullying (Physical, Emotional, or Cyberbullying)"
+  ];
+  
+  if (attendanceIssues.some(i => issue.includes(i))) return "Attendance";
+  if (academicIssues.some(i => issue.includes(i))) return "Academic";
+  if (behavioralIssues.some(i => issue.includes(i))) return "Behavioral";
+  return "Others";
+};
 
 interface DashboardViewProps {
   user: Partial<UserAccount>;
@@ -25,6 +55,83 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   const [showStudentSearch, setShowStudentSearch] = useState(false);
   const [showCICLReport, setShowCICLReport] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(true);
+  const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
+  const [allTeacherReports, setAllTeacherReports] = useState<any[]>([]);
+  const [trendData, setTrendData] = useState<{ totalChange: number; academicChange: number; behavioralChange: number }>({ totalChange: 0, academicChange: 0, behavioralChange: 0 });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/reports").then(res => res.json()),
+      fetch("/api/critical-reports").then(res => res.json())
+    ]).then(([reports, criticalReports]) => {
+      const teacherName = `${user.firstName} ${user.lastName}`;
+      const teacherReports = [
+        ...reports.filter((r: any) => r.reportedBy === teacherName || r.createdBy === user.email).map((r: any) => ({ ...r, type: 'General' })),
+        ...criticalReports.filter((r: any) => r.reportedBy === teacherName).map((r: any) => ({ ...r, type: 'Critical' }))
+      ].sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
+
+      setAllTeacherReports(teacherReports);
+
+      const counts: Record<string, number> = {
+        Attendance: 0,
+        Academic: 0,
+        Behavioral: 0,
+        Others: 0
+      };
+
+      teacherReports.forEach((r: any) => {
+        const category = mapToCategory(r.issue);
+        counts[category]++;
+      });
+
+      setChartData(Object.entries(counts).map(([category, count]) => ({ category, count })));
+
+      // Calculate Trends
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+      const thisMonthReports = teacherReports.filter((r: any) => {
+        const d = new Date(r.dateReported);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      });
+
+      const lastMonthReports = teacherReports.filter((r: any) => {
+        const d = new Date(r.dateReported);
+        return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+      });
+
+      const calculateChange = (current: any[], previous: any[], filterFn?: (r: any) => boolean) => {
+        const curCount = filterFn ? current.filter(filterFn).length : current.length;
+        const prevCount = filterFn ? previous.filter(filterFn).length : previous.length;
+        if (prevCount === 0) return curCount > 0 ? 100 : 0;
+        return Math.round(((curCount - prevCount) / prevCount) * 100);
+      };
+
+      setTrendData({
+        totalChange: calculateChange(thisMonthReports, lastMonthReports),
+        academicChange: calculateChange(thisMonthReports, lastMonthReports, (r) => mapToCategory(r.issue) === 'Academic'),
+        behavioralChange: calculateChange(thisMonthReports, lastMonthReports, (r) => mapToCategory(r.issue) === 'Behavioral')
+      });
+    }).catch(console.error);
+  }, [user]);
+
+  const filteredReports = allTeacherReports.filter(report => {
+    const matchesSearch = 
+      report.studentLrn?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      report.issue?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      report.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const category = mapToCategory(report.issue);
+    const matchesCategory = categoryFilter === "All" || category === categoryFilter;
+
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div id="dashboard-layout" className="min-h-screen bg-[#FFFFFF] flex flex-col font-sans text-[#102604]">
@@ -116,31 +223,195 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.15 }}
-              className="bg-white border border-slate-200 rounded-none p-12 shadow-xs min-h-[500px] flex flex-col justify-center items-center text-center relative"
+              className="bg-white border border-slate-200 rounded-none p-12 shadow-xs min-h-[500px] flex flex-col items-center text-center relative"
             >
               {/* Elegant decorative background compass */}
               <div className="absolute top-8 left-8 text-left opacity-15 select-none pointer-events-none">
                 <Compass size={44} className="text-[#76DA0D]" />
               </div>
 
-              <div className="max-w-md space-y-6">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-[#76DA0D]/10 text-[#102604] rounded-none border border-[#76DA0D]/30 shadow-xs mb-2">
-                  <Clipboard size={28} />
+              <div className="w-full max-w-4xl space-y-12">
+                <div className="space-y-6">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-[#76DA0D]/10 text-[#102604] rounded-none border border-[#76DA0D]/30 shadow-xs mb-2">
+                    <Clipboard size={28} />
+                  </div>
+
+                  <div id="dashboard-message-group" className="space-y-3">
+                    <h4 id="workspace-title" className="serif font-serif text-3xl text-slate-900 tracking-tight font-light">
+                      Welcome back, {user.position} {user.lastName}
+                    </h4>
+                    <p id="workspace-description" className="text-xs leading-relaxed text-slate-500 font-sans max-w-sm mx-auto">
+                      Your institutional workspace is synchronized. Review your recent report distribution and student engagements below.
+                    </p>
+                  </div>
                 </div>
 
-                <div id="dashboard-message-group" className="space-y-3">
-                  <h4 id="workspace-title" className="serif font-serif text-3xl text-slate-900 tracking-tight font-light">
-                    Institutional Workspace Initialized
-                  </h4>
-                  <p id="workspace-description" className="text-xs leading-relaxed text-slate-500 font-sans max-w-sm mx-auto">
-                    Welcome to your secure administrative portal workspace. Your credentials have been authenticated successfully via database records. Current workspace modules are active and synced.
-                  </p>
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+                  <div className="lg:col-span-3 bg-white border border-slate-100 p-8 shadow-sm">
+                    <div className="flex items-center gap-2 mb-6">
+                      <TrendingUp size={16} className="text-[#76DA0D]" />
+                      <h5 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Your Anecdote Distribution</h5>
+                    </div>
+                    <AnecdoteChart data={chartData} />
+                  </div>
+
+                  <div className="lg:col-span-2 space-y-4 text-left">
+                    <div className="bg-slate-50 border border-slate-100 p-6">
+                      <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">Workspace Stats</h6>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-end border-b border-slate-200 pb-2">
+                          <span className="text-[10px] font-bold text-slate-500">Total Reports</span>
+                          <div className="flex items-center gap-2">
+                            {trendData.totalChange !== 0 && (
+                              <div className={`flex items-center text-[10px] font-bold ${trendData.totalChange > 0 ? 'text-red-500' : 'text-[#76DA0D]'}`}>
+                                {trendData.totalChange > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                                <span>{Math.abs(trendData.totalChange)}%</span>
+                              </div>
+                            )}
+                            <span className="text-xl font-serif text-slate-900 leading-none">{chartData.reduce((acc, curr) => acc + curr.count, 0)}</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-end border-b border-slate-200 pb-2">
+                          <span className="text-[10px] font-bold text-slate-500">Academic Focus</span>
+                          <div className="flex items-center gap-2">
+                            {trendData.academicChange !== 0 && (
+                              <div className={`flex items-center text-[10px] font-bold ${trendData.academicChange > 0 ? 'text-orange-500' : 'text-blue-500'}`}>
+                                {trendData.academicChange > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                                <span>{Math.abs(trendData.academicChange)}%</span>
+                              </div>
+                            )}
+                            <span className="text-xl font-serif text-slate-900 leading-none">{chartData.find(d => d.category === 'Academic')?.count || 0}</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-end">
+                          <span className="text-[10px] font-bold text-slate-500">Behavioral Focus</span>
+                          <div className="flex items-center gap-2">
+                            {trendData.behavioralChange !== 0 && (
+                              <div className={`flex items-center text-[10px] font-bold ${trendData.behavioralChange > 0 ? 'text-red-500' : 'text-blue-500'}`}>
+                                {trendData.behavioralChange > 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                                <span>{Math.abs(trendData.behavioralChange)}%</span>
+                              </div>
+                            )}
+                            <span className="text-xl font-serif text-slate-900 leading-none">{chartData.find(d => d.category === 'Behavioral')?.count || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border border-slate-100 flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-[#76DA0D] animate-pulse" />
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Live Database Sync Active</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Minimal line break spacer */}
-                <div className="w-16 h-[1px] bg-slate-200 mx-auto my-4" />
+                {/* New Search and Filterable Anecdote List */}
+                <div className="w-full bg-white border border-slate-100 p-8 shadow-sm text-left mt-8">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-[#102604] flex items-center justify-center">
+                        <Table size={14} className="text-[#76DA0D]" />
+                      </div>
+                      <h5 className="text-[10px] font-bold uppercase tracking-widest text-slate-900">Recent Student Anecdotes</h5>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-3">
+                      {/* Search Bar */}
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search LRN, Issue..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 text-[11px] font-medium focus:outline-none focus:border-[#76DA0D] transition-colors w-full md:w-64"
+                        />
+                        <Compass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                      </div>
 
-                <div className="pt-2 flex flex-wrap justify-center gap-2">
+                      {/* Category Filter */}
+                      <select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        className="px-3 py-2 bg-slate-50 border border-slate-200 text-[11px] font-bold uppercase tracking-widest focus:outline-none focus:border-[#76DA0D] cursor-pointer"
+                      >
+                        <option value="All">All Categories</option>
+                        <option value="Attendance">Attendance</option>
+                        <option value="Academic">Academic</option>
+                        <option value="Behavioral">Behavioral</option>
+                        <option value="Others">Others</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-100 text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+                          <th className="py-4 px-2 text-left w-24">Date</th>
+                          <th className="py-4 px-2 text-left w-32">Student LRN</th>
+                          <th className="py-4 px-2 text-left">Issue / Concern</th>
+                          <th className="py-4 px-2 text-left w-24">Category</th>
+                          <th className="py-4 px-2 text-left w-24">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {filteredReports.length > 0 ? (
+                          filteredReports.slice(0, 10).map((report, idx) => {
+                            const category = mapToCategory(report.issue);
+                            return (
+                              <motion.tr 
+                                key={idx}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: idx * 0.05 }}
+                                className="group hover:bg-slate-50/50 transition-colors"
+                              >
+                                <td className="py-4 px-2 text-[10px] font-mono text-slate-500 whitespace-nowrap">{report.dateReported}</td>
+                                <td className="py-4 px-2 text-[11px] font-bold text-[#102604]">{report.studentLrn}</td>
+                                <td className="py-4 px-2">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-[11px] font-bold text-slate-900 line-clamp-1">{report.issue}</span>
+                                    <span className="text-[10px] text-slate-400 line-clamp-1 italic">{report.description}</span>
+                                  </div>
+                                </td>
+                                <td className="py-4 px-2">
+                                  <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
+                                    category === 'Attendance' ? 'border-blue-200 text-blue-600 bg-blue-50' :
+                                    category === 'Academic' ? 'border-orange-200 text-orange-600 bg-orange-50' :
+                                    category === 'Behavioral' ? 'border-red-200 text-red-600 bg-red-50' :
+                                    'border-slate-200 text-slate-500 bg-slate-50'
+                                  }`}>
+                                    {category}
+                                  </span>
+                                </td>
+                                <td className="py-4 px-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${report.recordStatus === 'RESOLVED' ? 'bg-[#76DA0D]' : 'bg-orange-400'}`} />
+                                    <span className="text-[9px] font-bold uppercase tracking-tight text-slate-600">{report.recordStatus || 'CRITICAL'}</span>
+                                  </div>
+                                </td>
+                              </motion.tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={5} className="py-12 text-center text-[11px] text-slate-400 font-medium italic">
+                              No anecdotes found matching your criteria.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  {filteredReports.length > 10 && (
+                    <div className="mt-6 pt-6 border-t border-slate-100 flex justify-center">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Showing last 10 entries • {filteredReports.length} total results</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-8 flex flex-wrap justify-center gap-2">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-50 border border-slate-200 rounded-none text-[9px] font-bold uppercase tracking-wider font-sans text-slate-500">
                     <ShieldCheck size={12} className="text-slate-600" />
                     <span>Secure SH-256</span>

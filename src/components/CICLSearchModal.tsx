@@ -7,9 +7,10 @@ import CICLReportFormModal from "./CICLReportFormModal";
 interface CICLSearchModalProps {
   userName: string;
   onClose: () => void;
+  onReportFiled?: () => void;
 }
 
-export default function CICLSearchModal({ userName, onClose }: CICLSearchModalProps) {
+export default function CICLSearchModal({ userName, onClose, onReportFiled }: CICLSearchModalProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
@@ -111,6 +112,7 @@ export default function CICLSearchModal({ userName, onClose }: CICLSearchModalPr
             student={selectedStudent} 
             userName={userName}
             onClose={() => setSelectedStudent(null)} 
+            onSuccess={onReportFiled}
           />
         )}
       </AnimatePresence>

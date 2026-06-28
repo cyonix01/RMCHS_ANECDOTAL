@@ -359,23 +359,28 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
       }
       const fileName = match[1];
       const fileUrl = match[2];
+      const isVideo = fileName.toLowerCase().endsWith('.mov') || fileName.toLowerCase().endsWith('.mp4');
       
       parts.push(
-        <div key={match.index} className="mt-3 p-3 bg-[#76DA0D]/5 border border-[#76DA0D]/20 rounded-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div key={match.index} className="mt-3 p-3 bg-[#76DA0D]/5 border border-[#76DA0D]/20 rounded-sm flex flex-col gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#102604] shrink-0">Attached MOV:</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#102604] shrink-0">Attached {isVideo ? 'MOV/Video' : 'File'}:</span>
             <span className="text-[10px] text-slate-600 underline font-mono truncate" title={fileName}>
               {fileName}
             </span>
           </div>
-          <a 
-            href={fileUrl} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="px-3 py-1 bg-[#102604] text-white rounded-sm text-[8px] font-black uppercase tracking-widest hover:bg-[#102604]/80 transition-all text-center shrink-0"
-          >
-            View Attachment
-          </a>
+          {isVideo ? (
+            <video controls className="w-full rounded-sm border border-slate-200" src={fileUrl} />
+          ) : (
+            <a 
+              href={fileUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="px-3 py-1 bg-[#102604] text-white rounded-sm text-[8px] font-black uppercase tracking-widest hover:bg-[#102604]/80 transition-all text-center shrink-0"
+            >
+              View Attachment
+            </a>
+          )}
         </div>
       );
       lastIndex = regex.lastIndex;

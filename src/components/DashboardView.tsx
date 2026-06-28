@@ -164,12 +164,13 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
     notify("success", `${selectedReports.length} records archived to CSV.`);
   };
 
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/reports").then(res => res.json()),
-      fetch("/api/critical-reports").then(res => res.json()),
-      fetch("/api/students").then(res => res.json())
-    ]).then(([reports, criticalReports, students]) => {
+  const fetchData = React.useCallback(async () => {
+    try {
+      const [reports, criticalReports, students] = await Promise.all([
+        fetch("/api/reports").then(res => res.json()),
+        fetch("/api/critical-reports").then(res => res.json()),
+        fetch("/api/students").then(res => res.json())
+      ]);
       const teacherName = `${user.firstName} ${user.lastName}`;
       // Use local date (YYYY-MM-DD) instead of UTC to match "Today's" reports correctly
       const todayStr = new Date().toLocaleDateString('en-CA');
@@ -319,8 +320,14 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
         academicYearData.push({ month: label, count });
       }
       setMonthlyTrend(academicYearData);
-    }).catch(console.error);
+    } catch (err) {
+      console.error(err);
+    }
   }, [user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const filteredReports = allTeacherReports.filter(report => {
     const matchesSearch = 
@@ -1083,6 +1090,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
           <StudentSearchModal
             userName={`${user.firstName} ${user.lastName}`}
             onClose={() => setShowStudentSearch(false)}
+            onReportFiled={fetchData}
           />
         )}
       </AnimatePresence>
@@ -1093,6 +1101,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
           <CICLSearchModal
             userName={`${user.firstName} ${user.lastName}`}
             onClose={() => setShowCICLReport(false)}
+            onReportFiled={fetchData}
           />
         )}
       </AnimatePresence>

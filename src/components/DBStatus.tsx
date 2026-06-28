@@ -454,6 +454,7 @@ ALTER TABLE reports ADD COLUMN IF NOT EXISTS record_status text default 'On Goin
 
 -- Fix critical_reports table
 ALTER TABLE critical_reports ADD COLUMN IF NOT EXISTS record_status text default 'On Going';
+ALTER TABLE critical_reports ADD COLUMN IF NOT EXISTS last_updated_by text;
 
 -- Create notifications table
 CREATE TABLE IF NOT EXISTS notifications (
@@ -486,6 +487,7 @@ ALTER TABLE reports ADD COLUMN IF NOT EXISTS record_status text default 'On Goin
 
 -- Fix critical_reports table
 ALTER TABLE critical_reports ADD COLUMN IF NOT EXISTS record_status text default 'On Going';
+ALTER TABLE critical_reports ADD COLUMN IF NOT EXISTS last_updated_by text;
 
 -- Create notifications table
 CREATE TABLE IF NOT EXISTS notifications (

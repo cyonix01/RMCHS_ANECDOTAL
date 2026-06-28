@@ -72,6 +72,7 @@ create table if not exists critical_reports (
   recommendation text,
   reported_by text,
   date_reported text,
+  last_updated_by text,
   record_status text default 'On Going'
 );
 

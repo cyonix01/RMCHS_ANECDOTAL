@@ -70,6 +70,7 @@ export interface Report {
   createdBy?: string;
   reportedBy: string;
   dateReported: string;
+  lastUpdatedBy?: string;
 }
 
 export interface CriticalReport {
@@ -83,6 +84,7 @@ export interface CriticalReport {
   recommendation: string;
   reportedBy: string;
   dateReported: string;
+  lastUpdatedBy?: string;
 }
 
 export interface Student {

@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Search, Calendar, FileText, Download, Filter, User, ChevronRight, AlertCircle } from "lucide-react";
+import { X, Search, Calendar, FileText, Download, Filter, User, ChevronRight, AlertCircle, ShieldAlert, Clock } from "lucide-react";
 import { Report, CriticalReport } from "../types";
 import { useNotification } from "./NotificationProvider";
 
@@ -22,7 +22,10 @@ interface CombinedReport {
   dateReported: string;
   reportedBy: string;
   details: string;
+  actionTaken: string;
+  recommendation: string;
   type: 'General' | 'Critical';
+  lastUpdatedBy?: string;
 }
 
 const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEmail }) => {
@@ -33,46 +36,56 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [typeFilter, setTypeFilter] = useState<'All' | 'General' | 'Critical'>('All');
+  const [selectedReportForView, setSelectedReportForView] = useState<CombinedReport | null>(null);
+  const [recommendationEdit, setRecommendationEdit] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
 
   useEffect(() => {
     const fetchAllData = async () => {
-      setLoading(true);
-      try {
-        const [genRes, critRes, studentRes] = await Promise.all([
-          fetch("/api/reports"),
-          fetch("/api/critical-reports"),
-          fetch("/api/students")
-        ]);
+    setLoading(true);
+    try {
+      const [genRes, critRes, studentRes] = await Promise.all([
+        fetch("/api/reports"),
+        fetch("/api/critical-reports"),
+        fetch("/api/students")
+      ]);
 
-        if (genRes.ok && critRes.ok && studentRes.ok) {
-          const genData: Report[] = await genRes.json();
-          const critData: CriticalReport[] = await critRes.json();
-          const students: any[] = await studentRes.json();
+      if (genRes.ok && critRes.ok && studentRes.ok) {
+        const genData: Report[] = await genRes.json();
+        const critData: CriticalReport[] = await critRes.json();
+        const students: any[] = await studentRes.json();
 
-          const studentMap = new Map(students.map(s => [s.lrn, `${s.firstName} ${s.lastName}`]));
+        const studentMap = new Map(students.map(s => [s.lrn, `${s.firstName} ${s.lastName}`]));
 
-          const combined: CombinedReport[] = [
-            ...genData.map(r => ({
-              id: r.id || Math.random(),
-              studentName: studentMap.get(r.studentLrn) || "Unknown Student",
-              studentLrn: r.studentLrn,
-              issue: r.issue,
-              dateReported: r.dateReported,
-              reportedBy: r.reportedBy,
-              details: r.description || '',
-              type: 'General' as const
-            })),
-            ...critData.map(r => ({
-              id: r.id || Math.random(),
-              studentName: studentMap.get(r.studentLrn) || "Unknown Student",
-              studentLrn: r.studentLrn,
-              issue: r.issue,
-              dateReported: r.dateReported,
-              reportedBy: r.reportedBy,
-              details: r.description || '',
-              type: 'Critical' as const
-            }))
-          ];
+        const combined: CombinedReport[] = [
+          ...genData.map(r => ({
+            id: r.id || Math.random(),
+            studentName: studentMap.get(r.studentLrn) || "Unknown Student",
+            studentLrn: r.studentLrn,
+            issue: r.issue,
+            dateReported: r.dateReported,
+            reportedBy: r.reportedBy,
+            details: r.description || '',
+            actionTaken: r.actionTaken || 'N/A',
+            recommendation: r.recommendation || '',
+            type: 'General' as const,
+            lastUpdatedBy: r.lastUpdatedBy
+          })),
+          ...critData.map(r => ({
+            id: r.id || Math.random(),
+            studentName: studentMap.get(r.studentLrn) || "Unknown Student",
+            studentLrn: r.studentLrn,
+            issue: r.issue,
+            dateReported: r.dateReported,
+            reportedBy: r.reportedBy,
+            details: r.description || '',
+            actionTaken: r.actionTaken || 'N/A',
+            recommendation: r.recommendation || '',
+            type: 'Critical' as const,
+            lastUpdatedBy: r.lastUpdatedBy
+          }))
+        ];
 
           // Sort by date descending
           combined.sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
@@ -89,6 +102,42 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
 
     fetchAllData();
   }, []);
+
+  const handleUpdateRecommendation = async () => {
+    if (!selectedReportForView) return;
+    setIsUpdating(true);
+    try {
+      const endpoint = selectedReportForView.type === 'General' 
+        ? `/api/reports/${selectedReportForView.id}/recommendation`
+        : `/api/critical-reports/${selectedReportForView.id}/recommendation`;
+      
+      const res = await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recommendation: recommendationEdit,
+          updatedBy: userEmail
+        })
+      });
+
+      if (res.ok) {
+        notify("success", "Recommendation updated and signed.");
+        // Update local state
+        setReports(prev => prev.map(r => 
+          (r.id === selectedReportForView.id && r.type === selectedReportForView.type)
+            ? { ...r, recommendation: recommendationEdit, lastUpdatedBy: userEmail }
+            : r
+        ));
+        setSelectedReportForView(prev => prev ? { ...prev, recommendation: recommendationEdit, lastUpdatedBy: userEmail } : null);
+      } else {
+        notify("error", "Failed to commit update to registry.");
+      }
+    } catch (err) {
+      notify("error", "Registry connection failed.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const filteredReports = useMemo(() => {
     return reports.filter(report => {
@@ -256,7 +305,16 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <p className="text-[11px] font-medium text-slate-700 leading-snug">{report.issue}</p>
+                        <button
+                          onClick={() => {
+                            setSelectedReportForView(report);
+                            setRecommendationEdit(report.recommendation);
+                            setShowDetail(true);
+                          }}
+                          className="text-[11px] font-bold text-left text-[#102604] hover:text-[#76DA0D] transition-colors leading-snug underline underline-offset-4 decoration-slate-200"
+                        >
+                          {report.issue}
+                        </button>
                       </td>
                       <td className="px-6 py-5 text-center">
                         <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
@@ -274,8 +332,9 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
                             onClick={() => {
-                              // Optional: Show full details in a nested modal or tooltip
-                              notify("info", `Detail Trace: ${report.details.substring(0, 50)}...`);
+                              setSelectedReportForView(report);
+                              setRecommendationEdit(report.recommendation);
+                              setShowDetail(true);
                             }}
                             className="p-1 text-slate-400 hover:text-[#102604]"
                           >
@@ -308,6 +367,118 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ onClose, userEm
             Close Archive
           </button>
         </div>
+
+        {/* Report Detail Overlay */}
+        <AnimatePresence>
+          {showDetail && selectedReportForView && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-8 bg-[#102604]/40 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-200"
+              >
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                  <div>
+                    <h4 className="serif font-serif text-xl text-slate-900">Case Investigation Trace</h4>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mt-0.5">Registry ID: {selectedReportForView.id}</p>
+                  </div>
+                  <button onClick={() => setShowDetail(false)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                  <div className="grid grid-cols-2 gap-8">
+                    <div>
+                      <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Subject Student</label>
+                      <p className="text-sm font-bold text-[#102604] uppercase tracking-wide">{selectedReportForView.studentName}</p>
+                      <p className="text-[10px] font-medium text-slate-500 tabular-nums">LRN: {selectedReportForView.studentLrn}</p>
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Primary Incident</label>
+                      <p className="text-sm font-bold text-slate-800 leading-tight">{selectedReportForView.issue}</p>
+                      <span className={`inline-block mt-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
+                        selectedReportForView.type === 'Critical' ? 'border-red-100 text-red-600 bg-red-50' : 'border-blue-100 text-blue-600 bg-blue-50'
+                      }`}>
+                        {selectedReportForView.type} Incident
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <section>
+                      <label className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                        <FileText size={12} />
+                        Case Description
+                      </label>
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded text-[11px] text-slate-600 leading-relaxed italic">
+                        {selectedReportForView.details || "No description provided."}
+                      </div>
+                    </section>
+
+                    <section>
+                      <label className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                        <ShieldAlert size={12} />
+                        Immediate Action Taken
+                      </label>
+                      <div className="p-4 bg-slate-50 border border-slate-100 rounded text-[11px] text-slate-600 leading-relaxed font-medium">
+                        {selectedReportForView.actionTaken}
+                      </div>
+                    </section>
+
+                    <section>
+                      <label className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-[#102604] mb-3">
+                        <Filter size={12} className="text-[#76DA0D]" />
+                        Guidance Recommendations
+                        <span className="ml-auto text-[8px] font-bold text-[#76DA0D] animate-pulse">Editable Field</span>
+                      </label>
+                      <textarea
+                        value={recommendationEdit}
+                        onChange={(e) => setRecommendationEdit(e.target.value)}
+                        placeholder="Provide guidance or follow-up recommendations..."
+                        className="w-full p-4 bg-white border-2 border-slate-100 text-[11px] text-slate-800 leading-relaxed focus:outline-none focus:border-[#76DA0D] min-h-[120px] transition-colors"
+                      />
+                      {selectedReportForView.lastUpdatedBy && (
+                        <p className="mt-2 text-[9px] font-bold italic text-slate-400 flex items-center gap-1">
+                          <Clock size={10} />
+                          Last revision signed by: {selectedReportForView.lastUpdatedBy}
+                        </p>
+                      )}
+                    </section>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white border border-slate-200 flex items-center justify-center rounded-full shrink-0">
+                      <User size={14} className="text-slate-400" />
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Reporting Officer</p>
+                      <p className="text-[10px] font-bold text-slate-700">{selectedReportForView.reportedBy}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setShowDetail(false)}
+                      className="px-6 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      Discard Changes
+                    </button>
+                    <button
+                      onClick={handleUpdateRecommendation}
+                      disabled={isUpdating}
+                      className="px-8 py-2.5 bg-[#102604] text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center gap-2"
+                    >
+                      {isUpdating ? "Signing..." : "Update Archive"}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );

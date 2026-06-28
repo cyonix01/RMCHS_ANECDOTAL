@@ -576,6 +576,7 @@ export async function getAllReports(): Promise<Report[]> {
     recommendation: row.recommendation,
     reportedBy: row.reported_by,
     dateReported: row.date_reported,
+    lastUpdatedBy: row.last_updated_by,
     individualFactors: row.individual_factors || [],
     familyCommunityBehaviorFactors: row.family_community_behavior_factors || [],
     referralRecommendation: row.referral_recommendation,
@@ -607,6 +608,7 @@ export async function getAllCriticalReports(): Promise<CriticalReport[]> {
     recommendation: row.recommendation,
     reportedBy: row.reported_by,
     dateReported: row.date_reported,
+    lastUpdatedBy: row.last_updated_by,
   }));
 }
 
@@ -638,6 +640,32 @@ export async function deleteReport(id: string | number): Promise<void> {
   const supabase = getSupabaseClient();
   if (!supabase) return;
   const { error } = await supabase.from("reports").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * Update report recommendation.
+ */
+export async function updateReportRecommendation(id: string | number, recommendation: string, updatedBy: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  const { error } = await supabase.from("reports").update({ 
+    recommendation, 
+    last_updated_by: updatedBy 
+  }).eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * Update critical report recommendation.
+ */
+export async function updateCriticalReportRecommendation(id: string | number, recommendation: string, updatedBy: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  const { error } = await supabase.from("critical_reports").update({ 
+    recommendation, 
+    last_updated_by: updatedBy 
+  }).eq("id", id);
   if (error) throw error;
 }
 

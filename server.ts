@@ -29,6 +29,8 @@ import {
   deleteUser,
   deleteReport,
   deleteCriticalReport,
+  updateReportRecommendation,
+  updateCriticalReportRecommendation,
   createSection,
   updateSection,
   deleteSection
@@ -331,6 +333,18 @@ async function startServer() {
     }
   });
 
+  // API ROUTE 7.3: Update Report Recommendation
+  app.put("/api/reports/:id/recommendation", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { recommendation, updatedBy } = req.body;
+      await updateReportRecommendation(id, recommendation, updatedBy);
+      res.json({ message: "Recommendation updated successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // API ROUTE 7.5: Save Critical Report
   app.post("/api/critical-reports", async (req, res) => {
     try {
@@ -360,6 +374,18 @@ async function startServer() {
       const { id } = req.params;
       await deleteCriticalReport(id);
       res.json({ message: "Critical report deleted successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // API ROUTE 7.8: Update Critical Report Recommendation
+  app.put("/api/critical-reports/:id/recommendation", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { recommendation, updatedBy } = req.body;
+      await updateCriticalReportRecommendation(id, recommendation, updatedBy);
+      res.json({ message: "Recommendation updated successfully" });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

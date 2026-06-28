@@ -168,7 +168,8 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
       fetch("/api/students").then(res => res.json())
     ]).then(([reports, criticalReports, students]) => {
       const teacherName = `${user.firstName} ${user.lastName}`;
-      const todayStr = new Date().toISOString().split('T')[0];
+      // Use local date (YYYY-MM-DD) instead of UTC to match "Today's" reports correctly
+      const todayStr = new Date().toLocaleDateString('en-CA');
 
       const teacherReports = [
         ...reports.filter((r: any) => r.reportedBy === teacherName || r.createdBy === user.email).map((r: any) => ({ ...r, type: 'General' })),
@@ -205,11 +206,23 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
 
       setStats({
         totalGeneral: generalReports.length,
-        dailyGeneral: generalReports.filter((r: any) => r.dateReported === todayStr).length,
+        dailyGeneral: generalReports.filter((r: any) => {
+          if (!r.dateReported) return false;
+          const reportDate = new Date(r.dateReported).toLocaleDateString('en-CA');
+          return reportDate === todayStr;
+        }).length,
         totalCICL: ciclReports.length,
-        dailyCICL: ciclReports.filter((r: any) => r.dateReported === todayStr).length,
+        dailyCICL: ciclReports.filter((r: any) => {
+          if (!r.dateReported) return false;
+          const reportDate = new Date(r.dateReported).toLocaleDateString('en-CA');
+          return reportDate === todayStr;
+        }).length,
         totalCritical: teacherCritical.length,
-        dailyCritical: teacherCritical.filter((r: any) => r.dateReported === todayStr).length
+        dailyCritical: teacherCritical.filter((r: any) => {
+          if (!r.dateReported) return false;
+          const reportDate = new Date(r.dateReported).toLocaleDateString('en-CA');
+          return reportDate === todayStr;
+        }).length
       });
 
       const counts: Record<string, number> = {

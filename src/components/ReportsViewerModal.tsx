@@ -60,6 +60,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   const [typeFilter, setTypeFilter] = useState<'All' | 'General' | 'Critical'>('All');
   const [selectedReportForView, setSelectedReportForView] = useState<CombinedReport | null>(null);
   const [recommendationEdit, setRecommendationEdit] = useState("");
+  const [statusEdit, setStatusEdit] = useState<'On Going' | 'RESOLVED'>('On Going');
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [movFile, setMovFile] = useState<File | null>(null);
@@ -155,47 +156,6 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
     fetchAllData();
   }, []);
 
-  const handleUpdateRecommendation = async () => {
-    if (!selectedReportForView) return;
-    setIsUpdating(true);
-    try {
-      const endpoint = selectedReportForView.type === 'General' 
-        ? `/api/reports/${selectedReportForView.id}/recommendation`
-        : `/api/critical-reports/${selectedReportForView.id}/recommendation`;
-      
-      const res = await fetch(endpoint, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recommendation: recommendationEdit,
-          updatedBy: userEmail
-        })
-      });
-
-      let data: any = {};
-      try {
-        data = await res.json();
-      } catch (jsonErr) {}
-
-      if (res.ok) {
-        notify("success", "Recommendation updated and signed.");
-        // Update local state
-        setReports(prev => prev.map(r => 
-          (r.id === selectedReportForView.id && r.type === selectedReportForView.type)
-            ? { ...r, recommendation: recommendationEdit, lastUpdatedBy: userEmail }
-            : r
-        ));
-        setSelectedReportForView(prev => prev ? { ...prev, recommendation: recommendationEdit, lastUpdatedBy: userEmail } : null);
-      } else {
-        notify("error", data.error || "Failed to commit update to registry.");
-      }
-    } catch (err) {
-      notify("error", "Registry connection failed.");
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -208,73 +168,118 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
     });
   };
 
-  const handleUpdateStatus = async (newStatus: 'On Going' | 'RESOLVED') => {
+  const handleUpdateArchive = async () => {
     if (!selectedReportForView) return;
 
-    let filePayload = null;
-
-    if (newStatus === 'RESOLVED') {
-      if (!movFile) {
-        notify("error", "Mean of Verification (MOV) file is required to resolve this report.");
-        return;
-      }
-      setIsUpdating(true);
-      try {
-        const base64Data = await fileToBase64(movFile);
-        const originalName = movFile.name;
-        const extension = originalName.substring(originalName.lastIndexOf('.') + 1) || 'bin';
-        
-        // Exact format as requested: "Rerport id_grade level_section"
-        const formattedFileName = `Rerport ${selectedReportForView.id}_${selectedReportForView.grade}_${selectedReportForView.section}.${extension}`;
-
-        filePayload = {
-          name: formattedFileName,
-          base64: base64Data,
-          mimeType: movFile.type || "application/octet-stream"
-        };
-      } catch (err) {
-        notify("error", "Failed to process the MOV file.");
-        setIsUpdating(false);
-        return;
-      }
+    // Check if transitioning to RESOLVED and we need a file
+    const isTransitioningToResolved = statusEdit === 'RESOLVED' && selectedReportForView.recordStatus !== 'RESOLVED';
+    if (isTransitioningToResolved && !movFile) {
+      notify("error", "Mean of Verification (MOV) file is required to resolve this report.");
+      return;
     }
 
     setIsUpdating(true);
+    let driveUploadWarning: string | null = null;
+    let driveFileResult: any = null;
+    let statusUpdateSuccess = true;
+
     try {
-      const res = await fetch(`/api/reports/${selectedReportForView.id}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      // 1. If status has changed or a new file is uploaded
+      const statusChanged = statusEdit !== selectedReportForView.recordStatus;
+      if (statusChanged || movFile) {
+        let filePayload = null;
+        if (statusEdit === 'RESOLVED' && movFile) {
+          try {
+            const base64Data = await fileToBase64(movFile);
+            const originalName = movFile.name;
+            const extension = originalName.substring(originalName.lastIndexOf('.') + 1) || 'bin';
+            const formattedFileName = `Rerport ${selectedReportForView.id}_${selectedReportForView.grade}_${selectedReportForView.section}.${extension}`;
+
+            filePayload = {
+              name: formattedFileName,
+              base64: base64Data,
+              mimeType: movFile.type || "application/octet-stream"
+            };
+          } catch (err) {
+            notify("error", "Failed to process the MOV file.");
+            setIsUpdating(false);
+            return;
+          }
+        }
+
+        const resStatus = await fetch(`/api/reports/${selectedReportForView.id}/status`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: statusEdit,
+            type: selectedReportForView.type,
+            file: filePayload
+          })
+        });
+
+        const dataStatus = await resStatus.json();
+        if (!resStatus.ok) {
+          notify("error", dataStatus.error || "Failed to update record status.");
+          statusUpdateSuccess = false;
+        } else {
+          driveUploadWarning = dataStatus.warning || null;
+          driveFileResult = dataStatus.driveFile || null;
+        }
+      }
+
+      if (!statusUpdateSuccess) {
+        setIsUpdating(false);
+        return;
+      }
+
+      // 2. Always update the recommendation/updatedBy
+      const endpoint = selectedReportForView.type === 'General' 
+        ? `/api/reports/${selectedReportForView.id}/recommendation`
+        : `/api/critical-reports/${selectedReportForView.id}/recommendation`;
+      
+      const resRec = await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: newStatus,
-          type: selectedReportForView.type,
-          file: filePayload
+          recommendation: recommendationEdit,
+          updatedBy: userEmail
         })
       });
 
-      const data = await res.json();
+      let dataRec: any = {};
+      try {
+        dataRec = await resRec.json();
+      } catch (jsonErr) {}
 
-      if (res.ok) {
-        if (data.warning) {
-          notify("warning", `Report resolved! ${data.warning}`);
+      if (resRec.ok) {
+        // Construct detailed success message
+        if (driveUploadWarning) {
+          notify("warning", `Archive updated! ${driveUploadWarning}`);
         } else {
-          const successMsg = newStatus === 'RESOLVED' 
-            ? `Report successfully resolved and MOV saved to Google Drive!${data.driveFile?.webViewLink ? " File Link: " + data.driveFile.webViewLink : ""}`
-            : `Report marked as ${newStatus}`;
+          const successMsg = statusEdit === 'RESOLVED' && selectedReportForView.recordStatus !== 'RESOLVED'
+            ? `Report successfully resolved and MOV saved to Google Drive!${driveFileResult?.webViewLink ? " File Link: " + driveFileResult.webViewLink : ""}`
+            : "Archive successfully updated and saved.";
           notify("success", successMsg);
         }
-        // Update local state
+
+        // Update local states
         setReports(prev => prev.map(r => 
           (r.id === selectedReportForView.id && r.type === selectedReportForView.type)
-            ? { ...r, recordStatus: newStatus }
+            ? { ...r, recommendation: recommendationEdit, recordStatus: statusEdit, lastUpdatedBy: userEmail }
             : r
         ));
-        setSelectedReportForView(prev => prev ? { ...prev, recordStatus: newStatus } : null);
-        setMovFile(null); // Clear file selection
+        setSelectedReportForView(prev => prev ? { 
+          ...prev, 
+          recommendation: recommendationEdit, 
+          recordStatus: statusEdit, 
+          lastUpdatedBy: userEmail 
+        } : null);
+        setMovFile(null); // Clear selected file
       } else {
-        notify("error", data.error || "Failed to update record status.");
+        notify("error", dataRec.error || "Failed to commit recommendation update to registry.");
       }
     } catch (err) {
-      notify("error", "Record status update failed.");
+      notify("error", "Failed to update archive. Connection error.");
     } finally {
       setIsUpdating(false);
     }
@@ -467,6 +472,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                           onClick={() => {
                             setSelectedReportForView(report);
                             setRecommendationEdit(report.recommendation);
+                            setStatusEdit(report.recordStatus || 'On Going');
+                            setMovFile(null);
                             setShowDetail(true);
                           }}
                           className="text-[11px] font-bold text-left text-[#102604] hover:text-[#76DA0D] transition-colors leading-snug underline underline-offset-4 decoration-slate-200"
@@ -501,6 +508,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                             onClick={() => {
                               setSelectedReportForView(report);
                               setRecommendationEdit(report.recommendation);
+                              setStatusEdit(report.recordStatus || 'On Going');
+                              setMovFile(null);
                               setShowDetail(true);
                             }}
                             className="p-1 text-slate-400 hover:text-[#102604]"
@@ -627,39 +636,57 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                         <AlertCircle size={12} />
                         Record Status
                       </label>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-4">
-                          <div className={`px-4 py-2 border rounded font-bold text-[10px] uppercase tracking-wider ${
-                            selectedReportForView.recordStatus === 'RESOLVED' 
-                              ? 'bg-[#76DA0D]/10 border-[#76DA0D]/20 text-[#102604]' 
-                              : 'bg-orange-50 border-orange-100 text-orange-600'
-                          }`}>
-                            Current Status: {selectedReportForView.recordStatus || 'On Going'}
+                      <div className="space-y-4">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Current DB Status:</span>
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 border rounded-sm ${
+                              selectedReportForView.recordStatus === 'RESOLVED' 
+                                ? 'border-[#76DA0D]/20 text-[#102604] bg-[#76DA0D]/10' 
+                                : 'border-orange-100 text-orange-600 bg-orange-50'
+                            }`}>
+                              {selectedReportForView.recordStatus || 'On Going'}
+                            </span>
                           </div>
                           
-                          {(userRole === 'Admin' || userRole === 'Guidance') && (
-                            <div className="flex gap-2">
-                              {selectedReportForView.recordStatus !== 'On Going' && (
-                                <button 
-                                  onClick={() => handleUpdateStatus('On Going')}
-                                  className="px-3 py-2 text-[9px] font-black uppercase tracking-widest border border-orange-200 text-orange-600 hover:bg-orange-50 transition-colors"
+                          {(userRole === 'Admin' || userRole === 'Guidance') ? (
+                            <div className="space-y-1.5">
+                              <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                Target Status for Submission
+                              </label>
+                              <div className="flex bg-slate-100 p-1 rounded-sm max-w-[280px]">
+                                <button
+                                  type="button"
+                                  onClick={() => setStatusEdit('On Going')}
+                                  className={`flex-1 py-1.5 px-3 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm ${
+                                    statusEdit === 'On Going'
+                                      ? 'bg-white text-orange-600 shadow-sm border border-slate-200/50 font-bold'
+                                      : 'text-slate-500 hover:text-slate-700'
+                                  }`}
                                 >
-                                  Mark as On Going
+                                  On Going
                                 </button>
-                              )}
-                              {selectedReportForView.recordStatus !== 'RESOLVED' && (
-                                <button 
-                                  onClick={() => handleUpdateStatus('RESOLVED')}
-                                  className="px-3 py-2 text-[9px] font-black uppercase tracking-widest bg-[#102604] text-white hover:bg-slate-800 transition-colors"
+                                <button
+                                  type="button"
+                                  onClick={() => setStatusEdit('RESOLVED')}
+                                  className={`flex-1 py-1.5 px-3 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm ${
+                                    statusEdit === 'RESOLVED'
+                                      ? 'bg-[#102604] text-white shadow-sm font-bold'
+                                      : 'text-slate-500 hover:text-[#102604]'
+                                  }`}
                                 >
-                                  Mark as RESOLVED
+                                  RESOLVED
                                 </button>
-                              )}
+                              </div>
                             </div>
+                          ) : (
+                            <p className="text-[10px] text-slate-500 italic">
+                              * Only Administrators or Guidance counselors can update status.
+                            </p>
                           )}
                         </div>
 
-                        {selectedReportForView.recordStatus !== 'RESOLVED' && (userRole === 'Admin' || userRole === 'Guidance') && (
+                        {statusEdit === 'RESOLVED' && selectedReportForView.recordStatus !== 'RESOLVED' && (userRole === 'Admin' || userRole === 'Guidance') && (
                           <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded space-y-3">
                             <div className="space-y-1">
                               <label className="block text-[9px] font-black uppercase tracking-widest text-slate-700">
@@ -683,18 +710,13 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                               />
                               {movFile && (
                                 <span className="text-[8px] font-black uppercase tracking-widest text-[#102604] bg-[#76DA0D]/10 border border-[#76DA0D]/20 px-2 py-1">
-                                  ✓ File Selected
+                                  ✓ Selected: {movFile.name}
                                 </span>
                               )}
                             </div>
                           </div>
                         )}
                       </div>
-                      {(userRole !== 'Admin' && userRole !== 'Guidance') && (
-                        <p className="mt-2 text-[8px] font-medium text-slate-400 italic">
-                          * Only Admin or Guidance accounts can modify record status.
-                        </p>
-                      )}
                     </section>
 
                     <section>
@@ -737,7 +759,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                       Discard Changes
                     </button>
                     <button
-                      onClick={handleUpdateRecommendation}
+                      onClick={handleUpdateArchive}
                       disabled={isUpdating}
                       className="px-8 py-2.5 bg-[#102604] text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center gap-2 min-w-[140px] justify-center"
                     >

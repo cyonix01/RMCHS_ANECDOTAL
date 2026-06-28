@@ -98,7 +98,10 @@ create table if not exists users (
   department text,
   position text,
   password_hash text,
-  registered_at text
+  registered_at text,
+  role text,
+  grade_level text,
+  section text
 );
 
 -- Create students table
@@ -317,7 +320,10 @@ create table if not exists users (
   department text,
   position text,
   password_hash text,
-  registered_at text
+  registered_at text,
+  role text,
+  grade_level text,
+  section text
 );
 
 -- Create students table
@@ -369,6 +375,33 @@ create table if not exists students (
                   {copied && <p className="text-[8px] font-semibold text-emerald-700 font-mono">✓ Copied SQL to clipboard!</p>}
                 </div>
               )}
+
+              {/* Migration / Schema Fix Section */}
+              <div className="p-3 bg-indigo-50/60 border border-indigo-200 text-indigo-950 space-y-2">
+                <div className="flex gap-1.5">
+                  <Edit2 size={14} className="shrink-0 text-indigo-600 mt-0.5" />
+                  <p className="font-bold text-xs leading-tight">Missing 'Role' Column? (Schema Fix)</p>
+                </div>
+                <p className="text-[10px] leading-relaxed text-slate-600">
+                  If you already have a 'users' table but see an error about the 'role' column, run this in your Supabase SQL Editor:
+                </p>
+                <div className="relative font-mono text-[8px] bg-indigo-950 text-indigo-200 p-2 border border-indigo-800 leading-normal">
+                  <pre>{`ALTER TABLE users ADD COLUMN IF NOT EXISTS role text;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS grade_level text;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS section text;`}</pre>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role text;\nALTER TABLE users ADD COLUMN IF NOT EXISTS grade_level text;\nALTER TABLE users ADD COLUMN IF NOT EXISTS section text;`);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="absolute right-1.5 top-1.5 bg-indigo-900 hover:bg-indigo-800 text-white border border-indigo-700 p-1 rounded-sm cursor-pointer transition-colors"
+                    title="Copy Fix SQL"
+                  >
+                    {copied ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Diagnostics and Errors */}

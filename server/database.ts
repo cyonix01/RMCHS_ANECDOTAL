@@ -277,8 +277,12 @@ export async function createUser(user: UserAccount): Promise<void> {
     const { error } = await supabase.from("users").insert([row]);
     if (error) {
       console.error("Supabase register write failure:", error);
-      supabaseError = `Supabase write failed: ${error.message}`;
-      throw new Error(`Database write error: ${error.message}`);
+      let userMsg = error.message;
+      if (error.message.includes("Could not find the 'role' column")) {
+        userMsg = "The 'role' column is missing in your Supabase 'users' table. Please click the DB Status button at the top and follow the 'Schema Fix' instructions to add the missing columns.";
+      }
+      supabaseError = `Supabase write failed: ${userMsg}`;
+      throw new Error(`Database write error: ${userMsg}`);
     } else {
       supabaseError = null;
       console.log(`✅ Inserted registrant ${user.email} in Supabase.`);
@@ -315,8 +319,12 @@ export async function updateUser(email: string, updatedFields: Partial<UserAccou
     const { error } = await supabase.from("users").update(row).eq("email", updatedProfile.email);
     if (error) {
       console.error("Supabase update users failure:", error);
-      supabaseError = `Supabase write failed: ${error.message}`;
-      throw new Error(`Database update error: ${error.message}`);
+      let userMsg = error.message;
+      if (error.message.includes("Could not find the 'role' column")) {
+        userMsg = "The 'role' column is missing in your Supabase 'users' table. Please click the DB Status button at the top and follow the 'Schema Fix' instructions to add the missing columns.";
+      }
+      supabaseError = `Supabase write failed: ${userMsg}`;
+      throw new Error(`Database update error: ${userMsg}`);
     } else {
       supabaseError = null;
       console.log(`✅ Updated registrant ${updatedProfile.email} in Supabase.`);

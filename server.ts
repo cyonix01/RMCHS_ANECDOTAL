@@ -489,33 +489,31 @@ async function startServer() {
       const { id } = req.params;
       const { status, type, file } = req.body;
 
+      let driveUploadWarning: string | null = null;
+
       if (status === 'RESOLVED') {
         if (!file || !file.base64) {
           return res.status(400).json({ error: "Mean of Verification (MOV) file is required to resolve this report." });
         }
 
-        try {
-          const folderId = "1oWyTYIY2piGBHGpbUS6lUtuYlOnMxnBB";
-          await uploadFileToGoogleDrive(file.base64, file.name, file.mimeType, folderId);
-        } catch (uploadErr: any) {
-          console.error("Failed to upload MOV to Google Drive:", uploadErr);
-          
-          // Check if credentials are just missing, to give an extremely descriptive helpful instruction message
-          const { saEmail, saPrivateKey } = getGoogleCredentials();
-          if (!saEmail || !saPrivateKey) {
-            return res.status(500).json({ 
-              error: "Google Drive Upload Failed: Service Account credentials are not configured in environment variables. Please add GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY in Settings." 
-            });
+        const { saEmail, saPrivateKey } = getGoogleCredentials();
+        if (!saEmail || !saPrivateKey) {
+          console.warn("Google Drive credentials not configured. Bypassing Drive upload and resolving report in database.");
+          driveUploadWarning = "Google Drive upload bypassed (Service Account credentials are not configured in Settings).";
+        } else {
+          try {
+            const folderId = "1oWyTYIY2piGBHGpbUS6lUtuYlOnMxnBB";
+            await uploadFileToGoogleDrive(file.base64, file.name, file.mimeType, folderId);
+          } catch (uploadErr: any) {
+            console.error("Failed to upload MOV to Google Drive:", uploadErr);
+            console.warn("Bypassing Google Drive upload error and proceeding with resolving report.");
+            driveUploadWarning = `Google Drive upload failed (${uploadErr.message || uploadErr}), but report status was successfully updated.`;
           }
-
-          return res.status(500).json({ 
-            error: `Google Drive Upload Failed: ${uploadErr.message || uploadErr}` 
-          });
         }
       }
 
       await updateReportStatus(Number(id), status, type);
-      res.json({ message: "Status updated successfully" });
+      res.json({ message: "Status updated successfully", warning: driveUploadWarning });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

@@ -254,10 +254,14 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
       const data = await res.json();
 
       if (res.ok) {
-        notify("success", newStatus === 'RESOLVED' 
-          ? "Report successfully resolved and MOV saved to Google Drive!" 
-          : `Report marked as ${newStatus}`
-        );
+        if (data.warning) {
+          notify("warning", `Report resolved! ${data.warning}`);
+        } else {
+          notify("success", newStatus === 'RESOLVED' 
+            ? "Report successfully resolved and MOV saved to Google Drive!" 
+            : `Report marked as ${newStatus}`
+          );
+        }
         // Update local state
         setReports(prev => prev.map(r => 
           (r.id === selectedReportForView.id && r.type === selectedReportForView.type)

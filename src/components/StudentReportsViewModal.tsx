@@ -20,7 +20,11 @@ export default function StudentReportsViewModal({ student, onClose }: StudentRep
       const studentReports = [
         ...genReports.filter((r: Report) => r.studentLrn === student.lrn).map((r: any) => ({ ...r, type: 'General' })),
         ...critReports.filter((r: CriticalReport) => r.studentLrn === student.lrn).map((r: any) => ({ ...r, type: 'Critical' }))
-      ].sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
+      ].sort((a, b) => {
+        if (a.recordStatus === 'On Going' && b.recordStatus !== 'On Going') return -1;
+        if (a.recordStatus !== 'On Going' && b.recordStatus === 'On Going') return 1;
+        return new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime();
+      });
       
       setReports(studentReports);
       setLoading(false);
@@ -58,9 +62,14 @@ export default function StudentReportsViewModal({ student, onClose }: StudentRep
                   <div className="flex-1 space-y-1">
                     <div className="flex justify-between">
                       <h4 className="font-bold text-slate-900">{report.issue}</h4>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 ${report.type === 'General' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {report.type}
-                      </span>
+                      <div className="flex gap-2 items-center">
+                        <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded ${report.recordStatus === 'On Going' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}`}>
+                          {report.recordStatus}
+                        </span>
+                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 ${report.type === 'General' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {report.type}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-xs text-slate-600 italic">"{report.description}"</p>
                     <p className="text-[10px] text-slate-400">Date Reported: {report.dateReported}</p>

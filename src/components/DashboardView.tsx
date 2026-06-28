@@ -361,42 +361,50 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
 
         {/* Action controls */}
         <div className="flex flex-wrap items-center justify-center md:justify-end gap-2">
-          <button
-            id="register-student-trigger"
-            onClick={() => setShowRegisterStudent(true)}
-            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
-          >
-            <UserPlus size={14} className="text-[#76DA0D] group-hover:scale-110 transition-transform" />
-            <span>Register</span>
-          </button>
+          {(user.role === 'Admin' || user.role === 'Adviser') && (
+            <button
+              id="register-student-trigger"
+              onClick={() => setShowRegisterStudent(true)}
+              className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
+            >
+              <UserPlus size={14} className="text-[#76DA0D] group-hover:scale-110 transition-transform" />
+              <span>Register</span>
+            </button>
+          )}
           
-          <button
-            onClick={() => setShowStudentSearch(true)}
-            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
-          >
-            <FileText size={14} className="text-[#76DA0D] group-hover:scale-110 transition-transform" />
-            <span>Report</span>
-          </button>
+          {(user.role === 'Admin' || user.role === 'Adviser' || user.role === 'Guidance') && (
+            <button
+              onClick={() => setShowStudentSearch(true)}
+              className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
+            >
+              <FileText size={14} className="text-[#76DA0D] group-hover:scale-110 transition-transform" />
+              <span>Report</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setShowCICLReport(true)}
-            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-red-500 hover:bg-red-50/30 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
-          >
-            <FileText size={14} className="text-red-500 group-hover:scale-110 transition-transform" />
-            <span>CICL</span>
-          </button>
+          {(user.role === 'Admin' || user.role === 'Adviser' || user.role === 'Guidance') && (
+            <button
+              onClick={() => setShowCICLReport(true)}
+              className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-red-500 hover:bg-red-50/30 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm"
+            >
+              <FileText size={14} className="text-red-500 group-hover:scale-110 transition-transform" />
+              <span>CICL</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setShowAnalytics(!showAnalytics)}
-            className={`group flex items-center gap-2 px-4 py-2 border font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm ${
-              showAnalytics 
-              ? 'bg-[#102604] text-white border-[#102604]' 
-              : 'bg-white border-slate-200 hover:border-blue-500 hover:bg-blue-50/30 text-[#102604]'
-            }`}
-          >
-            <BarChart3 size={14} className={showAnalytics ? "text-[#76DA0D]" : "text-blue-500 group-hover:scale-110 transition-transform"} />
-            <span>Analytics</span>
-          </button>
+          {(user.role === 'Admin' || user.role === 'Adviser' || user.role === 'Guidance') && (
+            <button
+              onClick={() => setShowAnalytics(!showAnalytics)}
+              className={`group flex items-center gap-2 px-4 py-2 border font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 min-w-[140px] justify-center shadow-sm ${
+                showAnalytics 
+                ? 'bg-[#102604] text-white border-[#102604]' 
+                : 'bg-white border-slate-200 hover:border-blue-500 hover:bg-blue-50/30 text-[#102604]'
+              }`}
+            >
+              <BarChart3 size={14} className={showAnalytics ? "text-[#76DA0D]" : "text-blue-500 group-hover:scale-110 transition-transform"} />
+              <span>Analytics</span>
+            </button>
+          )}
 
           <button
             id="settings-trigger"
@@ -407,23 +415,27 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
             <span>Account</span>
           </button>
 
-          <button
-            id="view-reports-btn"
-            onClick={() => setShowReportsViewer(true)}
-            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 font-bold text-[10px] tracking-widest uppercase transition-all hover:border-[#102604] hover:bg-slate-50 text-[#102604] cursor-pointer select-none h-10 shadow-sm"
-          >
-            <FileText size={14} className="text-[#102604] group-hover:scale-110 transition-transform" />
-            <span>View Reports</span>
-          </button>
+          {(user.role === 'Admin' || user.role === 'Guidance') && (
+            <button
+              id="view-reports-btn"
+              onClick={() => setShowReportsViewer(true)}
+              className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 font-bold text-[10px] tracking-widest uppercase transition-all hover:border-[#102604] hover:bg-slate-50 text-[#102604] cursor-pointer select-none h-10 shadow-sm"
+            >
+              <FileText size={14} className="text-[#102604] group-hover:scale-110 transition-transform" />
+              <span>View Reports</span>
+            </button>
+          )}
 
-          <button
-            id="view-resolved-reports-btn"
-            onClick={() => setShowResolvedReportsViewer(true)}
-            className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 font-bold text-[10px] tracking-widest uppercase transition-all hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] cursor-pointer select-none h-10 shadow-sm"
-          >
-            <FileText size={14} className="text-[#76DA0D] group-hover:scale-110 transition-transform" />
-            <span>View Resolved Report</span>
-          </button>
+          {(user.role === 'Admin' || user.role === 'Guidance') && (
+            <button
+              id="view-resolved-reports-btn"
+              onClick={() => setShowResolvedReportsViewer(true)}
+              className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 font-bold text-[10px] tracking-widest uppercase transition-all hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] cursor-pointer select-none h-10 shadow-sm"
+            >
+              <FileText size={14} className="text-[#76DA0D] group-hover:scale-110 transition-transform" />
+              <span>View Resolved Report</span>
+            </button>
+          )}
 
           {/* Admin Button with Dropdown */}
           {user.role === 'Admin' && (

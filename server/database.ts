@@ -536,13 +536,19 @@ export async function getSectionsByGradeLevel(gradeLevel: string): Promise<strin
   console.log("getSectionsByGradeLevel called with:", gradeLevel);
   const supabase = getSupabaseClient();
   if (!supabase) return [];
-  const { data, error } = await supabase.from("sections").select("section_name").eq("grade_level", gradeLevel);
+  
+  // Try fetching with trimmed gradeLevel to handle potential whitespace issues
+  const { data, error } = await supabase.from("sections").select("grade_level, section_name");
+  
   if (error) {
     console.error("Supabase sections error:", error);
     return [];
   }
-  console.log("Supabase sections data (raw):", data);
-  return (data || []).map(s => s.section_name);
+  
+  // Filter client-side to be safer against data inconsistencies
+  return (data || [])
+    .filter(s => s.grade_level.trim() === gradeLevel.trim())
+    .map(s => s.section_name);
 }
 
 /**

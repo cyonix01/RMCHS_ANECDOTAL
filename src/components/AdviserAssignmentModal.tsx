@@ -104,7 +104,7 @@ const AdviserAssignmentModal: React.FC<AdviserAssignmentModalProps> = ({ onClose
     }
   };
 
-  const availableSections = sections.filter(s => s.grade_level === assignedGrade);
+  const availableSections = sections.filter(s => s.grade_level.trim() === assignedGrade.trim());
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#102604]/60 backdrop-blur-sm">

@@ -6,6 +6,9 @@
 import { createClient } from "@supabase/supabase-js";
 import * as fs from "fs";
 import * as path from "path";
+import dotenv from "dotenv";
+
+dotenv.config();
 import { UserAccount, Student, Report, CriticalReport, AppNotification } from "../src/types";
 
 const LOCAL_DB_DIR = path.join(process.cwd(), "data");

@@ -9,6 +9,9 @@ import * as crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 import { google } from "googleapis";
 import { Readable } from "stream";
+import dotenv from "dotenv";
+
+dotenv.config();
 import { 
   initDatabase, 
   getUserByEmail, 

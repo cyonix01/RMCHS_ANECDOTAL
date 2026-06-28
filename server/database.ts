@@ -278,8 +278,11 @@ export async function createUser(user: UserAccount): Promise<void> {
     if (error) {
       console.error("Supabase register write failure:", error);
       let userMsg = error.message;
-      if (error.message.includes("Could not find the 'role' column")) {
-        userMsg = "The 'role' column is missing in your Supabase 'users' table. Please click the DB Status button at the top and follow the 'Schema Fix' instructions to add the missing columns.";
+      if (error.message.includes("column \"role\" does not exist") || 
+          error.message.includes("column \"grade_level\" does not exist") || 
+          error.message.includes("column \"section\" does not exist") ||
+          error.message.includes("Could not find the 'role' column")) {
+        userMsg = "Database schema mismatch. Some required columns (role, grade_level, section) are missing in your Supabase 'users' table. Please click the DB Status button at the top and follow the 'Schema Fix' instructions.";
       }
       supabaseError = `Supabase write failed: ${userMsg}`;
       throw new Error(`Database write error: ${userMsg}`);
@@ -320,8 +323,11 @@ export async function updateUser(email: string, updatedFields: Partial<UserAccou
     if (error) {
       console.error("Supabase update users failure:", error);
       let userMsg = error.message;
-      if (error.message.includes("Could not find the 'role' column")) {
-        userMsg = "The 'role' column is missing in your Supabase 'users' table. Please click the DB Status button at the top and follow the 'Schema Fix' instructions to add the missing columns.";
+      if (error.message.includes("column \"role\" does not exist") || 
+          error.message.includes("column \"grade_level\" does not exist") || 
+          error.message.includes("column \"section\" does not exist") ||
+          error.message.includes("Could not find the 'role' column")) {
+        userMsg = "Database schema mismatch. Some required columns (role, grade_level, section) are missing in your Supabase 'users' table. Please click the DB Status button at the top and follow the 'Schema Fix' instructions.";
       }
       supabaseError = `Supabase write failed: ${userMsg}`;
       throw new Error(`Database update error: ${userMsg}`);
@@ -727,15 +733,52 @@ export async function updateAdvisoryAssignment(email: string, role: string, grad
   const supabase = getSupabaseClient();
   if (!supabase) return;
   
+  const targetEmail = email.trim().toLowerCase();
+
+  // STRICT RULE: Only one adviser per section
+  // If assigning as Adviser, demote any existing adviser in the same section
+  if (role === 'Adviser' && gradeLevel && section) {
+    const { data: existingAdvisers } = await supabase
+      .from("users")
+      .select("email")
+      .eq("role", "Adviser")
+      .eq("grade_level", gradeLevel)
+      .eq("section", section)
+      .neq("email", targetEmail);
+
+    if (existingAdvisers && existingAdvisers.length > 0) {
+      for (const adv of existingAdvisers) {
+        await supabase
+          .from("users")
+          .update({
+            role: "Non-Adviser",
+            grade_level: null,
+            section: null
+          })
+          .eq("email", adv.email);
+      }
+    }
+  }
+
   const { error } = await supabase.from("users")
     .update({ 
       role, 
       grade_level: gradeLevel, 
       section: section 
     })
-    .eq("email", email.trim().toLowerCase());
+    .eq("email", targetEmail);
     
-  if (error) throw error;
+  if (error) {
+    console.error("Supabase advisory update failure:", error);
+    let userMsg = error.message;
+    if (error.message.includes("column \"role\" does not exist") || 
+        error.message.includes("column \"grade_level\" does not exist") || 
+        error.message.includes("column \"section\" does not exist") ||
+        error.message.includes("Could not find the 'role' column")) {
+      userMsg = "Database schema mismatch. Some required columns (role, grade_level, section) are missing in your Supabase 'users' table. Please click the DB Status button at the top and follow the 'Schema Fix' instructions.";
+    }
+    throw new Error(userMsg);
+  }
 }
 
 /**

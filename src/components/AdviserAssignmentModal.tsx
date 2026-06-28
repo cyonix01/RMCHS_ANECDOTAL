@@ -94,7 +94,8 @@ const AdviserAssignmentModal: React.FC<AdviserAssignmentModalProps> = ({ onClose
         ));
         setSelectedUser(null);
       } else {
-        notify("error", "Database commit failed.");
+        const errorData = await res.json();
+        notify("error", errorData.error || "Database commit failed.");
       }
     } catch (err) {
       notify("error", "Network connection error.");

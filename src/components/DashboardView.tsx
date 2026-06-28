@@ -56,7 +56,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   const [showRegisterStudent, setShowRegisterStudent] = useState(false);
   const [showStudentSearch, setShowStudentSearch] = useState(false);
   const [showCICLReport, setShowCICLReport] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(true);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
   const [allTeacherReports, setAllTeacherReports] = useState<any[]>([]);
   const [trendData, setTrendData] = useState<{ totalChange: number; academicChange: number; behavioralChange: number }>({ totalChange: 0, academicChange: 0, behavioralChange: 0 });
@@ -275,15 +275,15 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                     <div className="absolute top-0 right-0 p-2 opacity-5">
                       <FileText size={48} className="text-[#102604]" />
                     </div>
-                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">General Reports</h6>
+                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">Student Reports</h6>
                     <div className="flex items-end gap-6">
                       <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Today</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Today's Report</span>
                         <p className="text-3xl font-serif text-[#102604]">{stats.dailyGeneral}</p>
                       </div>
                       <div className="h-8 w-[1px] bg-slate-100 self-center" />
                       <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Total</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Overall Total</span>
                         <p className="text-3xl font-serif text-[#102604]">{stats.totalGeneral}</p>
                       </div>
                     </div>
@@ -293,15 +293,15 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                     <div className="absolute top-0 right-0 p-2 opacity-5">
                       <FileText size={48} className="text-red-500" />
                     </div>
-                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">Critical Incidents</h6>
+                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">Critical Incident Reports</h6>
                     <div className="flex items-end gap-6">
                       <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Today</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Today's Report</span>
                         <p className="text-3xl font-serif text-[#102604]">{stats.dailyCritical}</p>
                       </div>
                       <div className="h-8 w-[1px] bg-slate-100 self-center" />
                       <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Total</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Overall Total</span>
                         <p className="text-3xl font-serif text-[#102604]">{stats.totalCritical}</p>
                       </div>
                     </div>
@@ -311,15 +311,15 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                     <div className="absolute top-0 right-0 p-2 opacity-5">
                       <FileText size={48} className="text-orange-500" />
                     </div>
-                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">CICL Reports</h6>
+                    <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-4">CICL Student Reports</h6>
                     <div className="flex items-end gap-6">
                       <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Today</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Today's Report</span>
                         <p className="text-3xl font-serif text-[#102604]">{stats.dailyCICL}</p>
                       </div>
                       <div className="h-8 w-[1px] bg-slate-100 self-center" />
                       <div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Total</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Overall Total</span>
                         <p className="text-3xl font-serif text-[#102604]">{stats.totalCICL}</p>
                       </div>
                     </div>

@@ -18,6 +18,7 @@ import ReportsViewerModal from "./ReportsViewerModal";
 import AdviserAssignmentModal from "./AdviserAssignmentModal";
 import NotificationBell from "./NotificationBell";
 import { useNotification } from "./NotificationProvider";
+import StudentListDashboard from "./StudentListDashboard";
 
 const ciclOffenses = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
 
@@ -543,6 +544,8 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
         <div id="dashboard-content-col" className="flex-1 flex flex-col gap-8">
           {showAnalytics ? (
             <DataAnalyticsView user={user} />
+          ) : user.role === 'Adviser' ? (
+            <StudentListDashboard user={user} />
           ) : (
             <div className="bg-white p-12 border border-slate-200 shadow-sm">
               <h2 className="text-2xl font-bold text-[#102604] mb-4">Welcome, {user.firstName}</h2>

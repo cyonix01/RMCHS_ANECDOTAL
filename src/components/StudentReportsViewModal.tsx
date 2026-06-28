@@ -21,8 +21,11 @@ export default function StudentReportsViewModal({ student, onClose }: StudentRep
         ...genReports.filter((r: Report) => r.studentLrn === student.lrn).map((r: any) => ({ ...r, type: 'General' })),
         ...critReports.filter((r: CriticalReport) => r.studentLrn === student.lrn).map((r: any) => ({ ...r, type: 'Critical' }))
       ].sort((a, b) => {
+        // Sort: On Going at top, then by date descending
         if (a.recordStatus === 'On Going' && b.recordStatus !== 'On Going') return -1;
         if (a.recordStatus !== 'On Going' && b.recordStatus === 'On Going') return 1;
+        
+        // If statuses are the same (both On Going or both RESOLVED), sort by date
         return new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime();
       });
       

@@ -55,6 +55,7 @@ export default function RegisterView({ onRegisterSuccess, onNavigateToLogin }: R
   const [contactNumber, setContactNumber] = useState("");
   const [department, setDepartment] = useState<Department | "">("");
   const [position, setPosition] = useState<Position | "">("");
+  const [role, setRole] = useState<'Adviser' | 'Non-Adviser' | 'Guidance' | 'Admin'>('Non-Adviser');
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -120,6 +121,7 @@ export default function RegisterView({ onRegisterSuccess, onNavigateToLogin }: R
           contactNumber,
           department,
           position,
+          role,
           password,
         }),
       });
@@ -331,6 +333,26 @@ export default function RegisterView({ onRegisterSuccess, onNavigateToLogin }: R
                     {pos}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            {/* Role */}
+            <div id="role-box" className="flex flex-col">
+              <label className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-1">
+                Account Role <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="reg-role-select"
+                required
+                value={role}
+                onChange={(e) => setRole(e.target.value as any)}
+                disabled={isLoading}
+                className="editorial-input w-full bg-white select cursor-pointer"
+              >
+                <option value="Non-Adviser">Non-Adviser</option>
+                <option value="Adviser">Adviser</option>
+                <option value="Guidance">Guidance</option>
+                <option value="Admin">Admin</option>
               </select>
             </div>
           </div>

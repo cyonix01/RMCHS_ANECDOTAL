@@ -68,6 +68,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   const [showReportsViewer, setShowReportsViewer] = useState(false);
   const [showAdviserAssignment, setShowAdviserAssignment] = useState(false);
   const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
+  const [monthlyTrend, setMonthlyTrend] = useState<{ month: string; count: number }[]>([]);
   const [allTeacherReports, setAllTeacherReports] = useState<any[]>([]);
   const [trendData, setTrendData] = useState<{ totalChange: number; academicChange: number; behavioralChange: number }>({ totalChange: 0, academicChange: 0, behavioralChange: 0 });
   const [stats, setStats] = useState({
@@ -232,6 +233,27 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
         academicChange: calculateChange(thisMonthReports, lastMonthReports, (r) => mapToCategory(r.issue) === 'Academic'),
         behavioralChange: calculateChange(thisMonthReports, lastMonthReports, (r) => mapToCategory(r.issue) === 'Behavioral')
       });
+
+      // Calculate Monthly Trend for Academic Year (June to May)
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const acYearStartMonth = 5; // June
+      const acYearStartYear = now.getMonth() >= acYearStartMonth ? now.getFullYear() : now.getFullYear() - 1;
+      
+      const academicYearData: { month: string; count: number }[] = [];
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(acYearStartYear, acYearStartMonth + i, 1);
+        const m = d.getMonth();
+        const y = d.getFullYear();
+        const label = `${monthNames[m]} ${y.toString().slice(-2)}`;
+        
+        const count = teacherReports.filter((r: any) => {
+          const rd = new Date(r.dateReported);
+          return rd.getMonth() === m && rd.getFullYear() === y;
+        }).length;
+        
+        academicYearData.push({ month: label, count });
+      }
+      setMonthlyTrend(academicYearData);
     }).catch(console.error);
   }, [user]);
 
@@ -397,10 +419,54 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
       <main className="flex-1 max-w-7xl w-full mx-auto p-8 flex flex-col gap-8">
         
         {/* Right column: Expansive aesthetic blank dashboard placeholder */}
-        <div id="dashboard-content-col" className="flex-1">
+        <div id="dashboard-content-col" className="flex-1 flex flex-col gap-8">
           {showAnalytics ? (
             <DataAnalyticsView />
           ) : (
+            <>
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-[#102604] p-8 text-white shadow-lg border-b-4 border-[#76DA0D]"
+            >
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-[#76DA0D] mb-2">
+                  <Sun size={16} className="animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">Institutional Dashboard</span>
+                </div>
+                <h2 className="serif font-serif text-3xl md:text-4xl tracking-tight leading-tight">
+                  {(() => {
+                    const hrs = new Date().getHours();
+                    if (hrs < 12) return "Good morning";
+                    if (hrs < 18) return "Good afternoon";
+                    return "Good evening";
+                  })()}, <span className="text-[#76DA0D]">{user.position} {user.lastName}</span>
+                </h2>
+                <p className="text-white/60 text-xs font-medium tracking-wide">
+                  Welcome to your specialized RMCHS portal for the 2026 Academic Year.
+                </p>
+              </div>
+              
+              <div className="flex flex-col items-start md:items-end gap-1">
+                <div className="flex items-center gap-2 text-[#76DA0D]">
+                  <Calendar size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">System Date</span>
+                </div>
+                <div className="text-xl font-serif tracking-tight">
+                  {new Date().toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </div>
+                <div className="flex items-center gap-2 text-white/40 mt-1">
+                  <Clock size={12} />
+                  <span className="text-[9px] font-bold uppercase tracking-tighter">Real-time Sync Active</span>
+                </div>
+              </div>
+            </motion.div>
+
             <motion.div
               id="workspace-stage"
               initial={{ opacity: 0, y: 10 }}
@@ -420,11 +486,11 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                   </div>
 
                   <div id="dashboard-message-group" className="space-y-3">
-                    <h4 id="workspace-title" className="serif font-serif text-3xl text-slate-900 tracking-tight font-light">
-                      Welcome back, {user.position} {user.lastName}
+                    <h4 id="workspace-title" className="serif font-serif text-3xl text-slate-900 tracking-tight font-light uppercase">
+                      Workspace Distribution
                     </h4>
                     <p id="workspace-description" className="text-xs leading-relaxed text-slate-500 font-sans max-w-sm mx-auto">
-                      Your institutional workspace is synchronized. Review your recent report distribution and student engagements below.
+                      Review your recent report distribution and student engagements below.
                     </p>
                   </div>
                 </div>
@@ -492,7 +558,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                       <TrendingUp size={16} className="text-[#76DA0D]" />
                       <h5 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Your Anecdote Distribution</h5>
                     </div>
-                    <AnecdoteChart data={chartData} />
+                    <AnecdoteChart data={chartData} monthlyData={monthlyTrend} />
                   </div>
 
                   <div className="lg:col-span-2 space-y-4 text-left">
@@ -712,6 +778,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                 </div>
               </div>
             </motion.div>
+            </>
           )}
         </div>
 

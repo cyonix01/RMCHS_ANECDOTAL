@@ -314,25 +314,59 @@ export default function AccountSettingsView({ user, onClose, onUpdateSuccess }: 
 
                 <div className="flex flex-col">
                   <label className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-1 block">Role</label>
-                  <div className="editorial-input w-full bg-slate-50 border-slate-200 text-slate-400 font-bold uppercase tracking-widest flex items-center px-4 h-10">
-                    {role}
-                  </div>
+                  <select
+                    required
+                    value={role}
+                    onChange={(e) => {
+                      const newRole = e.target.value as any;
+                      setRole(newRole);
+                      if (newRole !== 'Adviser') {
+                        setGradeLevel("");
+                        setSection("");
+                      }
+                    }}
+                    disabled={isLoading}
+                    className="editorial-input w-full bg-white select cursor-pointer"
+                  >
+                    <option value="Adviser">Adviser</option>
+                    <option value="Non-Adviser">Non-Adviser</option>
+                    <option value="Guidance">Guidance</option>
+                    <option value="Admin">Admin</option>
+                  </select>
                 </div>
 
                 {role === 'Adviser' && (
                   <>
                     <div className="flex flex-col">
                       <label className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-1 block">Grade Level</label>
-                      <div className="editorial-input w-full bg-slate-50 border-slate-200 text-slate-400 font-bold uppercase tracking-widest flex items-center px-4 h-10">
-                        {gradeLevel || "Not Assigned"}
-                      </div>
+                      <select
+                        required
+                        value={gradeLevel}
+                        onChange={(e) => setGradeLevel(e.target.value)}
+                        disabled={isLoading}
+                        className="editorial-input w-full bg-white select cursor-pointer"
+                      >
+                        <option value="">Select Grade Level</option>
+                        {['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'].map((g) => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="flex flex-col">
                       <label className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-1 block">Section</label>
-                      <div className="editorial-input w-full bg-slate-50 border-slate-200 text-slate-400 font-bold uppercase tracking-widest flex items-center px-4 h-10">
-                        {section || "Not Assigned"}
-                      </div>
+                      <select
+                        required
+                        value={section}
+                        onChange={(e) => setSection(e.target.value)}
+                        disabled={isLoading || !gradeLevel}
+                        className="editorial-input w-full bg-white select cursor-pointer"
+                      >
+                        <option value="">Select Section</option>
+                        {sections.map((s, index) => (
+                          <option key={`${s}-${index}`} value={s}>{s}</option>
+                        ))}
+                      </select>
                     </div>
                   </>
                 )}

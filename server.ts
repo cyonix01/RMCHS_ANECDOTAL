@@ -116,11 +116,12 @@ async function startServer() {
         contactNumber, 
         department, 
         position, 
+        role,
         password 
       } = req.body;
 
       // Server-side strict input validation
-      if (!firstName || !lastName || !email || !contactNumber || !department || !position || !password) {
+      if (!firstName || !lastName || !email || !contactNumber || !department || !position || !role || !password) {
         return res.status(400).json({ error: "All fields are required (Middle Name is optional but field must be specified)." });
       }
 
@@ -154,7 +155,8 @@ async function startServer() {
         department: department,
         position: position,
         passwordHash,
-        registeredAt: new Date().toISOString()
+        registeredAt: new Date().toISOString(),
+        role: role // Role from request body
       };
 
       await createUser(newUser);

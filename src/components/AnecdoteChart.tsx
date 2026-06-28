@@ -1,28 +1,36 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
+import { BarChart3, TrendingUp, ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface DataItem {
   category: string;
   count: number;
 }
 
-interface AnecdoteChartProps {
-  data: DataItem[];
+interface MonthlyDataItem {
+  month: string;
+  count: number;
 }
 
-const AnecdoteChart: React.FC<AnecdoteChartProps> = ({ data }) => {
+interface AnecdoteChartProps {
+  data: DataItem[];
+  monthlyData: MonthlyDataItem[];
+}
+
+const AnecdoteChart: React.FC<AnecdoteChartProps> = ({ data, monthlyData }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState<'bar' | 'line'>('bar');
 
   useEffect(() => {
-    if (!svgRef.current || !data.length) return;
+    if (!svgRef.current || (view === 'bar' && !data.length) || (view === 'line' && !monthlyData.length)) return;
 
     const updateChart = () => {
         // Clear previous
         d3.select(svgRef.current).selectAll('*').remove();
 
         const containerWidth = containerRef.current?.clientWidth || 600;
-        const margin = { top: 20, right: 40, bottom: 40, left: 100 };
+        const margin = { top: 30, right: 40, bottom: 40, left: 60 };
         const width = containerWidth - margin.left - margin.right;
         const height = 240 - margin.top - margin.bottom;
 
@@ -32,93 +40,193 @@ const AnecdoteChart: React.FC<AnecdoteChartProps> = ({ data }) => {
           .append('g')
           .attr('transform', `translate(${margin.left},${margin.top})`);
 
-        const x = d3.scaleLinear()
-          .domain([0, d3.max(data, (d: DataItem) => d.count) || 0])
-          .range([0, width]);
+        if (view === 'bar') {
+          const x = d3.scaleLinear()
+            .domain([0, d3.max(data, (d: DataItem) => d.count) || 0])
+            .range([0, width]);
 
-        const y = d3.scaleBand()
-          .range([0, height])
-          .domain(data.map(d => d.category))
-          .padding(0.3);
+          const y = d3.scaleBand()
+            .range([0, height])
+            .domain(data.map(d => d.category))
+            .padding(0.3);
 
-        // Add axes
-        svg.append('g')
-          .call(d3.axisLeft(y).tickSize(0))
-          .selectAll('text')
-          .style('font-size', '10px')
-          .style('font-family', 'Inter, sans-serif')
-          .style('font-weight', '600')
-          .attr('class', 'text-slate-600');
+          // Add axes
+          svg.append('g')
+            .call(d3.axisLeft(y).tickSize(0))
+            .selectAll('text')
+            .style('font-size', '10px')
+            .style('font-family', 'Inter, sans-serif')
+            .style('font-weight', '600')
+            .attr('class', 'text-slate-600');
 
-        svg.append('g')
-          .attr('transform', `translate(0,${height})`)
-          .call(d3.axisBottom(x).ticks(5).tickFormat(d3.format('d')))
-          .selectAll('text')
-          .style('font-size', '10px')
-          .attr('class', 'text-slate-400');
+          svg.append('g')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(x).ticks(5).tickFormat(d3.format('d')))
+            .selectAll('text')
+            .style('font-size', '10px')
+            .attr('class', 'text-slate-400');
 
-        // Remove domain lines for cleaner look
-        svg.selectAll('.domain').attr('stroke', '#e2e8f0');
-        svg.selectAll('.tick line').attr('stroke', '#f1f5f9');
+          // Remove domain lines for cleaner look
+          svg.selectAll('.domain').attr('stroke', '#e2e8f0');
+          svg.selectAll('.tick line').attr('stroke', '#f1f5f9');
 
-        // Bars with animation
-        const bars = svg.selectAll<SVGRectElement, DataItem>('rect')
-          .data(data)
-          .enter()
-          .append('rect')
-          .attr('x', x(0))
-          .attr('y', (d: DataItem) => y(d.category)!)
-          .attr('width', 0) // Start width 0 for animation
-          .attr('height', y.bandwidth())
-          .attr('fill', '#76DA0D')
-          .attr('rx', 3)
-          .attr('class', 'cursor-pointer hover:fill-[#88F015] transition-colors duration-200');
+          // Bars with animation
+          const bars = svg.selectAll<SVGRectElement, DataItem>('rect')
+            .data(data)
+            .enter()
+            .append('rect')
+            .attr('x', x(0))
+            .attr('y', (d: DataItem) => y(d.category)!)
+            .attr('width', 0) // Start width 0 for animation
+            .attr('height', y.bandwidth())
+            .attr('fill', '#76DA0D')
+            .attr('rx', 3)
+            .attr('class', 'cursor-pointer hover:fill-[#88F015] transition-colors duration-200');
 
-        const tooltip = d3.select(containerRef.current).select('#d3-tooltip');
+          const tooltip = d3.select(containerRef.current).select('#d3-tooltip');
 
-        bars.on('mouseenter', function(event, d: DataItem) {
-          tooltip
-            .style('display', 'block')
-            .style('opacity', '1')
-            .html(`
-              <div class="flex flex-col gap-0.5">
-                <span class="text-[#76DA0D]">${d.category}</span>
-                <span>Count: ${d.count}</span>
-              </div>
-            `);
-        })
-        .on('mousemove', function(event) {
-          const [mouseX, mouseY] = d3.pointer(event, containerRef.current);
-          tooltip
-            .style('left', mouseX + 'px')
-            .style('top', mouseY + 'px');
-        })
-        .on('mouseleave', function() {
-          tooltip.style('display', 'none').style('opacity', '0');
-        });
+          bars.on('mouseenter', function(event, d: DataItem) {
+            tooltip
+              .style('display', 'block')
+              .style('opacity', '1')
+              .html(`
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-[#76DA0D]">${d.category}</span>
+                  <span>Count: ${d.count}</span>
+                </div>
+              `);
+          })
+          .on('mousemove', function(event) {
+            const [mouseX, mouseY] = d3.pointer(event, containerRef.current);
+            tooltip
+              .style('left', mouseX + 'px')
+              .style('top', mouseY + 'px');
+          })
+          .on('mouseleave', function() {
+            tooltip.style('display', 'none').style('opacity', '0');
+          });
 
-        bars.transition()
-          .duration(800)
-          .attr('width', (d: DataItem) => x(d.count));
+          bars.transition()
+            .duration(800)
+            .attr('width', (d: DataItem) => x(d.count));
 
-        // Add labels
-        svg.selectAll('.label')
-          .data(data)
-          .enter()
-          .append('text')
-          .attr('class', 'label')
-          .attr('x', x(0))
-          .attr('y', (d: DataItem) => y(d.category)! + y.bandwidth() / 2 + 4)
-          .text((d: DataItem) => d.count)
-          .style('font-size', '10px')
-          .style('font-weight', '700')
-          .attr('fill', '#102604')
-          .attr('opacity', 0)
-          .transition()
-          .duration(800)
-          .delay(400)
-          .attr('x', (d: DataItem) => x(d.count) + 8)
-          .attr('opacity', 1);
+          // Add labels
+          svg.selectAll('.label')
+            .data(data)
+            .enter()
+            .append('text')
+            .attr('class', 'label')
+            .attr('x', x(0))
+            .attr('y', (d: DataItem) => y(d.category)! + y.bandwidth() / 2 + 4)
+            .text((d: DataItem) => d.count)
+            .style('font-size', '10px')
+            .style('font-weight', '700')
+            .attr('fill', '#102604')
+            .attr('opacity', 0)
+            .transition()
+            .duration(800)
+            .delay(400)
+            .attr('x', (d: DataItem) => x(d.count) + 8)
+            .attr('opacity', 1);
+
+        } else {
+          // Line Chart View
+          const x = d3.scalePoint()
+            .domain(monthlyData.map(d => d.month))
+            .range([0, width]);
+
+          const y = d3.scaleLinear()
+            .domain([0, d3.max(monthlyData, (d: MonthlyDataItem) => d.count) || 0])
+            .range([height, 0])
+            .nice();
+
+          // Add axes
+          svg.append('g')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(x))
+            .selectAll('text')
+            .style('font-size', '9px')
+            .style('font-weight', '600')
+            .attr('class', 'text-slate-500 uppercase tracking-tighter')
+            .attr('transform', 'rotate(-30)')
+            .attr('text-anchor', 'end');
+
+          svg.append('g')
+            .call(d3.axisLeft(y).ticks(5).tickFormat(d3.format('d')))
+            .selectAll('text')
+            .style('font-size', '9px')
+            .attr('class', 'text-slate-400');
+
+          svg.selectAll('.domain').attr('stroke', '#e2e8f0');
+          svg.selectAll('.tick line').attr('stroke', '#f1f5f9');
+
+          // Line generator
+          const line = d3.line<MonthlyDataItem>()
+            .x(d => x(d.month)!)
+            .y(d => y(d.count))
+            .curve(d3.curveMonotoneX);
+
+          // Add the line
+          const path = svg.append('path')
+            .datum(monthlyData)
+            .attr('fill', 'none')
+            .attr('stroke', '#76DA0D')
+            .attr('stroke-width', 3)
+            .attr('d', line);
+
+          // Animation for line
+          const totalLength = path.node()?.getTotalLength() || 0;
+          path
+            .attr('stroke-dasharray', totalLength + ' ' + totalLength)
+            .attr('stroke-dashoffset', totalLength)
+            .transition()
+            .duration(1000)
+            .attr('stroke-dashoffset', 0);
+
+          // Add dots
+          const dots = svg.selectAll<SVGCircleElement, MonthlyDataItem>('.dot')
+            .data(monthlyData)
+            .enter()
+            .append('circle')
+            .attr('class', 'dot')
+            .attr('cx', (d: MonthlyDataItem) => x(d.month)!)
+            .attr('cy', (d: MonthlyDataItem) => y(d.count))
+            .attr('r', 0)
+            .attr('fill', '#102604')
+            .attr('stroke', '#76DA0D')
+            .attr('stroke-width', 2);
+
+          dots.transition()
+            .delay((d, i) => i * 100 + 500)
+            .duration(400)
+            .attr('r', 4);
+
+          // Tooltip
+          const tooltip = d3.select(containerRef.current).select('#d3-tooltip');
+
+          dots.on('mouseenter', function(event, d: MonthlyDataItem) {
+            d3.select(this).transition().duration(200).attr('r', 6).attr('fill', '#76DA0D');
+            tooltip
+              .style('display', 'block')
+              .style('opacity', '1')
+              .html(`
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-[#76DA0D]">${d.month}</span>
+                  <span>Reports: ${d.count}</span>
+                </div>
+              `);
+          })
+          .on('mousemove', function(event) {
+            const [mouseX, mouseY] = d3.pointer(event, containerRef.current);
+            tooltip
+              .style('left', mouseX + 'px')
+              .style('top', mouseY + 'px');
+          })
+          .on('mouseleave', function() {
+            d3.select(this).transition().duration(200).attr('r', 4).attr('fill', '#102604');
+            tooltip.style('display', 'none').style('opacity', '0');
+          });
+        }
     };
 
     updateChart();
@@ -127,11 +235,22 @@ const AnecdoteChart: React.FC<AnecdoteChartProps> = ({ data }) => {
     if (containerRef.current) resizeObserver.observe(containerRef.current);
     
     return () => resizeObserver.disconnect();
-  }, [data]);
+  }, [data, monthlyData, view]);
 
   return (
     <div ref={containerRef} className="w-full h-full min-h-[240px] relative">
+      <div className="absolute top-0 right-0 flex items-center gap-2 z-10">
+        <button 
+          onClick={() => setView(view === 'bar' ? 'line' : 'bar')}
+          className="flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 text-[9px] font-black uppercase tracking-widest text-[#102604] hover:bg-slate-100 transition-colors shadow-sm"
+        >
+          {view === 'bar' ? <TrendingUp size={12} /> : <BarChart3 size={12} />}
+          <span>{view === 'bar' ? 'Show Trend' : 'Show Dist.'}</span>
+        </button>
+      </div>
+
       <svg ref={svgRef} className="w-full h-full"></svg>
+      
       <div 
         id="d3-tooltip" 
         className="absolute hidden bg-[#102604] text-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded shadow-lg pointer-events-none z-50 transition-opacity duration-200 border border-[#76DA0D]/20"

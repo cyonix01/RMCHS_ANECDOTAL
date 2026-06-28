@@ -343,6 +343,52 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
     notify("success", "Record archive exported successfully.");
   };
 
+  const renderActionTaken = (actionTaken: string) => {
+    if (!actionTaken) return "N/A";
+    
+    // Regex to match markdown links: [MOV File: filename](fileUrl)
+    const regex = /\[MOV File:\s*(.*?)\]\((.*?)\)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(actionTaken)) !== null) {
+      const textBefore = actionTaken.substring(lastIndex, match.index);
+      if (textBefore) {
+        parts.push(<span key={lastIndex}>{textBefore}</span>);
+      }
+      const fileName = match[1];
+      const fileUrl = match[2];
+      
+      parts.push(
+        <div key={match.index} className="mt-3 p-3 bg-[#76DA0D]/5 border border-[#76DA0D]/20 rounded-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#102604] shrink-0">Attached MOV:</span>
+            <span className="text-[10px] text-slate-600 underline font-mono truncate" title={fileName}>
+              {fileName}
+            </span>
+          </div>
+          <a 
+            href={fileUrl} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="px-3 py-1 bg-[#102604] text-white rounded-sm text-[8px] font-black uppercase tracking-widest hover:bg-[#102604]/80 transition-all text-center shrink-0"
+          >
+            View Attachment
+          </a>
+        </div>
+      );
+      lastIndex = regex.lastIndex;
+    }
+
+    const textRemaining = actionTaken.substring(lastIndex);
+    if (textRemaining) {
+      parts.push(<span key={lastIndex}>{textRemaining}</span>);
+    }
+
+    return parts.length > 0 ? parts : actionTaken;
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#102604]/60 backdrop-blur-sm">
       <motion.div
@@ -627,7 +673,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                         Immediate Action Taken
                       </label>
                       <div className="p-4 bg-slate-50 border border-slate-100 rounded text-[11px] text-slate-600 leading-relaxed font-medium">
-                        {selectedReportForView.actionTaken}
+                        {renderActionTaken(selectedReportForView.actionTaken)}
                       </div>
                     </section>
 

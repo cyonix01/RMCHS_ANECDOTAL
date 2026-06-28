@@ -646,11 +646,38 @@ export async function getAllCriticalReports(): Promise<CriticalReport[]> {
 /**
  * Update report status.
  */
-export async function updateReportStatus(id: number, status: string, type: 'General' | 'Critical'): Promise<void> {
+export async function updateReportStatus(
+  id: number,
+  status: string,
+  type: 'General' | 'Critical',
+  movFileUrl?: string,
+  movFileName?: string
+): Promise<void> {
   const supabase = getSupabaseClient();
   if (!supabase) return;
   const table = type === 'Critical' ? 'critical_reports' : 'reports';
-  const { error } = await supabase.from(table).update({ record_status: status }).eq("id", id);
+
+  let updateFields: any = { record_status: status };
+
+  if (movFileUrl && movFileName) {
+    // Fetch current action_taken so we don't lose it
+    const { data, error: fetchError } = await supabase
+      .from(table)
+      .select("action_taken")
+      .eq("id", id)
+      .single();
+
+    if (!fetchError && data) {
+      const currentAction = data.action_taken || "";
+      // Clean up "N/A" or whitespace if needed, but simple append is safest
+      const separator = currentAction.trim() ? "\n\n" : "";
+      updateFields.action_taken = `${currentAction}${separator}[MOV File: ${movFileName}](${movFileUrl})`;
+    } else {
+      updateFields.action_taken = `[MOV File: ${movFileName}](${movFileUrl})`;
+    }
+  }
+
+  const { error } = await supabase.from(table).update(updateFields).eq("id", id);
   if (error) throw error;
 }
 

@@ -29,6 +29,36 @@ export default function DBStatus() {
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);
 
+  // Google Drive Diagnostics states
+  const [driveDiagnostic, setDriveDiagnostic] = useState<{
+    running: boolean;
+    result: any;
+    error: any;
+  } | null>(null);
+
+  const runDriveDiagnostics = async () => {
+    setDriveDiagnostic({ running: true, result: null, error: null });
+    try {
+      const res = await fetch("/api/diagnose-drive");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setDriveDiagnostic({ running: false, result: data, error: null });
+        } else {
+          setDriveDiagnostic({ running: false, result: null, error: data.error || data });
+        }
+      } else {
+        throw new Error(`HTTP Error ${res.status}`);
+      }
+    } catch (err: any) {
+      setDriveDiagnostic({
+        running: false,
+        result: null,
+        error: { message: err.message || "Unknown error occurred" }
+      });
+    }
+  };
+
   const fetchStatus = async () => {
     try {
       const res = await fetch("/api/db-status");
@@ -513,6 +543,78 @@ CREATE TABLE IF NOT EXISTS notifications (
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Google Drive Diagnostics Section */}
+            <div className="p-3 bg-slate-50 border border-slate-200 text-slate-900 space-y-2">
+              <div className="flex justify-between items-center">
+                <div className="flex gap-1.5 items-center">
+                  <Database size={14} className="text-[#102604]" />
+                  <p className="font-bold text-xs leading-tight">Google Drive Diagnostics</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={runDriveDiagnostics}
+                  disabled={driveDiagnostic?.running}
+                  className="px-2 py-1 text-[8px] font-black uppercase tracking-wider bg-[#102604] hover:bg-[#102604]/90 text-white rounded-none cursor-pointer disabled:opacity-50"
+                >
+                  {driveDiagnostic?.running ? "Running..." : "Run Test"}
+                </button>
+              </div>
+              <p className="text-[10px] leading-relaxed text-slate-500">
+                Verify if your Service Account credentials can locate and access the Google Drive folder for Mean of Verification (MOV) attachments.
+              </p>
+
+              {driveDiagnostic && (
+                <div className="mt-2 text-[10px] space-y-1.5 p-2 bg-white border border-slate-200">
+                  {driveDiagnostic.running && (
+                    <p className="text-slate-500 animate-pulse font-bold">Running GAPI connection test...</p>
+                  )}
+
+                  {driveDiagnostic.result && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1 text-emerald-700 font-bold">
+                        <CheckCircle size={12} />
+                        <span>GAPI Connection Successful!</span>
+                      </div>
+                      <p className="text-[9px] text-slate-600">
+                        <strong>Folder Name:</strong> {driveDiagnostic.result.metadata?.name || "Unknown"}<br />
+                        <strong>ID:</strong> {driveDiagnostic.result.folderId}<br />
+                        <strong>Type:</strong> {driveDiagnostic.result.metadata?.mimeType || "Unknown"}
+                      </p>
+                      <details className="cursor-pointer text-[8px]">
+                        <summary className="text-[#102604] font-bold underline">Show detailed GAPI logs</summary>
+                        <pre className="mt-1 bg-slate-950 text-slate-300 p-1.5 overflow-x-auto text-[8px] font-mono leading-normal max-h-32">
+                          {driveDiagnostic.result.logs?.join("\n")}
+                        </pre>
+                      </details>
+                    </div>
+                  )}
+
+                  {driveDiagnostic.error && (
+                    <div className="space-y-1.5 text-red-800">
+                      <div className="flex items-center gap-1 font-bold">
+                        <AlertTriangle size={12} className="text-red-600" />
+                        <span>GAPI Request Failed</span>
+                      </div>
+                      <p className="text-[9px] bg-red-50 p-1.5 border border-red-100 font-mono break-words leading-tight">
+                        {driveDiagnostic.error.message || JSON.stringify(driveDiagnostic.error)}
+                      </p>
+                      {driveDiagnostic.error.code && (
+                        <p className="text-[9px] font-semibold text-red-600">
+                          Error Code: {driveDiagnostic.error.code} {driveDiagnostic.error.status ? `(${driveDiagnostic.error.status})` : ""}
+                        </p>
+                      )}
+                      <details className="cursor-pointer text-[8px]">
+                        <summary className="text-red-700 font-bold underline">Show execution log</summary>
+                        <pre className="mt-1 bg-slate-950 text-slate-300 p-1.5 overflow-x-auto text-[8px] font-mono leading-normal max-h-32">
+                          {JSON.stringify(driveDiagnostic.error, null, 2)}
+                        </pre>
+                      </details>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Diagnostics and Errors */}

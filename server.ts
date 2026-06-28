@@ -5,6 +5,7 @@
 
 import express from "express";
 import * as path from "path";
+import * as fs from "fs";
 import * as crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 import { google } from "googleapis";
@@ -132,12 +133,34 @@ async function uploadFileToGoogleDrive(
   return response.data;
 }
 
+function saveFileLocally(base64Data: string, fileName: string): { fileName: string; fileUrl: string } {
+  const uploadDir = path.join(process.cwd(), "data", "uploads");
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  const timestamp = Date.now();
+  const safeFileName = `${timestamp}_${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+  const filePath = path.join(uploadDir, safeFileName);
+  
+  const buffer = Buffer.from(base64Data, "base64");
+  fs.writeFileSync(filePath, buffer);
+  
+  return {
+    fileName: safeFileName,
+    fileUrl: `/uploads/${safeFileName}`
+  };
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Serve local uploads statically
+  app.use("/uploads", express.static(path.join(process.cwd(), "data", "uploads")));
 
   // Initialize spreadsheet/local data folder setup asynchronously so it doesn't block server startup
   initDatabase().catch(err => {
@@ -149,6 +172,79 @@ async function startServer() {
     const status: any = getDatabaseStatus();
     status.google_env_keys = Object.keys(process.env).filter(k => k.startsWith("GOOGLE"));
     res.json(status);
+  });
+
+  // API ROUTE 1.05: Diagnose Google Drive Connection, Folders and Permissions
+  app.get("/api/diagnose-drive", async (req, res) => {
+    const diagnosticLog: string[] = [];
+    const log = (...args: any[]) => {
+      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(" ");
+      console.log("[DRIVE-DIAGNOSIS]", msg);
+      diagnosticLog.push(msg);
+    };
+
+    log("Starting Google Drive diagnostic test...");
+    try {
+      const { saEmail, saPrivateKey } = getGoogleCredentials();
+      log(`Service Account Email: ${saEmail || "NOT CONFIGURED"}`);
+      log(`Private Key Exists: ${saPrivateKey ? "YES (Length: " + saPrivateKey.length + ")" : "NO"}`);
+
+      if (!saEmail || !saPrivateKey) {
+        throw new Error("Google Service Account credentials are not configured in environment variables.");
+      }
+
+      log("Initializing Google Auth client with JWT...");
+      const auth = new google.auth.JWT({
+        email: saEmail,
+        key: saPrivateKey.replace(/\\n/g, "\n"),
+        scopes: ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/drive.file"]
+      });
+
+      log("Authorizing client with Google Drive API...");
+      const token = await auth.authorize();
+      log("Auth token successfully acquired!");
+
+      const drive = google.drive({ version: "v3", auth });
+      const folderId = "1pdK5pnnPn0y8smqxwc6qfgS3Lqm5upAu";
+
+      log(`Fetching folder metadata for ID: '${folderId}'`);
+      
+      const response = await drive.files.get({
+        fileId: folderId,
+        supportsAllDrives: true,
+        fields: "id, name, mimeType, parents, owners, capabilities, description"
+      });
+
+      log("DIAGNOSTIC TEST SUCCESSFUL!");
+      log("Response status:", response.status);
+      log("Folder metadata response data:");
+      log(response.data);
+
+      res.json({
+        success: true,
+        credentialsFound: true,
+        folderId,
+        metadata: response.data,
+        logs: diagnosticLog
+      });
+    } catch (err: any) {
+      log("DIAGNOSTIC TEST FAILED!");
+      const errorObj = {
+        message: err.message || String(err),
+        code: err.code,
+        status: err.status,
+        errors: err.errors,
+        stack: err.stack
+      };
+      log("Error details:");
+      log(errorObj);
+      
+      res.status(200).json({
+        success: false,
+        error: errorObj,
+        logs: diagnosticLog
+      });
+    }
   });
 
   // API ROUTE 1.6: Update Custom Supabase Configurations
@@ -508,6 +604,8 @@ async function startServer() {
 
       let driveUploadWarning: string | null = null;
       let driveFile: any = null;
+      let savedFileUrl: string | undefined = undefined;
+      let savedFileName: string | undefined = undefined;
 
       if (status === 'RESOLVED') {
         if (!file || !file.base64) {
@@ -516,29 +614,50 @@ async function startServer() {
 
         const { saEmail, saPrivateKey } = getGoogleCredentials();
         if (!saEmail || !saPrivateKey) {
-          console.warn("Google Drive credentials not configured. Bypassing Drive upload and resolving report in database.");
-          driveUploadWarning = "Google Drive upload bypassed (Service Account credentials are not configured in Settings).";
+          console.warn("Google Drive credentials not configured. Falling back to local server storage.");
+          try {
+            const localFile = saveFileLocally(file.base64, file.name);
+            savedFileUrl = localFile.fileUrl;
+            savedFileName = file.name;
+            driveUploadWarning = "Uploaded to Local Server Storage (Google Drive credentials are not configured in Settings).";
+          } catch (localErr: any) {
+            console.error("Local storage fallback failed:", localErr);
+            driveUploadWarning = `All storage options failed. Local error: ${localErr.message}`;
+          }
         } else {
           try {
             const folderId = "1pdK5pnnPn0y8smqxwc6qfgS3Lqm5upAu";
             driveFile = await uploadFileToGoogleDrive(file.base64, file.name, file.mimeType, folderId);
             console.log("Uploaded successfully to Google Drive:", driveFile);
+            savedFileUrl = driveFile.webViewLink;
+            savedFileName = file.name;
           } catch (uploadErr: any) {
             console.error("Failed to upload MOV to Google Drive:", uploadErr);
-            console.warn("Bypassing Google Drive upload error and proceeding with resolving report.");
-            
             const errMsg = uploadErr.message || String(uploadErr);
-            if (errMsg.includes("not found") || errMsg.includes("permission") || errMsg.includes("access")) {
-              driveUploadWarning = `Google Drive upload failed. Please ensure you have shared your Google Drive Folder (ID: 1pdK5pnnPn0y8smqxwc6qfgS3Lqm5upAu) with the Service Account email (${saEmail}) as an Editor! (Error: ${errMsg})`;
-            } else {
-              driveUploadWarning = `Google Drive upload failed (${errMsg}), but report status was successfully updated.`;
+            console.warn(`Google Drive upload failed (${errMsg}). Falling back to local server storage.`);
+            
+            try {
+              const localFile = saveFileLocally(file.base64, file.name);
+              savedFileUrl = localFile.fileUrl;
+              savedFileName = file.name;
+              
+              if (errMsg.includes("storageQuotaExceeded") || errMsg.includes("storage quota")) {
+                driveUploadWarning = `Google Drive storage quota exceeded for Service Account. File successfully saved to Local Server Storage instead!`;
+              } else if (errMsg.includes("not found") || errMsg.includes("permission") || errMsg.includes("access")) {
+                driveUploadWarning = `Google Drive folder not shared with Service Account (${saEmail}). File successfully saved to Local Server Storage instead!`;
+              } else {
+                driveUploadWarning = `Google Drive upload failed (${errMsg}). File successfully saved to Local Server Storage instead!`;
+              }
+            } catch (localErr: any) {
+              console.error("Local storage fallback failed after Google Drive failed:", localErr);
+              driveUploadWarning = `Google Drive upload failed (${errMsg}) and Local Storage also failed (${localErr.message})`;
             }
           }
         }
       }
 
-      await updateReportStatus(Number(id), status, type);
-      res.json({ message: "Status updated successfully", warning: driveUploadWarning, driveFile });
+      await updateReportStatus(Number(id), status, type, savedFileUrl, savedFileName);
+      res.json({ message: "Status updated successfully", warning: driveUploadWarning, driveFile, savedFileUrl });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

@@ -60,6 +60,18 @@ function getGoogleCredentials() {
   let saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   let saPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
 
+  if (saEmail) {
+    saEmail = saEmail.trim();
+    if (saEmail.startsWith('"') && saEmail.endsWith('"')) saEmail = saEmail.slice(1, -1);
+    if (saEmail.startsWith("'") && saEmail.endsWith("'")) saEmail = saEmail.slice(1, -1);
+  }
+
+  if (saPrivateKey) {
+    saPrivateKey = saPrivateKey.trim();
+    if (saPrivateKey.startsWith('"') && saPrivateKey.endsWith('"')) saPrivateKey = saPrivateKey.slice(1, -1);
+    if (saPrivateKey.startsWith("'") && saPrivateKey.endsWith("'")) saPrivateKey = saPrivateKey.slice(1, -1);
+  }
+
   if (saPrivateKey && saPrivateKey.trim().startsWith("{")) {
     try {
       const parsed = JSON.parse(saPrivateKey);
@@ -123,7 +135,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
   // Initialize spreadsheet/local data folder setup asynchronously so it doesn't block server startup
   initDatabase().catch(err => {

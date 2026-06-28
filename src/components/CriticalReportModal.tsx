@@ -75,6 +75,7 @@ export default function CriticalReportModal({ student, userName, onClose }: Crit
     recommendation: RECOMMENDATION_OPTIONS[0],
     reportedBy: userName,
     dateReported: new Date().toISOString(),
+    recordStatus: 'On Going' as 'On Going' | 'RESOLVED',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

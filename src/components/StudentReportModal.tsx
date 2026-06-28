@@ -73,7 +73,7 @@ export default function StudentReportModal({ student, userName, onClose }: Stude
     referralRecommendation: "N/A",
     initialAssessmentMadeBy: "N/A",
     designation: "N/A",
-    recordStatus: 'RESOLVED',
+    recordStatus: 'On Going',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

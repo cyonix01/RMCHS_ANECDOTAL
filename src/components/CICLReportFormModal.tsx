@@ -65,7 +65,7 @@ export default function CICLReportFormModal({ student, userName, onClose }: CICL
     referralRecommendation: REFERRAL_RECOMMENDATION_OPTIONS[0],
     initialAssessmentMadeBy: "",
     designation: "",
-    recordStatus: 'ON GOING',
+    recordStatus: 'On Going',
     reportedBy: userName,
     dateReported: new Date().toISOString(),
   });
@@ -200,14 +200,6 @@ export default function CICLReportFormModal({ student, userName, onClose }: CICL
             </div>
           </div>
           
-          <div>
-            <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-500 mb-1">Record Status</label>
-            <select value={form.recordStatus} onChange={(e) => setForm({...form, recordStatus: e.target.value as 'ON GOING' | 'RESOLVED'})} className="w-full px-3 py-2 border border-slate-300 text-xs">
-              <option value="ON GOING">ON GOING</option>
-              <option value="RESOLVED">RESOLVED</option>
-            </select>
-          </div>
-
           <div>
             <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-500 mb-1">Report Description (Max 100 chars)</label>
             <textarea 

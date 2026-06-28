@@ -257,10 +257,10 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
         if (data.warning) {
           notify("warning", `Report resolved! ${data.warning}`);
         } else {
-          notify("success", newStatus === 'RESOLVED' 
-            ? "Report successfully resolved and MOV saved to Google Drive!" 
-            : `Report marked as ${newStatus}`
-          );
+          const successMsg = newStatus === 'RESOLVED' 
+            ? `Report successfully resolved and MOV saved to Google Drive!${data.driveFile?.webViewLink ? " File Link: " + data.driveFile.webViewLink : ""}`
+            : `Report marked as ${newStatus}`;
+          notify("success", successMsg);
         }
         // Update local state
         setReports(prev => prev.map(r => 

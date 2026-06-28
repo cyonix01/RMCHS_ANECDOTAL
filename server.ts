@@ -490,6 +490,7 @@ async function startServer() {
       const { status, type, file } = req.body;
 
       let driveUploadWarning: string | null = null;
+      let driveFile: any = null;
 
       if (status === 'RESOLVED') {
         if (!file || !file.base64) {
@@ -503,7 +504,8 @@ async function startServer() {
         } else {
           try {
             const folderId = "1oWyTYIY2piGBHGpbUS6lUtuYlOnMxnBB";
-            await uploadFileToGoogleDrive(file.base64, file.name, file.mimeType, folderId);
+            driveFile = await uploadFileToGoogleDrive(file.base64, file.name, file.mimeType, folderId);
+            console.log("Uploaded successfully to Google Drive:", driveFile);
           } catch (uploadErr: any) {
             console.error("Failed to upload MOV to Google Drive:", uploadErr);
             console.warn("Bypassing Google Drive upload error and proceeding with resolving report.");
@@ -513,7 +515,7 @@ async function startServer() {
       }
 
       await updateReportStatus(Number(id), status, type);
-      res.json({ message: "Status updated successfully", warning: driveUploadWarning });
+      res.json({ message: "Status updated successfully", warning: driveUploadWarning, driveFile });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

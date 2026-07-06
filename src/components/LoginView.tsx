@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import { LogIn, UserCircle, Key, AlertCircle, Eye, EyeOff } from "lucide-react";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 
+import { UserAccount } from "../types";
+
 interface LoginViewProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (user: Partial<UserAccount>) => void;
   onNavigateToRegister: () => void;
 }
 
@@ -42,7 +44,7 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
         throw new Error(data.error || "Login failed");
       }
 
-      onLoginSuccess();
+      onLoginSuccess(data.user);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "An unexpected error occurred during authentication.");

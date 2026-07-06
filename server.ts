@@ -394,44 +394,90 @@ async function startServer() {
     }
   });
 
-  // API ROUTE 3.5: Forgot Password Recovery & Reset
-  app.post("/api/forgot-password", async (req, res) => {
-    try {
-      const { email, firstName, lastName, contactNumber, newPassword } = req.body;
+  // API ROUTE 3.5: Forgot Password Recovery & Reset (Legacy - keep for compatibility if needed or replace)
+  // Replaced by 3.6 and 3.7
 
-      if (!email || !firstName || !lastName || !contactNumber || !newPassword) {
-        return res.status(400).json({ error: "All fields are required to verify identity and reset your password." });
+  // Store verification codes in memory
+  const resetCodes = new Map<string, { code: string, expiresAt: number }>();
+
+  // API ROUTE 3.6: Request Password Reset Code
+  app.post("/api/forgot-password-request", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required to send verification code." });
       }
 
       const emailTrim = email.trim().toLowerCase();
       const user = await getUserByEmail(emailTrim);
 
       if (!user) {
+        // Return 404 so UI knows it's invalid
         return res.status(404).json({ error: "Username/Email is not registered in the system." });
       }
 
-      // Check if details match (case-insensitive and trimmed)
-      const userFirstName = user.firstName.trim().toLowerCase();
-      const userLastName = user.lastName.trim().toLowerCase();
-      const userContact = user.contactNumber.trim();
+      // Generate a 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Expire in 15 minutes
+      const expiresAt = Date.now() + 15 * 60 * 1000;
+      resetCodes.set(emailTrim, { code, expiresAt });
 
-      const inputFirstName = firstName.trim().toLowerCase();
-      const inputLastName = lastName.trim().toLowerCase();
-      const inputContact = contactNumber.trim();
+      console.log(`\n=========================================`);
+      console.log(`[MOCK EMAIL] To: ${emailTrim}`);
+      console.log(`[MOCK EMAIL] Subject: Password Reset Verification Code`);
+      console.log(`[MOCK EMAIL] Body: Your verification code is ${code}. It expires in 15 minutes.`);
+      console.log(`=========================================\n`);
 
-      if (userFirstName !== inputFirstName || userLastName !== inputLastName || userContact !== inputContact) {
-        return res.status(403).json({ error: "Identity verification failed. The provided details do not match the registered profile." });
+      res.json({ message: "Verification code has been sent to your email." });
+    } catch (err: any) {
+      console.error("Forgot password request crashed:", err);
+      res.status(500).json({ error: `Internal error: ${err.message}` });
+    }
+  });
+
+  // API ROUTE 3.7: Verify Code and Reset Password
+  app.post("/api/reset-password-verify", async (req, res) => {
+    try {
+      const { email, code, newPassword } = req.body;
+
+      if (!email || !code || !newPassword) {
+        return res.status(400).json({ error: "Email, code, and new password are required." });
+      }
+
+      const emailTrim = email.trim().toLowerCase();
+      const user = await getUserByEmail(emailTrim);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found." });
+      }
+
+      const stored = resetCodes.get(emailTrim);
+      if (!stored) {
+        return res.status(400).json({ error: "No verification code requested or it has expired." });
+      }
+
+      if (Date.now() > stored.expiresAt) {
+        resetCodes.delete(emailTrim);
+        return res.status(400).json({ error: "Verification code has expired. Please request a new one." });
+      }
+
+      if (stored.code !== code.trim()) {
+        return res.status(400).json({ error: "Invalid verification code." });
       }
 
       // Create secure SHA-256 hash of new password
       const newHash = hashPassword(newPassword);
       await updateUser(emailTrim, { passwordHash: newHash });
 
+      // Clean up code
+      resetCodes.delete(emailTrim);
+
       res.json({
         message: "Your passcode has been successfully recovered and updated! Please log in with your new passcode."
       });
     } catch (err: any) {
-      console.error("Forgot password recovery crashed:", err);
+      console.error("Reset password verify crashed:", err);
       res.status(500).json({ error: `Internal recovery fault: ${err.message}` });
     }
   });

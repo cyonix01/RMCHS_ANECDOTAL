@@ -14,15 +14,13 @@ interface LoginViewProps {
 }
 
 export default function LoginView({ onLoginSuccess, onNavigateToRegister }: LoginViewProps) {
-  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "forgot_request" | "forgot_verify">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   
   // Forgot Password Fields
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [contactNumber, setContactNumber] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -66,10 +64,46 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
     }
   };
 
-  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+  const handleForgotPasswordRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !firstName || !lastName || !contactNumber || !newPassword || !confirmPassword) {
-      setError("Please fill in all verification and password fields.");
+    if (!email) {
+      setError("Please enter your registered institutional email.");
+      return;
+    }
+
+    setError(null);
+    setSuccessMessage(null);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/forgot-password-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to request password reset.");
+      }
+
+      setSuccessMessage(data.message);
+      setMode("forgot_verify");
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPasswordVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !verificationCode || !newPassword || !confirmPassword) {
+      setError("Please fill in all fields.");
       return;
     }
 
@@ -88,16 +122,14 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/forgot-password", {
+      const response = await fetch("/api/reset-password-verify", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email,
-          firstName,
-          lastName,
-          contactNumber,
+          code: verificationCode,
           newPassword
         }),
       });
@@ -110,9 +142,7 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
 
       setSuccessMessage(data.message);
       // Reset forgot fields
-      setFirstName("");
-      setLastName("");
-      setContactNumber("");
+      setVerificationCode("");
       setNewPassword("");
       setConfirmPassword("");
       // Take back to login mode
@@ -128,7 +158,7 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
   const switchToForgotPassword = () => {
     setError(null);
     setSuccessMessage(null);
-    setMode("forgot");
+    setMode("forgot_request");
   };
 
   const switchToLogin = () => {
@@ -263,10 +293,10 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
             </button>
           </div>
         </form>
-      ) : (
-        <form id="forgot-password-form" onSubmit={handleForgotPasswordSubmit} className="space-y-6">
+      ) : mode === "forgot_request" ? (
+        <form id="forgot-password-request-form" onSubmit={handleForgotPasswordRequest} className="space-y-6">
           <p className="text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-3 border-l-2 border-[#76DA0D]">
-            To reset your passcode, please verify your identity details exactly as registered in your high school profile registry.
+            To reset your passcode, enter your institutional email. A verification code will be sent to confirm your identity.
           </p>
 
           {/* Email Address */}
@@ -290,67 +320,56 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* First Name */}
-            <div className="flex flex-col">
-              <label className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-1.5">
-                First Name
-              </label>
-              <div className="relative">
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
-                  <User size={15} />
-                </span>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Juan"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  disabled={isLoading}
-                  className="w-full pl-6 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A]"
-                />
-              </div>
-            </div>
+          <div className="pt-4 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={switchToLogin}
+              disabled={isLoading}
+              className="text-[10px] uppercase font-black text-slate-400 tracking-widest hover:text-[#102604] transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <ArrowLeft size={12} />
+              <span>Back to Login</span>
+            </button>
 
-            {/* Last Name */}
-            <div className="flex flex-col">
-              <label className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-1.5">
-                Last Name
-              </label>
-              <div className="relative">
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
-                  <User size={15} />
-                </span>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Cruz"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  disabled={isLoading}
-                  className="w-full pl-6 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A]"
-                />
-              </div>
-            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="btn-editorial-primary flex items-center justify-center gap-2 cursor-pointer min-w-[180px] text-xs py-2"
+            >
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>Send Code</span>
+                  <ArrowRight size={12} />
+                </>
+              )}
+            </button>
           </div>
+        </form>
+      ) : (
+        <form id="forgot-password-verify-form" onSubmit={handleForgotPasswordVerify} className="space-y-6">
+          <p className="text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-3 border-l-2 border-[#76DA0D]">
+            Enter the 6-digit verification code sent to <strong>{email}</strong> and choose a new passcode.
+          </p>
 
-          {/* Contact Number */}
+          {/* Verification Code */}
           <div className="flex flex-col">
             <label className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-1.5">
-              Registered Contact Number
+              6-Digit Verification Code
             </label>
             <div className="relative">
               <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
-                <Phone size={15} />
+                <ShieldCheck size={15} />
               </span>
               <input
                 type="text"
                 required
-                placeholder="e.g. 09123456789"
-                value={contactNumber}
-                onChange={(e) => setContactNumber(e.target.value)}
+                placeholder="e.g. 123456"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
                 disabled={isLoading}
-                className="w-full pl-6 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A]"
+                className="w-full pl-6 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A] tracking-widest font-mono"
               />
             </div>
           </div>
@@ -407,12 +426,12 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
           <div className="pt-4 flex items-center justify-between">
             <button
               type="button"
-              onClick={switchToLogin}
+              onClick={() => setMode("forgot_request")}
               disabled={isLoading}
               className="text-[10px] uppercase font-black text-slate-400 tracking-widest hover:text-[#102604] transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <ArrowLeft size={12} />
-              <span>Back to Login</span>
+              <span>Back</span>
             </button>
 
             <button

@@ -112,7 +112,7 @@ export default function App() {
       >
       
       {/* LEFT COLUMN: Deep Editorial Slate Header Area ({1/3} Width on modern layout) */}
-      <motion.div variants={itemVariants} className="w-full md:w-1/3 bg-[#76DA0D] p-8 md:p-12 lg:p-16 flex flex-col justify-between text-[#102604] relative shrink-0">
+      <motion.div variants={itemVariants} className="w-full md:w-1/3 bg-[#102604] p-8 md:p-12 lg:p-16 flex flex-col justify-between text-white relative shrink-0">
         <div className="space-y-8 mt-4 md:mt-12">
           {/* Logo element for RMCHS */}
           <motion.div variants={itemVariants} className="flex items-center gap-4">
@@ -123,43 +123,40 @@ export default function App() {
               referrerPolicy="no-referrer"
             />
             <div>
-              <p className="font-serif text-lg leading-tight font-bold text-[#102604]">RMCHS</p>
-              <p className="text-[9px] uppercase tracking-widest text-[#102604]/80 font-mono font-bold">Anecdotal Portal</p>
+              <p className="font-serif text-lg leading-tight font-bold text-white">RMCHS</p>
+              <p className="text-[9px] uppercase tracking-widest text-[#76DA0D] font-mono font-bold">Project C.A.R.E.</p>
             </div>
           </motion.div>
           
           {/* Decorative hairline */}
-          <motion.div variants={itemVariants} className="w-12 h-[1px] bg-[#102604] opacity-35"></motion.div>
+          <motion.div variants={itemVariants} className="w-12 h-[1px] bg-white opacity-20"></motion.div>
           
           <motion.div variants={itemVariants} className="space-y-4">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/60 border border-[#102604]/10 rounded-full text-[#102604] font-semibold text-[10px] tracking-wider uppercase font-sans">
-              <GraduationCap size={13} className="text-[#102604]" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-white font-semibold text-[10px] tracking-wider uppercase font-sans">
+              <GraduationCap size={13} className="text-[#76DA0D]" />
               <span>Institutional Core v2.0</span>
             </div>
-            <h1 className="font-serif serif text-4xl md:text-5xl leading-tight font-light text-[#102604]">
-              Anecdotal<br />
-              <span className="italic block mt-1 font-bold">Registry</span>
+            <h1 className="font-serif serif text-4xl md:text-5xl leading-tight font-light text-white">
+              Project<br />
+              <span className="italic block mt-1 font-bold">C.A.R.E.</span>
             </h1>
           </motion.div>
           
           <motion.div variants={itemVariants}>
-            <p className="text-[#102604]/80 text-xs md:text-sm leading-relaxed max-w-[240px] font-sans font-medium">
-              Unified administrative portal for secure professional profiles, institutional anecdote management, and staff records database synchronization.
+            <p className="text-white/80 text-xs md:text-sm leading-relaxed max-w-[240px] font-sans font-medium">
+              Counseling & Academic Records Engagement. Unified administrative portal for secure professional profiles and institutional anecdote management.
             </p>
           </motion.div>
         </div>
-
         <div className="space-y-6 mt-8 md:mt-0">
-
-
-          <motion.div variants={itemVariants} className="pt-4 border-t border-[#102604]/20 flex items-center justify-between">
+          <motion.div variants={itemVariants} className="pt-4 border-t border-white/20 flex items-center justify-between">
             <div>
-              <span className="font-serif serif italic text-2xl tracking-tighter text-[#102604] font-bold">2026</span>
-              <span className="block text-[9px] uppercase tracking-widest text-[#102604]/60 font-bold">Academic Year</span>
+              <span className="font-serif serif italic text-2xl tracking-tighter text-[#76DA0D] font-bold">2026</span>
+              <span className="block text-[9px] uppercase tracking-widest text-white/60 font-bold">Academic Year</span>
             </div>
             <div className="text-right">
-              <span className="text-[9px] uppercase tracking-widest text-[#102604]/50 font-mono font-bold block">District 58</span>
-              <span className="text-[9px] uppercase tracking-widest text-[#102604]/60 font-mono font-bold block">Node Live</span>
+              <span className="text-[9px] uppercase tracking-widest text-white/50 font-mono font-bold block">District 58</span>
+              <span className="text-[9px] uppercase tracking-widest text-[#76DA0D] font-mono font-bold block">Node Live</span>
             </div>
           </motion.div>
         </div>

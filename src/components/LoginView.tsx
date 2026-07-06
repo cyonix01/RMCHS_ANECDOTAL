@@ -56,10 +56,10 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
       {/* Header section */}
       <div className="mb-10 space-y-3">
         <h2 className="text-[#1A1A1A] text-2xl md:text-3xl font-serif font-black tracking-tight leading-none">
-          Portal Identity <br className="hidden sm:block"/> Access
+          Sign In
         </h2>
         <p className="text-slate-500 font-sans text-xs sm:text-sm font-medium leading-relaxed max-w-sm">
-          Please provide your designated credentials to synchronize with the institutional network.
+          Access your Counseling & Academic Records Engagement dashboard.
         </p>
       </div>
 
@@ -74,7 +74,7 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
         {/* Email Address */}
         <div id="login-email-container" className="flex flex-col">
           <label id="login-email-label" className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-2">
-            Institutional Email (Username)
+            Email Address
           </label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
@@ -96,7 +96,7 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
         {/* Password */}
         <div id="login-password-container" className="flex flex-col">
           <label id="login-password-label" className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-2">
-            Security Passcode
+            Password
           </label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
@@ -144,7 +144,7 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
               <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                <span>Authenticate Portal</span>
+                <span>Sign In</span>
                 <LogIn size={14} />
               </>
             )}
@@ -155,7 +155,7 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
       {/* Alternative actions block */}
       <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col gap-4">
         <p className="text-[11px] text-slate-500 leading-relaxed max-w-sm">
-          If you lack recognized credentials, you must initiate the identity registry procedure.
+          Don't have an account? Create one to access the platform.
         </p>
         <div className="flex">
           <button

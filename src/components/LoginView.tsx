@@ -1,32 +1,20 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState } from "react";
-import { Mail, Lock, Eye, EyeOff, LogIn, ArrowRight, ShieldCheck, User, Phone, Key, ArrowLeft } from "lucide-react";
-import { motion } from "motion/react";
-import { UserAccount } from "../types";
+import { LogIn, UserCircle, Key, AlertCircle, Eye, EyeOff } from "lucide-react";
+import ForgotPasswordModal from "./ForgotPasswordModal";
 
 interface LoginViewProps {
-  onLoginSuccess: (user: Partial<UserAccount>) => void;
+  onLoginSuccess: () => void;
   onNavigateToRegister: () => void;
 }
 
 export default function LoginView({ onLoginSuccess, onNavigateToRegister }: LoginViewProps) {
-  const [mode, setMode] = useState<"login" | "forgot_request" | "forgot_verify">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   
-  // Forgot Password Fields
-  const [verificationCode, setVerificationCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -37,7 +25,6 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
     }
 
     setError(null);
-    setSuccessMessage(null);
     setIsLoading(true);
 
     try {
@@ -52,405 +39,141 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Login attempt failed.");
+        throw new Error(data.error || "Login failed");
       }
 
-      onLoginSuccess(data.user);
+      onLoginSuccess();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "An unexpected error occurred. Please try again.");
+      setError(err.message || "An unexpected error occurred during authentication.");
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleForgotPasswordRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      setError("Please enter your registered institutional email.");
-      return;
-    }
-
-    setError(null);
-    setSuccessMessage(null);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/forgot-password-request", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to request password reset.");
-      }
-
-      setSuccessMessage(data.message);
-      setMode("forgot_verify");
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "An unexpected error occurred.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleForgotPasswordVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !verificationCode || !newPassword || !confirmPassword) {
-      setError("Please fill in all fields.");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setError("Password passcode must be at least 6 characters long.");
-      return;
-    }
-
-    setError(null);
-    setSuccessMessage(null);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/reset-password-verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          code: verificationCode,
-          newPassword
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Password reset attempt failed.");
-      }
-
-      setSuccessMessage(data.message);
-      // Reset forgot fields
-      setVerificationCode("");
-      setNewPassword("");
-      setConfirmPassword("");
-      // Take back to login mode
-      setMode("login");
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "An unexpected error occurred during password recovery.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const switchToForgotPassword = () => {
-    setError(null);
-    setSuccessMessage(null);
-    setMode("forgot_request");
-  };
-
-  const switchToLogin = () => {
-    setError(null);
-    setMode("login");
   };
 
   return (
-    <div
-      id="login-card-container"
-      className="w-full bg-transparent p-0"
-    >
-      {/* Editorial Header Row */}
-      <div id="login-header-group" className="flex justify-between items-start mb-10">
-        <div className="space-y-1">
-          <h2 id="login-title" className="font-serif serif text-3xl text-[#102604] tracking-tight font-bold">
-            {mode === "login" ? "Portal Access" : "Passcode Recovery"}
-          </h2>
-          <p id="login-subtitle" className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
-            {mode === "login" ? "Ramon Magsaysay (Cubao) High School" : "Verify Profile Credentials"}
-          </p>
+    <div className="w-full relative">
+      {/* Header section */}
+      <div className="mb-10 space-y-3">
+        <h2 className="text-[#1A1A1A] text-2xl md:text-3xl font-serif font-black tracking-tight leading-none">
+          Portal Identity <br className="hidden sm:block"/> Access
+        </h2>
+        <p className="text-slate-500 font-sans text-xs sm:text-sm font-medium leading-relaxed max-w-sm">
+          Please provide your designated credentials to synchronize with the institutional network.
+        </p>
+      </div>
+
+      {error && (
+        <div className="mb-6 bg-red-50 text-red-700 p-4 flex items-start gap-3 border border-red-100 text-xs shadow-sm">
+          <AlertCircle size={15} className="mt-0.5 shrink-0" />
+          <p className="font-medium leading-relaxed">{error}</p>
         </div>
-        <div className="text-right shrink-0">
+      )}
+
+      <form id="login-form" onSubmit={handleLoginSubmit} className="space-y-6">
+        {/* Email Address */}
+        <div id="login-email-container" className="flex flex-col">
+          <label id="login-email-label" className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-2">
+            Institutional Email (Username)
+          </label>
+          <div className="relative">
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
+              <UserCircle size={15} />
+            </span>
+            <input
+              id="login-email-input"
+              type="email"
+              required
+              placeholder="e.g. j.doe@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+              className="w-full pl-6 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A]"
+            />
+          </div>
+        </div>
+
+        {/* Password */}
+        <div id="login-password-container" className="flex flex-col">
+          <label id="login-password-label" className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-2">
+            Security Passcode
+          </label>
+          <div className="relative">
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
+              <Key size={15} />
+            </span>
+            <input
+              id="login-password-input"
+              type={showPassword ? "text" : "password"}
+              required
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+              className="w-full pl-6 pr-8 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A] tracking-widest"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#76DA0D] transition-colors cursor-pointer"
+            >
+              {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
+          </div>
+          <div className="flex justify-end mt-2">
+            <button
+              id="login-forgot-password"
+              type="button"
+              onClick={() => setIsForgotModalOpen(true)}
+              className="text-[10px] text-slate-400 hover:text-[#102604] hover:underline font-bold tracking-wider uppercase transition-all cursor-pointer"
+            >
+              Forgot Password?
+            </button>
+          </div>
+        </div>
+
+        {/* Primary Sync button */}
+        <div className="pt-2 flex justify-end">
           <button
-            id="login-register-link"
+            id="login-submit-btn"
+            type="submit"
+            disabled={isLoading}
+            className="btn-editorial-primary flex items-center justify-center gap-3 cursor-pointer min-w-[200px]"
+          >
+            {isLoading ? (
+              <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <span>Authenticate Portal</span>
+                <LogIn size={14} />
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+
+      {/* Alternative actions block */}
+      <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col gap-4">
+        <p className="text-[11px] text-slate-500 leading-relaxed max-w-sm">
+          If you lack recognized credentials, you must initiate the identity registry procedure.
+        </p>
+        <div className="flex">
+          <button
+            id="login-register-btn"
             type="button"
             onClick={onNavigateToRegister}
-            className="text-[10px] uppercase font-black text-[#102604] tracking-widest border-b border-[#76DA0D] pb-0.5 hover:border-[#FFEA00] transition-colors cursor-pointer inline-flex items-center gap-1"
+            disabled={isLoading}
+            className="text-xs font-bold uppercase tracking-wider text-[#102604] hover:text-[#76DA0D] border-b-2 border-transparent hover:border-[#76DA0D] transition-all pb-1 cursor-pointer"
           >
-            <span>Register profile</span>
-            <ArrowRight size={10} />
+            Register Profile →
           </button>
         </div>
       </div>
 
-      {error && (
-        <div id="login-error-alert" className="p-3 mb-6 bg-red-50/70 border-b border-red-200 text-red-700 font-sans text-xs flex gap-2">
-          <span>⚠️</span>
-          <p className="font-medium">{error}</p>
-        </div>
-      )}
-
-      {successMessage && (
-        <div id="login-success-alert" className="p-3 mb-6 bg-emerald-50 border-b border-emerald-200 text-emerald-800 font-sans text-xs flex gap-2">
-          <span>✓</span>
-          <p className="font-medium">{successMessage}</p>
-        </div>
-      )}
-
-      {mode === "login" ? (
-        <form id="login-form-element" onSubmit={handleLoginSubmit} className="space-y-8">
-          
-          {/* Email Address */}
-          <div id="login-email-container" className="flex flex-col">
-            <label id="login-email-label" className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-2">
-              Institutional Email (Username)
-            </label>
-            <div className="relative">
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
-                <Mail size={16} />
-              </span>
-              <input
-                id="login-email-input"
-                type="email"
-                required
-                placeholder="e.g. j.doe@school.edu"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-                className="w-full pl-6 editorial-input text-sm font-sans placeholder-slate-300 text-[#1A1A1A]"
-              />
-            </div>
-          </div>
-
-          {/* Password */}
-          <div id="login-pass-container" className="flex flex-col">
-            <label id="login-password-label" className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-2">
-              Password Passcode
-            </label>
-            <div className="relative">
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
-                <Lock size={16} />
-              </span>
-              <input
-                id="login-password-input"
-                type={showPassword ? "text" : "password"}
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-                className="w-full pl-6 pr-8 editorial-input text-sm font-sans placeholder-slate-300 text-[#1A1A1A]"
-              />
-              <button
-                id="login-password-toggle"
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#76DA0D] transition-colors cursor-pointer"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-            
-            <div className="flex justify-end mt-2">
-              <button
-                id="login-forgot-password"
-                type="button"
-                onClick={switchToForgotPassword}
-                className="text-[10px] text-slate-400 hover:text-[#102604] hover:underline font-bold tracking-wider uppercase transition-all cursor-pointer"
-              >
-                Forgot Password?
-              </button>
-            </div>
-          </div>
-
-          {/* Primary Sync button */}
-          <div className="pt-2 flex justify-end">
-            <button
-              id="login-submit-btn"
-              type="submit"
-              disabled={isLoading}
-              className="btn-editorial-primary flex items-center justify-center gap-3 cursor-pointer min-w-[200px]"
-            >
-              {isLoading ? (
-                <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>Authenticate Portal</span>
-                  <LogIn size={14} />
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      ) : mode === "forgot_request" ? (
-        <form id="forgot-password-request-form" onSubmit={handleForgotPasswordRequest} className="space-y-6">
-          <p className="text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-3 border-l-2 border-[#76DA0D]">
-            To reset your passcode, enter your institutional email. A verification code will be sent to confirm your identity.
-          </p>
-
-          {/* Email Address */}
-          <div className="flex flex-col">
-            <label className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-1.5">
-              Institutional Email
-            </label>
-            <div className="relative">
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
-                <Mail size={15} />
-              </span>
-              <input
-                type="email"
-                required
-                placeholder="e.g. j.doe@school.edu"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-                className="w-full pl-6 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A]"
-              />
-            </div>
-          </div>
-
-          <div className="pt-4 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={switchToLogin}
-              disabled={isLoading}
-              className="text-[10px] uppercase font-black text-slate-400 tracking-widest hover:text-[#102604] transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <ArrowLeft size={12} />
-              <span>Back to Login</span>
-            </button>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="btn-editorial-primary flex items-center justify-center gap-2 cursor-pointer min-w-[180px] text-xs py-2"
-            >
-              {isLoading ? (
-                <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>Send Code</span>
-                  <ArrowRight size={12} />
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      ) : (
-        <form id="forgot-password-verify-form" onSubmit={handleForgotPasswordVerify} className="space-y-6">
-          <p className="text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-3 border-l-2 border-[#76DA0D]">
-            Enter the 6-digit verification code sent to <strong>{email}</strong> and choose a new passcode.
-          </p>
-
-          {/* Verification Code */}
-          <div className="flex flex-col">
-            <label className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-1.5">
-              6-Digit Verification Code
-            </label>
-            <div className="relative">
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
-                <ShieldCheck size={15} />
-              </span>
-              <input
-                type="text"
-                required
-                placeholder="e.g. 123456"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                disabled={isLoading}
-                className="w-full pl-6 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A] tracking-widest font-mono"
-              />
-            </div>
-          </div>
-
-          {/* New Password */}
-          <div className="flex flex-col">
-            <label className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-1.5">
-              New Password Passcode
-            </label>
-            <div className="relative">
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
-                <Lock size={15} />
-              </span>
-              <input
-                type={showNewPassword ? "text" : "password"}
-                required
-                placeholder="••••••••"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                disabled={isLoading}
-                className="w-full pl-6 pr-8 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#76DA0D] transition-colors cursor-pointer"
-              >
-                {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
-            </div>
-          </div>
-
-          {/* Confirm New Password */}
-          <div className="flex flex-col">
-            <label className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-1.5">
-              Confirm New Password Passcode
-            </label>
-            <div className="relative">
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
-                <Lock size={15} />
-              </span>
-              <input
-                type={showNewPassword ? "text" : "password"}
-                required
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={isLoading}
-                className="w-full pl-6 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A]"
-              />
-            </div>
-          </div>
-
-          <div className="pt-4 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setMode("forgot_request")}
-              disabled={isLoading}
-              className="text-[10px] uppercase font-black text-slate-400 tracking-widest hover:text-[#102604] transition-colors inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <ArrowLeft size={12} />
-              <span>Back</span>
-            </button>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="btn-editorial-primary flex items-center justify-center gap-2 cursor-pointer min-w-[180px] text-xs py-2"
-            >
-              {isLoading ? (
-                <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>Verify & Recover</span>
-                  <Key size={12} />
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      )}
+      <ForgotPasswordModal 
+        isOpen={isForgotModalOpen} 
+        onClose={() => setIsForgotModalOpen(false)} 
+      />
     </div>
   );
 }

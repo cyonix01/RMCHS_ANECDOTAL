@@ -60,6 +60,7 @@ export default function RegisterView({ onRegisterSuccess, onNavigateToLogin }: R
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -254,7 +255,7 @@ export default function RegisterView({ onRegisterSuccess, onNavigateToLogin }: R
                 id="reg-email-input"
                 type="email"
                 required
-                placeholder="maria.lopez@school.edu"
+                placeholder="maria.lopez@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
@@ -395,16 +396,25 @@ export default function RegisterView({ onRegisterSuccess, onNavigateToLogin }: R
               <label className="text-[10px] text-[#888] uppercase tracking-widest font-semibold mb-1">
                 Confirm Password <span className="text-red-500">*</span>
               </label>
-              <input
-                id="reg-confirm-password"
-                type={showPassword ? "text" : "password"}
-                required
-                placeholder="Identical security entry"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={isLoading}
-                className="editorial-input w-full"
-              />
+              <div className="relative">
+                <input
+                  id="reg-confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  placeholder="Identical security entry"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isLoading}
+                  className="editorial-input w-full pr-8"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#76DA0D] transition-colors cursor-pointer"
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
           </div>
         </div>

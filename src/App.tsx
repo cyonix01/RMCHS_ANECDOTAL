@@ -84,15 +84,38 @@ export default function App() {
     );
   }
 
+  // Animation variants for cascading entrance
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+        delayChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } }
+  };
+
   return (
     <NotificationProvider>
-      <div id="landing-layout" className="min-h-screen bg-[#FFFFFF] text-[#102604] font-sans flex flex-col md:flex-row relative overflow-x-hidden selection:bg-[#76DA0D]/20">
+      <motion.div 
+        id="landing-layout" 
+        className="min-h-screen bg-[#FFFFFF] text-[#102604] font-sans flex flex-col md:flex-row relative overflow-x-hidden selection:bg-[#76DA0D]/20"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
       
       {/* LEFT COLUMN: Deep Editorial Slate Header Area ({1/3} Width on modern layout) */}
-      <div className="w-full md:w-1/3 bg-[#76DA0D] p-8 md:p-12 lg:p-16 flex flex-col justify-between text-[#102604] relative shrink-0">
+      <motion.div variants={itemVariants} className="w-full md:w-1/3 bg-[#76DA0D] p-8 md:p-12 lg:p-16 flex flex-col justify-between text-[#102604] relative shrink-0">
         <div className="space-y-8 mt-4 md:mt-12">
           {/* Logo element for RMCHS */}
-          <div className="flex items-center gap-4">
+          <motion.div variants={itemVariants} className="flex items-center gap-4">
             <img 
               src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Ramon_Magsaysay_%28Cubao%29_High_School.svg/500px-Ramon_Magsaysay_%28Cubao%29_High_School.svg.png" 
               alt="RMCHS logo" 
@@ -103,12 +126,12 @@ export default function App() {
               <p className="font-serif text-lg leading-tight font-bold text-[#102604]">RMCHS</p>
               <p className="text-[9px] uppercase tracking-widest text-[#102604]/80 font-mono font-bold">Anecdotal Portal</p>
             </div>
-          </div>
+          </motion.div>
           
           {/* Decorative hairline */}
-          <div className="w-12 h-[1px] bg-[#102604] opacity-35"></div>
+          <motion.div variants={itemVariants} className="w-12 h-[1px] bg-[#102604] opacity-35"></motion.div>
           
-          <div className="space-y-4">
+          <motion.div variants={itemVariants} className="space-y-4">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/60 border border-[#102604]/10 rounded-full text-[#102604] font-semibold text-[10px] tracking-wider uppercase font-sans">
               <GraduationCap size={13} className="text-[#102604]" />
               <span>Institutional Core v2.0</span>
@@ -117,17 +140,19 @@ export default function App() {
               Anecdotal<br />
               <span className="italic block mt-1 font-bold">Registry</span>
             </h1>
-          </div>
+          </motion.div>
           
-          <p className="text-[#102604]/80 text-xs md:text-sm leading-relaxed max-w-[240px] font-sans font-medium">
-            Unified administrative portal for secure professional profiles, institutional anecdote management, and staff records database synchronization.
-          </p>
+          <motion.div variants={itemVariants}>
+            <p className="text-[#102604]/80 text-xs md:text-sm leading-relaxed max-w-[240px] font-sans font-medium">
+              Unified administrative portal for secure professional profiles, institutional anecdote management, and staff records database synchronization.
+            </p>
+          </motion.div>
         </div>
 
         <div className="space-y-6 mt-8 md:mt-0">
 
 
-          <div className="pt-4 border-t border-[#102604]/20 flex items-center justify-between">
+          <motion.div variants={itemVariants} className="pt-4 border-t border-[#102604]/20 flex items-center justify-between">
             <div>
               <span className="font-serif serif italic text-2xl tracking-tighter text-[#102604] font-bold">2026</span>
               <span className="block text-[9px] uppercase tracking-widest text-[#102604]/60 font-bold">Academic Year</span>
@@ -136,12 +161,12 @@ export default function App() {
               <span className="text-[9px] uppercase tracking-widest text-[#102604]/50 font-mono font-bold block">District 58</span>
               <span className="text-[9px] uppercase tracking-widest text-[#102604]/60 font-mono font-bold block">Node Live</span>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* RIGHT COLUMN: Interactive Registration / Login Form Stage ({2/3} Width on modern layout) */}
-      <div className="w-full md:w-2/3 p-6 md:p-12 lg:p-16 flex flex-col justify-between bg-[#FFFFFF] min-h-screen">
+      <motion.div variants={itemVariants} className="w-full md:w-2/3 p-6 md:p-12 lg:p-16 flex flex-col justify-between bg-[#FFFFFF] min-h-screen">
         
         {/* Flex container wrapper for centering */}
         <div className="flex-1 flex flex-col justify-center max-w-xl w-full mx-auto py-8">
@@ -188,13 +213,13 @@ export default function App() {
         </div>
 
         {/* Footer credits bar compliant with Editorial Design blueprint */}
-        <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between text-[10px] text-slate-400 uppercase tracking-widest font-mono gap-2 shrink-0">
+        <motion.div variants={itemVariants} className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between text-[10px] text-slate-400 uppercase tracking-widest font-mono gap-2 shrink-0">
           <div>Internal Systems Security • SHA-256 Encrypted</div>
           <div>v2.0.4-Stable</div>
-        </div>
+        </motion.div>
 
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
     </NotificationProvider>
   );
 }

@@ -18,6 +18,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
 
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [mockCode, setMockCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Reset state when closing
@@ -31,6 +32,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
     setShowConfirmPassword(false);
     setError(null);
     setSuccessMessage(null);
+    setMockCode(null);
     setIsLoading(false);
     onClose();
   };
@@ -62,6 +64,9 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
       }
 
       setSuccessMessage(data.message);
+      if (data.devCode) {
+        setMockCode(data.devCode);
+      }
       setMode("forgot_verify");
     } catch (err: any) {
       console.error(err);
@@ -163,7 +168,14 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
               {successMessage && (
                 <div className="mb-4 bg-green-50 text-green-800 p-3 flex items-start gap-3 border border-green-200 text-xs shadow-sm">
                   <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
-                  <p className="font-medium leading-relaxed">{successMessage}</p>
+                  <div className="flex-1">
+                    <p className="font-medium leading-relaxed">{successMessage}</p>
+                    {mockCode && (
+                      <div className="mt-2 bg-white/60 p-2 rounded border border-green-200 text-[11px] font-mono">
+                        <span className="font-bold">DEVELOPMENT MODE:</span> Your verification code is <strong>{mockCode}</strong>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

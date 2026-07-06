@@ -429,7 +429,10 @@ async function startServer() {
       console.log(`[MOCK EMAIL] Body: Your verification code is ${code}. It expires in 15 minutes.`);
       console.log(`=========================================\n`);
 
-      res.json({ message: "Verification code has been sent to your email." });
+      res.json({ 
+        message: "Verification code has been sent to your email.",
+        devCode: process.env.NODE_ENV !== "production" ? code : undefined 
+      });
     } catch (err: any) {
       console.error("Forgot password request crashed:", err);
       res.status(500).json({ error: `Internal error: ${err.message}` });

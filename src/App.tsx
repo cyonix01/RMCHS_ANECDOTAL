@@ -144,7 +144,7 @@ export default function App() {
           
           <motion.div variants={itemVariants}>
             <p className="text-white/80 text-xs md:text-sm leading-relaxed max-w-[240px] font-sans font-medium">
-              Counseling & Academic Records Engagement. Unified administrative portal for secure professional profiles and institutional anecdote management.
+              Counseling & Academic Records Engagement. A secure administrative platform for managing professional profiles and facilitating institutional student support.
             </p>
           </motion.div>
         </div>

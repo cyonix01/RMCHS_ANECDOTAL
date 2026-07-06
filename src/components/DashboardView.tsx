@@ -393,7 +393,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
             </button>
           )}
 
-          {(user.role === 'Admin' || user.role === 'Adviser' || user.role === 'Guidance') && (
+          {(user.role === 'Admin' || user.role === 'Guidance') && (
             <button
               onClick={() => setShowAnalytics(!showAnalytics)}
               className={`group flex items-center gap-2 px-4 py-2 border font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 shadow-sm ${

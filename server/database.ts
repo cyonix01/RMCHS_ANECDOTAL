@@ -1030,7 +1030,9 @@ export async function saveNotification(notification: Omit<AppNotification, "id">
           saveNotificationsLocally(updatedLocal);
         }
       } else {
-        console.warn("Supabase notification insert skipped or errored:", error ? error.message : "no data returned");
+        if (error && error.code !== "PGRST116" && error.code !== "42P01") {
+          console.warn("Supabase notification insert skipped or errored:", error ? error.message : "no data returned");
+        }
       }
     } catch (e: any) {
       console.error("Exception inserting notification to Supabase:", e.message);
@@ -1049,7 +1051,9 @@ export async function getAllNotifications(): Promise<AppNotification[]> {
   try {
     const { data, error } = await supabase.from("notifications").select("*").order("created_at", { ascending: false });
     if (error) {
-      console.warn("Failed to fetch notifications from Supabase, using local:", error.message);
+      if (error.code !== "PGRST116" && error.code !== "42P01") {
+        console.warn("Failed to fetch notifications from Supabase, using local:", error.message);
+      }
       return localList;
     }
     const mapped: AppNotification[] = (data || []).map((row: any) => ({
@@ -1155,9 +1159,12 @@ export async function clearNotifications(): Promise<void> {
   const supabase = getSupabaseClient();
   if (!supabase) return;
   try {
-    await supabase.from("notifications").delete().neq("id", 0);
+    const { error } = await supabase.from("notifications").delete().neq("id", 0);
+    if (error && error.code !== "PGRST116" && error.code !== "42P01") {
+      console.error("Failed to clear notifications in Supabase:", error.message);
+    }
   } catch (err: any) {
-    console.error("Failed to clear notifications in Supabase:", err.message);
+    console.error("Exception clearing notifications in Supabase:", err.message);
   }
 }
 

@@ -77,7 +77,7 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
             Institutional Email (Username)
           </label>
           <div className="relative">
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
               <UserCircle size={15} />
             </span>
             <input
@@ -88,7 +88,7 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isLoading}
-              className="w-full pl-6 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A]"
+              className="w-full pl-10 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A]"
             />
           </div>
         </div>
@@ -99,7 +99,7 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
             Security Passcode
           </label>
           <div className="relative">
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
               <Key size={15} />
             </span>
             <input
@@ -110,12 +110,12 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
-              className="w-full pl-6 pr-8 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A] tracking-widest"
+              className="w-full pl-10 pr-10 editorial-input text-xs font-sans placeholder-slate-300 text-[#1A1A1A] tracking-widest"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#76DA0D] transition-colors cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#76DA0D] transition-colors cursor-pointer"
             >
               {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>

@@ -186,6 +186,36 @@ export default function DataAnalyticsView({ user }: { user?: any }) {
     method: 'System'
   }));
 
+
+  // 10. Grade Level Distribution (Cases by Grade and Gender)
+  const gradeGenderDataMap: Record<string, { Male: number, Female: number }> = {
+    'Grade 7': { Male: 0, Female: 0 },
+    'Grade 8': { Male: 0, Female: 0 },
+    'Grade 9': { Male: 0, Female: 0 },
+    'Grade 10': { Male: 0, Female: 0 },
+    'Grade 11': { Male: 0, Female: 0 },
+    'Grade 12': { Male: 0, Female: 0 },
+  };
+
+  const studentObjMap = new Map(students.map(s => [s.lrn, s]));
+
+  allReports.forEach(r => {
+    const student = studentObjMap.get(r.studentLrn) as Student;
+    if (student && student.gradeLevel && student.gender) {
+      if (gradeGenderDataMap[student.gradeLevel]) {
+        if (student.gender === 'Male' || student.gender === 'Female') {
+          gradeGenderDataMap[student.gradeLevel][student.gender]++;
+        }
+      }
+    }
+  });
+
+  const gradeGenderData = Object.keys(gradeGenderDataMap).map(grade => ({
+    name: grade.replace('Grade ', 'G'),
+    Male: gradeGenderDataMap[grade].Male,
+    Female: gradeGenderDataMap[grade].Female
+  }));
+
   if (loading) {
     return <div className="p-8 text-center text-slate-500 font-medium">Loading analytics data...</div>;
   }
@@ -508,7 +538,32 @@ export default function DataAnalyticsView({ user }: { user?: any }) {
         </div>
       </div>
 
-      {/* Row 5: Tables */}
+      
+      {/* Row 5: Grade & Gender Distribution */}
+      <div className="grid grid-cols-1 gap-4 mb-4">
+        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1">
+          <h3 className="text-[11px] font-bold text-slate-700 uppercase mb-4">Grade & Gender Distribution <span className="text-slate-400 font-normal capitalize">(All Reports)</span></h3>
+          <div className="h-64 w-full relative">
+            <div className="absolute top-0 right-0 flex gap-3 text-[10px] font-medium">
+              <div className="flex items-center gap-1"><div className="w-2 h-2 bg-blue-500"></div> Male</div>
+              <div className="flex items-center gap-1"><div className="w-2 h-2 bg-pink-500"></div> Female</div>
+            </div>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={gradeGenderData} margin={{ top: 20, right: 5, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tick={{fontSize: 10}} tickLine={false} axisLine={false} />
+                <YAxis tick={{fontSize: 10}} tickLine={false} axisLine={false} />
+                <Tooltip />
+                <Bar dataKey="Male" fill="#3b82f6" stackId="a" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="Female" fill="#ec4899" stackId="a" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 6: Tables */}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Recent Reports */}
         <div className="bg-white p-4 rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col">

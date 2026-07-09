@@ -10,8 +10,12 @@ export default function CICLReportDashboard() {
 
   useEffect(() => {
     fetch("/api/reports?type=CICL")
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch reports");
+        return res.json();
+      })
       .then(data => {
+        if (data.error) throw new Error(data.error);
         setReports(data);
         setLoading(false);
       })

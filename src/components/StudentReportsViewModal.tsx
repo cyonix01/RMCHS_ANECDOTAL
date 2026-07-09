@@ -14,9 +14,10 @@ export default function StudentReportsViewModal({ student, onClose }: StudentRep
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/reports").then(res => res.json()),
-      fetch("/api/critical-reports").then(res => res.json())
+      fetch("/api/reports").then(res => { if (!res.ok) throw new Error("reports"); return res.json(); }),
+      fetch("/api/critical-reports").then(res => { if (!res.ok) throw new Error("critical-reports"); return res.json(); })
     ]).then(([genReports, critReports]) => {
+      if (genReports.error || critReports.error) throw new Error("API error");
       const studentReports = [
         ...genReports.filter((r: Report) => r.studentLrn === student.lrn).map((r: any) => ({ ...r, type: 'General' })),
         ...critReports.filter((r: CriticalReport) => r.studentLrn === student.lrn).map((r: any) => ({ ...r, type: 'Critical' }))
@@ -30,6 +31,9 @@ export default function StudentReportsViewModal({ student, onClose }: StudentRep
       });
       
       setReports(studentReports);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
       setLoading(false);
     });
   }, [student.lrn]);

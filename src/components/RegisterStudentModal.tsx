@@ -91,7 +91,7 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
   useEffect(() => {
     if (form.gradeLevel) {
       fetch(`/api/sections?gradeLevel=${encodeURIComponent(form.gradeLevel)}`)
-        .then(res => res.json())
+        .then(res => { if (!res.ok) throw new Error("Failed to fetch sections"); return res.json(); })
         .then(data => setSections(Array.from(new Set(data))))
         .catch(console.error);
     }

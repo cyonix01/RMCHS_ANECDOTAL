@@ -66,7 +66,7 @@ export default function AccountSettingsView({ user, onClose, onUpdateSuccess }: 
     if (gradeLevel) {
       console.log('Fetching sections for:', gradeLevel);
       fetch(`/api/sections?gradeLevel=${encodeURIComponent(gradeLevel)}`)
-        .then(res => res.json())
+        .then(res => { if (!res.ok) throw new Error("Failed to fetch sections"); return res.json(); })
         .then(data => setSections(Array.from(new Set(data))))
         .catch(err => console.error('Error fetching sections:', err));
     }

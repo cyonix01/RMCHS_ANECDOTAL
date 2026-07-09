@@ -1,3 +1,8 @@
+const fs = require('fs');
+const file = 'src/components/DataAnalyticsView.tsx';
+let content = fs.readFileSync(file, 'utf8');
+
+const replacement = `
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, Users, AlertCircle, CheckCircle, Clock, 
@@ -26,7 +31,7 @@ export default function DataAnalyticsView({ user }: { user?: any }) {
       let filteredCritical = criticalData || [];
       
       if (user) {
-        const teacherName = `${user.firstName} ${user.lastName}`;
+        const teacherName = \`\${user.firstName} \${user.lastName}\`;
         if (user.role === 'Admin' || user.role === 'Guidance') {
           // Admin and Guidance see all records across entire school
         } else if (user.role === 'Adviser') {
@@ -60,7 +65,7 @@ export default function DataAnalyticsView({ user }: { user?: any }) {
   }, [user]);
 
   const allReports = [...reports, ...criticalReports];
-  const studentMap = new Map(students.map(s => [s.lrn, `${s.firstName} ${s.lastName}`]));
+  const studentMap = new Map(students.map(s => [s.lrn, \`\${s.firstName} \${s.lastName}\`]));
 
   // 1. Top level metrics
   const totalStudents = students.length;
@@ -151,8 +156,7 @@ export default function DataAnalyticsView({ user }: { user?: any }) {
     .slice(0, 5)
     .map(([lrn, value]) => {
       const name = studentMap.get(lrn) || lrn;
-      const nameStr = name as string;
-      return { name: nameStr.length > 15 ? nameStr.substring(0,15)+'...' : nameStr, value };
+      return { name: name.length > 15 ? name.substring(0,15)+'...' : name, value };
     });
 
   // 8. Weekly Incident Flow
@@ -168,7 +172,7 @@ export default function DataAnalyticsView({ user }: { user?: any }) {
     .sort((a, b) => new Date(b.dateReported || b.dateOfIncident || 0).getTime() - new Date(a.dateReported || a.dateOfIncident || 0).getTime())
     .slice(0, 5)
     .map((r, idx) => ({
-      id: r.id ? `RPT-${r.id}` : `RPT-${idx}`,
+      id: r.id ? \`RPT-\${r.id}\` : \`RPT-\${idx}\`,
       student: studentMap.get(r.studentLrn) || r.studentLrn,
       category: (r.issue || 'Others').length > 15 ? (r.issue || 'Others').substring(0, 15) + '...' : r.issue || 'Others',
       teacher: r.reportedBy || 'Unknown',
@@ -180,7 +184,7 @@ export default function DataAnalyticsView({ user }: { user?: any }) {
   const recentActions = recentReports.map((r, idx) => ({
     date: r.date,
     action: r.status === 'Resolved' ? 'Case Closed' : 'Under Review',
-    description: `Status updated to ${r.status}`,
+    description: \`Status updated to \${r.status}\`,
     duration: '-',
     handledBy: r.teacher.split('@')[0],
     method: 'System'
@@ -333,254 +337,11 @@ export default function DataAnalyticsView({ user }: { user?: any }) {
           </div>
         </div>
       </div>
+`;
 
-      {/* Row 3: Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-        {/* Trend Line */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1">
-          <h3 className="text-[11px] font-bold text-slate-700 uppercase mb-4">Report Trend <span className="text-slate-400 font-normal capitalize">(This Year)</span></h3>
-          <div className="h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={reportTrendData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tick={{fontSize: 10}} tickLine={false} axisLine={false} />
-                <YAxis tick={{fontSize: 10}} tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#16a34a" strokeWidth={2} dot={{fill: '#16a34a', r: 4}} activeDot={{r: 6}} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        
-        {/* Grouped Bar */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1">
-          <h3 className="text-[11px] font-bold text-slate-700 uppercase mb-4">Reports vs Resolutions</h3>
-          <div className="h-48 w-full relative">
-            <div className="absolute top-0 right-0 flex gap-3 text-[10px] font-medium">
-              <div className="flex items-center gap-1"><div className="w-2 h-2 bg-green-500"></div> Reports</div>
-              <div className="flex items-center gap-1"><div className="w-2 h-2 bg-red-500"></div> Pending</div>
-              <div className="flex items-center gap-1"><div className="w-2 h-2 bg-blue-500"></div> Resolved</div>
-            </div>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={reportsVsResolvedData} margin={{ top: 20, right: 5, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tick={{fontSize: 10}} tickLine={false} axisLine={false} />
-                <YAxis tick={{fontSize: 10}} tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Bar dataKey="Reports" fill="#22c55e" />
-                <Bar dataKey="Pending" fill="#ef4444" />
-                <Bar dataKey="Resolved" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+const startIndex = content.indexOf("export default function DataAnalyticsView");
+const endIndex = content.indexOf("{/* Row 3: Charts */}");
 
-        {/* Issue Breakdown Donut */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1 flex flex-col">
-          <h3 className="text-[11px] font-bold text-slate-700 uppercase mb-2">Issue Breakdown <span className="text-slate-400 font-normal capitalize">(This Month)</span></h3>
-          <div className="flex-1 flex items-center">
-            <div className="w-1/2 h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={issueBreakdownData} innerRadius={35} outerRadius={60} paddingAngle={0} dataKey="value">
-                    {issueBreakdownData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="w-1/2 flex flex-col gap-1">
-              {issueBreakdownData.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-[10px]">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.color}}></div>
-                    <span className="text-slate-600 font-medium truncate w-20">{item.name}</span>
-                  </div>
-                  <span className="text-slate-800 font-bold">{item.value}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+const newContent = content.substring(0, startIndex) + replacement + "\n      " + content.substring(endIndex);
 
-        {/* Status Donut */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1 flex flex-col">
-          <h3 className="text-[11px] font-bold text-slate-700 uppercase mb-2">Case Status <span className="text-slate-400 font-normal capitalize">(This Month)</span></h3>
-          <div className="flex-1 flex items-center">
-            <div className="w-1/2 h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={caseStatusData} innerRadius={20} outerRadius={60} paddingAngle={0} dataKey="value">
-                    {caseStatusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="w-1/2 flex flex-col gap-1">
-              {caseStatusData.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-[10px]">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.color}}></div>
-                    <span className="text-slate-600 font-medium truncate w-16">{item.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-800 font-medium w-4">{item.value}</span>
-                    <span className="text-slate-500">({item.percentage})</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 4: Horizontal Bars */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-        {/* Top Issues */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1">
-          <h3 className="text-[11px] font-bold text-slate-700 uppercase mb-4">Top Issues <span className="text-slate-400 font-normal capitalize">(By Frequency)</span></h3>
-          <div className="h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topIssuesData} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#334155'}} width={100} />
-                <Tooltip />
-                <Bar dataKey="value" fill="#16a34a" barSize={10} radius={[0, 4, 4, 0]}>
-                  {topIssuesData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill="#16a34a" />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Top Teachers */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1">
-          <h3 className="text-[11px] font-bold text-slate-700 uppercase mb-4">Top Teachers <span className="text-slate-400 font-normal capitalize">(By Reports)</span></h3>
-          <div className="h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topTeachersData} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#334155'}} width={60} />
-                <Tooltip />
-                <Bar dataKey="value" fill="#7c3aed" barSize={10} radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Top Students */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1">
-          <h3 className="text-[11px] font-bold text-slate-700 uppercase mb-4">Top Students <span className="text-slate-400 font-normal capitalize">(By Reports)</span></h3>
-          <div className="h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topStudentsData} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#334155'}} width={80} />
-                <Tooltip />
-                <Bar dataKey="value" fill="#3b82f6" barSize={10} radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Incident Flow */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1 relative">
-          <h3 className="text-[11px] font-bold text-slate-700 uppercase mb-2">Incident Flow <span className="text-slate-400 font-normal capitalize">(This Month)</span></h3>
-          <div className="absolute top-4 right-4 flex gap-3 text-[10px] font-medium">
-            <div className="flex items-center gap-1"><div className="w-2 h-2 bg-green-500"></div> Incoming</div>
-            <div className="flex items-center gap-1"><div className="w-2 h-2 bg-red-500"></div> Resolved</div>
-          </div>
-          <div className="h-48 w-full mt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={weeklyReportsData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tick={{fontSize: 10}} tickLine={false} axisLine={false} />
-                <YAxis tick={{fontSize: 10}} tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Area type="monotone" dataKey="Incoming" stroke="#22c55e" fill="#dcfce7" />
-                <Area type="monotone" dataKey="Resolved" stroke="#ef4444" fill="#fee2e2" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 5: Tables */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Recent Reports */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <h3 className="text-[11px] font-bold text-blue-800 uppercase mb-3">Recent Reports</h3>
-          <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left border-collapse whitespace-nowrap">
-              <thead>
-                <tr className="bg-slate-50 text-[10px] font-bold text-slate-600 uppercase border-b border-slate-200">
-                  <th className="py-2 px-3">Report ID</th>
-                  <th className="py-2 px-3">Student</th>
-                  <th className="py-2 px-3">Category</th>
-                  <th className="py-2 px-3">Teacher</th>
-                  <th className="py-2 px-3">Date</th>
-                  <th className="py-2 px-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="text-[11px] font-medium text-slate-700">
-                {recentReports.map((report, idx) => (
-                  <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50">
-                    <td className="py-2.5 px-3 font-semibold text-slate-900">{report.id}</td>
-                    <td className="py-2.5 px-3">{report.student}</td>
-                    <td className="py-2.5 px-3">{report.category}</td>
-                    <td className="py-2.5 px-3">{report.teacher}</td>
-                    <td className="py-2.5 px-3 text-slate-500">{report.date}</td>
-                    <td className="py-2.5 px-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                        report.status === 'Resolved' ? 'bg-green-100 text-green-700' :
-                        report.status === 'Under Review' ? 'bg-blue-100 text-blue-700' :
-                        report.status === 'Parent Meeting' ? 'bg-orange-100 text-orange-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {report.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Recent Actions */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <h3 className="text-[11px] font-bold text-blue-800 uppercase mb-3">Recent Actions</h3>
-          <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left border-collapse whitespace-nowrap">
-              <thead>
-                <tr className="bg-slate-50 text-[10px] font-bold text-slate-600 uppercase border-b border-slate-200">
-                  <th className="py-2 px-3">Date</th>
-                  <th className="py-2 px-3">Action Type</th>
-                  <th className="py-2 px-3">Description</th>
-                  <th className="py-2 px-3">Duration</th>
-                  <th className="py-2 px-3">Handled By</th>
-                  <th className="py-2 px-3">Method</th>
-                </tr>
-              </thead>
-              <tbody className="text-[11px] font-medium text-slate-700">
-                {recentActions.map((action, idx) => (
-                  <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50">
-                    <td className="py-2.5 px-3 text-slate-500">{action.date}</td>
-                    <td className="py-2.5 px-3 font-semibold">{action.action}</td>
-                    <td className="py-2.5 px-3 truncate max-w-[150px]">{action.description}</td>
-                    <td className="py-2.5 px-3">{action.duration}</td>
-                    <td className="py-2.5 px-3">{action.handledBy}</td>
-                    <td className="py-2.5 px-3">{action.method}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+fs.writeFileSync(file, newContent);

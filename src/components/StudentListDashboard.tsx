@@ -15,14 +15,20 @@ export default function StudentListDashboard({ user }: StudentListDashboardProps
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/students").then(res => res.json()),
-      fetch("/api/reports").then(res => res.json()),
-      fetch("/api/critical-reports").then(res => res.json())
+      fetch("/api/students").then(res => { if (!res.ok) throw new Error("Failed to fetch students"); return res.json(); }),
+      fetch("/api/reports").then(res => { if (!res.ok) throw new Error("Failed to fetch reports"); return res.json(); }),
+      fetch("/api/critical-reports").then(res => { if (!res.ok) throw new Error("Failed to fetch critical reports"); return res.json(); })
     ]).then(([allStudents, allReports, allCritReports]) => {
+      if (allStudents.error || allReports.error || allCritReports.error) {
+        throw new Error("API returned an error");
+      }
       const filtered = allStudents.filter((s: Student) => s.gradeLevel === user.gradeLevel && s.section === user.section);
       setStudents(filtered.sort((a: Student, b: Student) => a.lastName.localeCompare(b.lastName)));
       setReports(allReports);
       setCriticalReports(allCritReports);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
       setLoading(false);
     });
   }, [user.gradeLevel, user.section]);

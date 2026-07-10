@@ -25,6 +25,8 @@ export default function NotificationBell({ user, onSelectNotification }: Notific
         setNotifications(data);
       }
     } catch (err) {
+      // Silent fail for polling network errors
+      if (err instanceof Error && err.message === "Failed to fetch") return;
       console.error("Failed to fetch notifications:", err);
     }
   };

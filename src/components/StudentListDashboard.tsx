@@ -155,8 +155,17 @@ export default function StudentListDashboard({ user }: StudentListDashboardProps
     }
   };
 
-  const handleDownloadPDF = () => {
-    generateAdviserPDF(user, reportTypeFilter, students, reports, criticalReports);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    setGeneratingPdf(true);
+    try {
+      await generateAdviserPDF(user, reportTypeFilter, students, reports, criticalReports);
+    } catch (e) {
+      console.error("Error generating PDF:", e);
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   return (
@@ -176,10 +185,11 @@ export default function StudentListDashboard({ user }: StudentListDashboardProps
           </button>
           <button
             onClick={handleDownloadPDF}
-            className="flex items-center gap-2 px-4 py-2 bg-[#102604] hover:bg-[#102604]/90 text-white font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer shadow-sm rounded-sm"
+            disabled={generatingPdf}
+            className={`flex items-center gap-2 px-4 py-2 bg-[#102604] hover:bg-[#102604]/90 text-white font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer shadow-sm rounded-sm ${generatingPdf ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <Printer size={14} className="text-[#76DA0D]" />
-            <span>Download PDF Report</span>
+            <span>{generatingPdf ? "Generating..." : "Download PDF Report"}</span>
           </button>
         </div>
       </div>

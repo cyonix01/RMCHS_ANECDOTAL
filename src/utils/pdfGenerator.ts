@@ -1,92 +1,132 @@
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { Student, Report, CriticalReport } from '../types';
 
-// Helper to draw a beautiful, vector-based Ramon Magsaysay High School seal/logo directly
-// inside the PDF without needing network requests (avoids CORS and offline failures)
-function drawSchoolSeal(doc: jsPDF, x: number, y: number) {
-  // Outer circle (Gold)
-  doc.setDrawColor(118, 218, 13); // #76DA0D
-  doc.setFillColor(255, 255, 255);
-  doc.setLineWidth(1.5);
-  doc.circle(x, y, 14, 'FD');
+// Helper to asynchronously load the DepEd logo image
+function loadDepEdLogo(): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Department_of_Education.svg/500px-Department_of_Education.svg.png";
+    
+    const timer = setTimeout(() => {
+      resolve(null);
+    }, 2000); // 2-second timeout to avoid stalling the UI if offline/network blocked
 
-  // Inner circle (Deep Green)
-  doc.setDrawColor(16, 38, 4); // #102604
-  doc.setFillColor(16, 38, 4);
-  doc.setLineWidth(1);
-  doc.circle(x, y, 12, 'FD');
+    img.onload = () => {
+      clearTimeout(timer);
+      resolve(img);
+    };
+    img.onerror = () => {
+      clearTimeout(timer);
+      resolve(null);
+    };
+  });
+}
 
-  // Inner gold star/shield backdrop
-  doc.setDrawColor(118, 218, 13);
-  doc.setFillColor(118, 218, 13);
-  doc.circle(x, y, 7, 'F');
+// Helper to crop an HTMLImageElement into a perfect circle using an HTML Canvas, removing any black corners
+function cropImageToCircle(img: HTMLImageElement): string | null {
+  try {
+    const canvas = document.createElement('canvas');
+    const size = Math.min(img.naturalWidth, img.naturalHeight);
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
 
-  // Text markings
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.text('RM', x, y + 1.5, { align: 'center' });
-  doc.setFontSize(4);
-  doc.text('CHS', x, y + 4.5, { align: 'center' });
+    // Clear canvas to ensure complete transparency outside the circle
+    ctx.clearRect(0, 0, size, size);
 
-  // Outer border details
-  doc.setDrawColor(118, 218, 13);
-  doc.setLineWidth(0.5);
-  doc.circle(x, y, 15, 'S');
+    // Draw circular mask
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+
+    // Draw original image centered
+    const sx = (img.naturalWidth - size) / 2;
+    const sy = (img.naturalHeight - size) / 2;
+    ctx.drawImage(img, sx, sy, size, size, 0, 0, size, size);
+
+    return canvas.toDataURL('image/png');
+  } catch (e) {
+    console.error("Error cropping logo to perfect circle:", e);
+    return null;
+  }
 }
 
 // DepEd Header styling helper
-function drawDepEdHeader(doc: jsPDF, title: string, subtitle: string, personnelName: string, personnelRole: string) {
+function drawDepEdHeader(
+  doc: jsPDF, 
+  title: string, 
+  subtitle: string, 
+  personnelName: string, 
+  personnelRole: string,
+  depEdLogoImg?: HTMLImageElement | null
+) {
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Draw seal logo on the left
-  drawSchoolSeal(doc, 22, 22);
+  // Draw DepEd logo centered at the top middle of the header
+  // 2cm by 2cm is 20mm by 20mm
+  if (depEdLogoImg && depEdLogoImg.complete && depEdLogoImg.naturalWidth > 0) {
+    try {
+      const croppedLogoBase64 = cropImageToCircle(depEdLogoImg);
+      const logoX = (pageWidth - 20) / 2;
+      const logoY = 8;
+      if (croppedLogoBase64) {
+        doc.addImage(croppedLogoBase64, 'PNG', logoX, logoY, 20, 20);
+      } else {
+        doc.addImage(depEdLogoImg, 'PNG', logoX, logoY, 20, 20);
+      }
+    } catch (e) {
+      console.warn("Could not draw circular cropped DepEd image to PDF:", e);
+    }
+  }
 
-  // DepEd text labels (standard school memorandum format)
+  // DepEd text labels (shifted down to avoid overlapping the centered 2cm logo)
   doc.setTextColor(100, 116, 139); // Slate-500
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('REPUBLIC OF THE PHILIPPINES', pageWidth / 2, 14, { align: 'center' });
+  doc.text('REPUBLIC OF THE PHILIPPINES', pageWidth / 2, 34, { align: 'center' });
 
   doc.setTextColor(51, 65, 85); // Slate-700
   doc.setFontSize(10);
-  doc.text('DEPARTMENT OF EDUCATION', pageWidth / 2, 19, { align: 'center' });
+  doc.text('DEPARTMENT OF EDUCATION', pageWidth / 2, 39, { align: 'center' });
 
   doc.setTextColor(71, 85, 105); // Slate-600
   doc.setFont('helvetica', 'oblique');
   doc.setFontSize(8.5);
-  doc.text('National Capital Region • Division of City Schools', pageWidth / 2, 23, { align: 'center' });
+  doc.text('National Capital Region • Division of City Schools', pageWidth / 2, 43.5, { align: 'center' });
 
   doc.setTextColor(16, 38, 4); // Deep Green #102604
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
-  doc.text('RAMON MAGSAYSAY (CUBAO) HIGH SCHOOL', pageWidth / 2, 28, { align: 'center' });
+  doc.text('RAMON MAGSAYSAY (CUBAO) HIGH SCHOOL', pageWidth / 2, 49, { align: 'center' });
 
   doc.setTextColor(148, 163, 184); // Slate-400
   doc.setFont('courier', 'bold');
   doc.setFontSize(7.5);
-  doc.text('PROJECT C.A.R.E. (COUNSELING & ACADEMIC RECORDS ENGAGEMENT)', pageWidth / 2, 32, { align: 'center' });
+  doc.text('PROJECT C.A.R.E. (COUNSELING & ACADEMIC RECORDS ENGAGEMENT)', pageWidth / 2, 53.5, { align: 'center' });
 
   // Decorative divider
   doc.setDrawColor(16, 38, 4); // Deep Green
   doc.setLineWidth(1.5);
-  doc.line(14, 35, pageWidth - 14, 35);
+  doc.line(14, 57, pageWidth - 14, 57);
 
   doc.setDrawColor(118, 218, 13); // Gold
   doc.setLineWidth(0.5);
-  doc.line(14, 36.2, pageWidth - 14, 36.2);
+  doc.line(14, 58.2, pageWidth - 14, 58.2);
 
   // Memorandum Title block
   doc.setTextColor(16, 38, 4);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
-  doc.text(title.toUpperCase(), pageWidth / 2, 44, { align: 'center' });
+  doc.text(title.toUpperCase(), pageWidth / 2, 66, { align: 'center' });
 
   doc.setTextColor(100, 116, 139);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text(subtitle, pageWidth / 2, 49, { align: 'center' });
+  doc.text(subtitle, pageWidth / 2, 71, { align: 'center' });
 
   // Date Generated
   const dateStr = new Date().toLocaleDateString('en-US', {
@@ -98,24 +138,24 @@ function drawDepEdHeader(doc: jsPDF, title: string, subtitle: string, personnelN
     minute: '2-digit'
   });
   doc.setFontSize(7.5);
-  doc.text(`Report Generated: ${dateStr}`, pageWidth / 2, 53, { align: 'center' });
+  doc.text(`Report Generated: ${dateStr}`, pageWidth / 2, 75, { align: 'center' });
 
   // Personnel details card background
   doc.setFillColor(248, 250, 252); // slate-50
   doc.setDrawColor(226, 232, 240); // slate-200
   doc.setLineWidth(0.5);
-  doc.rect(14, 57, pageWidth - 28, 14, 'FD');
+  doc.rect(14, 79, pageWidth - 28, 14, 'FD');
 
   doc.setTextColor(100, 116, 139);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
-  doc.text('AUTHORIZED STAFF / ADVISER', 18, 62);
-  doc.text('ORGANIZATIONAL SCOPE', pageWidth / 2 + 6, 62);
+  doc.text('AUTHORIZED STAFF / ADVISER', 18, 84);
+  doc.text('ORGANIZATIONAL SCOPE', pageWidth / 2 + 6, 84);
 
   doc.setTextColor(15, 23, 42); // slate-900
   doc.setFontSize(9);
-  doc.text(`${personnelName} (${personnelRole})`, 18, 67);
-  doc.text(subtitle.replace('•', '•'), pageWidth / 2 + 6, 67);
+  doc.text(`${personnelName} (${personnelRole})`, 18, 89);
+  doc.text(subtitle.replace('•', '•'), pageWidth / 2 + 6, 89);
 }
 
 // Draw professional Signatures Block
@@ -160,8 +200,469 @@ function drawSignaturesBlock(doc: jsPDF, yStart: number, prepName: string, prepT
   doc.text(noteTitle, pageWidth / 2 + 6, y);
 }
 
+// Donut segment drawer using radial overlap algorithm (100% reliable)
+function drawDonutSector(
+  doc: jsPDF, 
+  cx: number, 
+  cy: number, 
+  rOuter: number, 
+  rInner: number, 
+  startDeg: number, 
+  endDeg: number, 
+  r: number, 
+  g: number, 
+  b: number
+) {
+  doc.setDrawColor(r, g, b);
+  doc.setLineWidth(0.4);
+  const step = 0.5;
+  for (let a = startDeg; a < endDeg; a += step) {
+    const rad = (a - 90) * Math.PI / 180;
+    const x1 = cx + rInner * Math.cos(rad);
+    const y1 = cy + rInner * Math.sin(rad);
+    const x2 = cx + rOuter * Math.cos(rad);
+    const y2 = cy + rOuter * Math.sin(rad);
+    doc.line(x1, y1, x2, y2);
+  }
+}
+
+// Card Container Box helper
+function drawCardContainer(doc: jsPDF, x: number, y: number, w: number, h: number, title: string, subtitle?: string) {
+  // Card background
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(226, 232, 240); // slate-200
+  doc.setLineWidth(0.4);
+  doc.rect(x, y, w, h, 'FD');
+
+  // Accent header border
+  doc.setDrawColor(16, 38, 4); // RMCHS Deep Green
+  doc.setLineWidth(1);
+  doc.line(x, y, x + w, y);
+
+  // Card Title
+  doc.setTextColor(16, 38, 4);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text(title.toUpperCase(), x + 4, y + 5);
+
+  if (subtitle) {
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.5);
+    doc.text(subtitle, x + w - 4, y + 5, { align: 'right' });
+  }
+}
+
+// Native high-fidelity Line Chart drawing
+function drawReportTrend(doc: jsPDF, x: number, y: number, w: number, h: number, reports: any[], criticalReports: any[]) {
+  drawCardContainer(doc, x, y, w, h, "Report Trend", "Monthly");
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+  const totalCounts = [0, 0, 0, 0, 0, 0, 0];
+  
+  // Calculate counts for Jan-Jul
+  const all = [...reports, ...criticalReports];
+  all.forEach(r => {
+    const dateVal = r.dateReported || r.dateOfIncident || r.createdAt;
+    if (dateVal) {
+      const date = new Date(dateVal);
+      const m = date.getMonth();
+      if (m >= 0 && m <= 6) {
+        totalCounts[m]++;
+      }
+    }
+  });
+
+  const maxY = Math.max(...totalCounts, 5); // scale max
+
+  const plotLeft = x + 10;
+  const plotRight = x + w - 6;
+  const plotTop = y + 10;
+  const plotBottom = y + h - 8;
+  const cw = plotRight - plotLeft;
+  const ch = plotBottom - plotTop;
+
+  // Grid
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(5.5);
+  doc.setTextColor(148, 163, 184); // slate-400
+  doc.setLineWidth(0.1);
+  doc.setDrawColor(241, 245, 249); // slate-100
+
+  const gridSteps = 4;
+  for (let i = 0; i <= gridSteps; i++) {
+    const val = Math.round((maxY / gridSteps) * i);
+    const gy = plotBottom - (i / gridSteps) * ch;
+    doc.text(`${val}`, plotLeft - 3, gy + 1.5, { align: 'right' });
+    doc.line(plotLeft, gy, plotRight, gy);
+  }
+
+  // Draw Line Points
+  const points: { px: number; py: number }[] = [];
+  const stepX = cw / 6;
+  for (let i = 0; i < 7; i++) {
+    const val = totalCounts[i];
+    const px = plotLeft + i * stepX;
+    const py = plotBottom - (val / maxY) * ch;
+    points.push({ px, py });
+  }
+
+  // Area under the line (shaded)
+  doc.setDrawColor(240, 253, 230); // light green tint
+  doc.setLineWidth(0.5);
+  for (let i = 0; i < 7; i++) {
+    doc.line(points[i].px, plotBottom, points[i].px, points[i].py);
+  }
+
+  // Draw Connective Line
+  doc.setDrawColor(118, 218, 13); // #76DA0D
+  doc.setLineWidth(1.2);
+  for (let i = 0; i < 6; i++) {
+    doc.line(points[i].px, points[i].py, points[i+1].px, points[i+1].py);
+  }
+
+  // Node Points
+  doc.setFillColor(118, 218, 13);
+  for (let i = 0; i < 7; i++) {
+    doc.circle(points[i].px, points[i].py, 0.9, 'F');
+    doc.setTextColor(100, 116, 139);
+    doc.text(months[i], points[i].px, plotBottom + 4.5, { align: 'center' });
+  }
+}
+
+// Native high-fidelity Reports vs Resolutions dual-bar chart drawing
+function drawReportsVsResolutions(doc: jsPDF, x: number, y: number, w: number, h: number, reports: any[], criticalReports: any[]) {
+  drawCardContainer(doc, x, y, w, h, "Reports vs Resolutions");
+
+  // Legends
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(5);
+  
+  doc.setFillColor(118, 218, 13); // Green
+  doc.rect(x + 4, y + 7, 2, 2, 'F');
+  doc.setTextColor(100, 116, 139);
+  doc.text('Reports', x + 7, y + 8.5);
+
+  doc.setFillColor(220, 38, 38); // Red
+  doc.rect(x + 20, y + 7, 2, 2, 'F');
+  doc.text('Pending', x + 23, y + 8.5);
+
+  doc.setFillColor(37, 99, 235); // Blue
+  doc.rect(x + 38, y + 7, 2, 2, 'F');
+  doc.text('Resolved', x + 41, y + 8.5);
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+  const totalCounts = [0, 0, 0, 0, 0, 0, 0];
+  const pendingCounts = [0, 0, 0, 0, 0, 0, 0];
+  const resolvedCounts = [0, 0, 0, 0, 0, 0, 0];
+
+  const all = [...reports, ...criticalReports];
+  all.forEach(r => {
+    const dateVal = r.dateReported || r.dateOfIncident || r.createdAt;
+    if (dateVal) {
+      const date = new Date(dateVal);
+      const m = date.getMonth();
+      if (m >= 0 && m <= 6) {
+        totalCounts[m]++;
+        if (r.recordStatus === 'RESOLVED') {
+          resolvedCounts[m]++;
+        } else {
+          pendingCounts[m]++;
+        }
+      }
+    }
+  });
+
+  const maxY = Math.max(...totalCounts, 5);
+
+  const plotLeft = x + 10;
+  const plotRight = x + w - 6;
+  const plotTop = y + 12;
+  const plotBottom = y + h - 8;
+  const cw = plotRight - plotLeft;
+  const ch = plotBottom - plotTop;
+
+  // Grid
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(5.5);
+  doc.setTextColor(148, 163, 184);
+  doc.setLineWidth(0.1);
+  doc.setDrawColor(241, 245, 249);
+
+  const gridSteps = 4;
+  for (let i = 0; i <= gridSteps; i++) {
+    const val = Math.round((maxY / gridSteps) * i);
+    const gy = plotBottom - (i / gridSteps) * ch;
+    doc.text(`${val}`, plotLeft - 3, gy + 1.5, { align: 'right' });
+    doc.line(plotLeft, gy, plotRight, gy);
+  }
+
+  const stepX = cw / 6;
+  const barW = 1.3;
+
+  for (let i = 0; i < 7; i++) {
+    const cx = plotLeft + i * stepX;
+    
+    // Bar 1 - Reports (Green)
+    const h1 = (totalCounts[i] / maxY) * ch;
+    if (h1 > 0) {
+      doc.setFillColor(118, 218, 13);
+      doc.rect(cx - barW * 1.5, plotBottom - h1, barW, h1, 'F');
+    }
+
+    // Bar 2 - Pending (Red)
+    const h2 = (pendingCounts[i] / maxY) * ch;
+    if (h2 > 0) {
+      doc.setFillColor(220, 38, 38);
+      doc.rect(cx - barW * 0.5, plotBottom - h2, barW, h2, 'F');
+    }
+
+    // Bar 3 - Resolved (Blue)
+    const h3 = (resolvedCounts[i] / maxY) * ch;
+    if (h3 > 0) {
+      doc.setFillColor(37, 99, 235);
+      doc.rect(cx + barW * 0.5, plotBottom - h3, barW, h3, 'F');
+    }
+
+    doc.setTextColor(100, 116, 139);
+    doc.text(months[i], cx, plotBottom + 4.5, { align: 'center' });
+  }
+}
+
+// Native high-fidelity Issue Breakdown segmented Donut chart drawing
+function drawIssueBreakdown(doc: jsPDF, x: number, y: number, w: number, h: number, reports: any[], criticalReports: any[]) {
+  drawCardContainer(doc, x, y, w, h, "Issue Breakdown", "This Year");
+
+  const issueCounts: Record<string, number> = {};
+  const all = [...reports, ...criticalReports];
+  all.forEach(r => {
+    const issue = r.issue || 'Others';
+    issueCounts[issue] = (issueCounts[issue] || 0) + 1;
+  });
+
+  const total = all.length;
+  
+  const sortedIssues = Object.entries(issueCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  const colors = [
+    { r: 249, g: 115, b: 22 },  // Orange
+    { r: 239, g: 68, b: 68 },   // Red
+    { r: 59, g: 130, b: 246 },  // Blue
+    { r: 16, g: 185, b: 129 },  // Emerald
+    { r: 139, g: 92, b: 246 }   // Purple
+  ];
+
+  const otherColor = { r: 148, g: 163, b: 184 }; // Slate
+
+  const cx = x + 22;
+  const cy = y + h / 2 + 1;
+  const rOuter = 13;
+  const rInner = 8;
+
+  let currentDeg = 0;
+  
+  if (total === 0) {
+    drawDonutSector(doc, cx, cy, rOuter, rInner, 0, 360, 226, 232, 240);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    doc.text("No cases logged", x + 44, y + h / 2 + 1.5);
+    return;
+  }
+
+  let colorIdx = 0;
+  let topY = y + 10;
+
+  sortedIssues.forEach(([issue, count]) => {
+    const percent = count / total;
+    const deg = percent * 360;
+    const col = colors[colorIdx % colors.length];
+
+    drawDonutSector(doc, cx, cy, rOuter, rInner, currentDeg, currentDeg + deg, col.r, col.g, col.b);
+    currentDeg += deg;
+
+    // Legend block
+    doc.setFillColor(col.r, col.g, col.b);
+    doc.rect(x + 44, topY, 2, 2, 'F');
+    
+    doc.setTextColor(51, 65, 85);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.5);
+    const label = issue.length > 18 ? issue.substring(0, 15) + '...' : issue;
+    doc.text(`${label}: ${count} (${Math.round(percent * 100)}%)`, x + 48, topY + 1.8);
+
+    topY += 5;
+    colorIdx++;
+  });
+
+  const topSum = sortedIssues.reduce((acc, curr) => acc + curr[1], 0);
+  const othersCount = total - topSum;
+  if (othersCount > 0) {
+    const percent = othersCount / total;
+    const deg = percent * 360;
+    drawDonutSector(doc, cx, cy, rOuter, rInner, currentDeg, currentDeg + deg, otherColor.r, otherColor.g, otherColor.b);
+    
+    doc.setFillColor(otherColor.r, otherColor.g, otherColor.b);
+    doc.rect(x + 44, topY, 2, 2, 'F');
+    doc.setTextColor(51, 65, 85);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.5);
+    doc.text(`Others: ${othersCount} (${Math.round(percent * 100)}%)`, x + 48, topY + 1.8);
+  }
+}
+
+// Native Case Status Donut Chart
+function drawCaseStatus(doc: jsPDF, x: number, y: number, w: number, h: number, reports: any[], criticalReports: any[]) {
+  drawCardContainer(doc, x, y, w, h, "Case Status", "This Year");
+
+  const all = [...reports, ...criticalReports];
+  const total = all.length;
+  const resolved = all.filter(r => r.recordStatus === 'RESOLVED').length;
+  const ongoing = total - resolved;
+
+  const cx = x + 22;
+  const cy = y + h / 2 + 1;
+  const rOuter = 13;
+  const rInner = 8;
+
+  if (total === 0) {
+    drawDonutSector(doc, cx, cy, rOuter, rInner, 0, 360, 226, 232, 240);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
+    doc.text("No status records", x + 44, y + h / 2 + 1.5);
+    return;
+  }
+
+  const resolvedPercent = resolved / total;
+  const resolvedDeg = resolvedPercent * 360;
+
+  // Resolved (Emerald Green)
+  drawDonutSector(doc, cx, cy, rOuter, rInner, 0, resolvedDeg, 16, 185, 129);
+  // Ongoing (Red)
+  drawDonutSector(doc, cx, cy, rOuter, rInner, resolvedDeg, 360, 220, 38, 38);
+
+  // Legends
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6);
+
+  doc.setFillColor(16, 185, 129);
+  doc.rect(x + 44, y + 14, 2.5, 2.5, 'F');
+  doc.setTextColor(15, 23, 42);
+  doc.text(`Resolved`, x + 49, y + 16.2);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`${resolved} cases`, x + 64, y + 16.2);
+  doc.text(`(${Math.round(resolvedPercent * 100)}%)`, x + 76, y + 16.2);
+
+  doc.setFillColor(220, 38, 38);
+  doc.rect(x + 44, y + 21, 2.5, 2.5, 'F');
+  doc.setTextColor(15, 23, 42);
+  doc.text(`On Going`, x + 49, y + 23.2);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`${ongoing} cases`, x + 64, y + 23.2);
+  doc.text(`(${Math.round((ongoing / total) * 100)}%)`, x + 76, y + 23.2);
+}
+
+// Native horizontal bar charts
+function drawTopIssues(doc: jsPDF, x: number, y: number, w: number, h: number, reports: any[], criticalReports: any[]) {
+  drawCardContainer(doc, x, y, w, h, "Top Issues By Frequency");
+
+  const issueCounts: Record<string, number> = {};
+  const all = [...reports, ...criticalReports];
+  all.forEach(r => {
+    const issue = r.issue || 'Others';
+    issueCounts[issue] = (issueCounts[issue] || 0) + 1;
+  });
+
+  const sorted = Object.entries(issueCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+
+  if (sorted.length === 0) {
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.text("No issue frequencies logged", x + 8, y + h / 2);
+    return;
+  }
+
+  const maxVal = Math.max(...sorted.map(s => s[1]), 1);
+  let barY = y + 10;
+
+  sorted.forEach(([issue, count]) => {
+    doc.setTextColor(71, 85, 105);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.5);
+    const label = issue.length > 20 ? issue.substring(0, 18) + '...' : issue;
+    doc.text(label, x + 4, barY + 1.5);
+
+    doc.setFillColor(241, 245, 249);
+    doc.rect(x + 36, barY, 36, 2.5, 'F');
+
+    const filledW = (count / maxVal) * 36;
+    doc.setFillColor(16, 185, 129); // Emerald Green
+    doc.rect(x + 36, barY, filledW, 2.5, 'F');
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${count}`, x + 75, barY + 2);
+
+    barY += 7.5;
+  });
+}
+
+function drawTopStudents(doc: jsPDF, x: number, y: number, w: number, h: number, reports: any[], criticalReports: any[], students: any[]) {
+  drawCardContainer(doc, x, y, w, h, "Top Students By Record");
+
+  const studentCounts: Record<string, number> = {};
+  const all = [...reports, ...criticalReports];
+  all.forEach(r => {
+    studentCounts[r.studentLrn] = (studentCounts[r.studentLrn] || 0) + 1;
+  });
+
+  const sorted = Object.entries(studentCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+
+  if (sorted.length === 0) {
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.text("No student cases recorded", x + 8, y + h / 2);
+    return;
+  }
+
+  const maxVal = Math.max(...sorted.map(s => s[1]), 1);
+  let barY = y + 10;
+
+  sorted.forEach(([lrn, count]) => {
+    const student = students.find(s => s.lrn === lrn);
+    const name = student ? `${student.lastName}, ${student.firstName.substring(0, 1)}.` : lrn;
+
+    doc.setTextColor(71, 85, 105);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.5);
+    doc.text(name, x + 4, barY + 1.5);
+
+    doc.setFillColor(241, 245, 249);
+    doc.rect(x + 36, barY, 36, 2.5, 'F');
+
+    const filledW = (count / maxVal) * 36;
+    doc.setFillColor(37, 99, 235); // Blue
+    doc.rect(x + 36, barY, filledW, 2.5, 'F');
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${count} case(s)`, x + 75, barY + 2);
+
+    barY += 7.5;
+  });
+}
+
 // 1. ADVISER SECTION PDF GENERATION
-export function generateAdviserPDF(
+export async function generateAdviserPDF(
   user: any,
   reportTypeFilter: 'All' | 'General' | 'Critical' | 'CICL',
   students: Student[],
@@ -176,8 +677,11 @@ export function generateAdviserPDF(
   const personnelName = `${user.firstName} ${user.lastName}`;
   const personnelRole = `Class Adviser`;
 
+  // Pre-load DepEd logo
+  const depEdLogoImg = await loadDepEdLogo();
+
   // Draw DepEd Header & Info
-  drawDepEdHeader(doc, title, subtitle, personnelName, personnelRole);
+  drawDepEdHeader(doc, title, subtitle, personnelName, personnelRole, depEdLogoImg);
 
   // Filter reports
   const getFilteredSectionReports = () => {
@@ -200,7 +704,7 @@ export function generateAdviserPDF(
   const resolutionRate = totalReportsCount > 0 ? Math.round((resolvedCases / totalReportsCount) * 100) : 100;
 
   // I. Metrics summary layout
-  let y = 78;
+  let y = 98;
   doc.setTextColor(16, 38, 4);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
@@ -260,7 +764,7 @@ export function generateAdviserPDF(
     issueBreakdownData.push(['No incident reports logged for this section under selected filter', '-', '-']);
   }
 
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: y + 3,
     head: [['Offense / Issue', 'Count', 'Percentage Ratio']],
     body: issueBreakdownData,
@@ -269,8 +773,8 @@ export function generateAdviserPDF(
     bodyStyles: { fontSize: 8, textColor: [51, 65, 85] },
     columnStyles: {
       0: { fontStyle: 'bold' },
-      1: { halign: 'center', width: 30 },
-      2: { halign: 'right', width: 40 }
+      1: { halign: 'center', cellWidth: 30 },
+      2: { halign: 'right', cellWidth: 40 }
     },
     margin: { left: 14, right: 14 }
   });
@@ -311,7 +815,7 @@ export function generateAdviserPDF(
     studentTableData.push(['No students registered in this section', '-', '-', '-', '-', '-']);
   }
 
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: y + 3,
     head: [['Student Name', 'Gender', 'General', 'Critical', 'CICL', 'Total Cases']],
     body: studentTableData,
@@ -329,12 +833,28 @@ export function generateAdviserPDF(
     margin: { left: 14, right: 14 }
   });
 
-  y = (doc as any).lastAutoTable.finalY + 15;
+  // Dedicated Page for Section Graphs & Signatures
+  doc.addPage();
+  doc.setTextColor(16, 38, 4);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('IV. SECTION-SPECIFIC DATA VISUALIZATIONS & BEHAVIORAL TRENDS', 14, 18);
 
-  // Signatures
+  const colW = (pageWidth - 28 - 4) / 2;
+  // Row 1
+  drawReportTrend(doc, 14, 22, colW, 40, reports, criticalReports);
+  drawReportsVsResolutions(doc, 14 + colW + 4, 22, colW, 40, reports, criticalReports);
+  // Row 2
+  drawIssueBreakdown(doc, 14, 66, colW, 40, reports, criticalReports);
+  drawCaseStatus(doc, 14 + colW + 4, 66, colW, 40, reports, criticalReports);
+  // Row 3
+  drawTopIssues(doc, 14, 110, colW, 35, reports, criticalReports);
+  drawTopStudents(doc, 14 + colW + 4, 110, colW, 35, reports, criticalReports, students);
+
+  // Signatures at the bottom of the data visualization page
   drawSignaturesBlock(
     doc,
-    y,
+    155,
     personnelName,
     "Class Adviser / Faculty Member",
     "Guidance Counselor / School Principal"
@@ -345,7 +865,7 @@ export function generateAdviserPDF(
 }
 
 // 2. SCHOOL-WIDE ANALYTICS PDF GENERATION
-export function generateAnalyticsPDF(
+export async function generateAnalyticsPDF(
   user: any,
   studentGradeFilter: string,
   reportTypeFilter: 'All' | 'General' | 'Critical' | 'CICL',
@@ -361,8 +881,11 @@ export function generateAnalyticsPDF(
   const personnelName = user ? `${user.firstName} ${user.lastName}` : "Guidance Administrator";
   const personnelRole = user ? user.role : "Guidance Staff";
 
+  // Pre-load DepEd logo
+  const depEdLogoImg = await loadDepEdLogo();
+
   // Draw DepEd Header & Info
-  drawDepEdHeader(doc, title, subtitle, personnelName, personnelRole);
+  drawDepEdHeader(doc, title, subtitle, personnelName, personnelRole, depEdLogoImg);
 
   // Filter raw data based on constraints
   const getFilteredReportsRaw = () => {
@@ -396,7 +919,7 @@ export function generateAnalyticsPDF(
   const resolutionRate = totalReportsCount > 0 ? Math.round((resolvedCases / totalReportsCount) * 100) : 100;
 
   // I. Metrics summary layout
-  let y = 78;
+  let y = 98;
   doc.setTextColor(16, 38, 4);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
@@ -466,7 +989,7 @@ export function generateAnalyticsPDF(
     ];
   });
 
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: y + 3,
     head: [['Grade Level', 'Total Students', 'General', 'Critical', 'CICL', 'Total Reports', 'Resolution Rate']],
     body: gradeBreakdownStats,
@@ -517,7 +1040,7 @@ export function generateAnalyticsPDF(
     issueBreakdownData.push(['No incident reports logged matching selected filters', '-', '-']);
   }
 
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: y + 3,
     head: [['Issue / Offense Type', 'Incident Count', 'Percentage Ratio']],
     body: issueBreakdownData,
@@ -526,24 +1049,40 @@ export function generateAnalyticsPDF(
     bodyStyles: { fontSize: 8, textColor: [51, 65, 85] },
     columnStyles: {
       0: { fontStyle: 'bold' },
-      1: { halign: 'center', width: 40 },
-      2: { halign: 'right', width: 40 }
+      1: { halign: 'center', cellWidth: 40 },
+      2: { halign: 'right', cellWidth: 40 }
     },
     margin: { left: 14, right: 14 }
   });
 
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  // IV. Detailed Incident Log Table
-  if (y + 50 > doc.internal.pageSize.getHeight()) {
-    doc.addPage();
-    y = 20;
-  }
+  // IV. Administrative Data Visualizations & Graphs Page
+  doc.addPage();
+  doc.setTextColor(16, 38, 4);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('IV. ADMINISTRATIVE DATA VISUALIZATIONS & GRAPHS', 14, 18);
+
+  const colW = (pageWidth - 28 - 4) / 2;
+  // Row 1
+  drawReportTrend(doc, 14, 22, colW, 40, allReports, []);
+  drawReportsVsResolutions(doc, 14 + colW + 4, 22, colW, 40, allReports, []);
+  // Row 2
+  drawIssueBreakdown(doc, 14, 66, colW, 40, allReports, []);
+  drawCaseStatus(doc, 14 + colW + 4, 66, colW, 40, allReports, []);
+  // Row 3
+  drawTopIssues(doc, 14, 110, colW, 35, allReports, []);
+  drawTopStudents(doc, 14 + colW + 4, 110, colW, 35, allReports, [], students);
+
+  // V. Recent Case Incident Log Table
+  doc.addPage();
+  y = 18;
 
   doc.setTextColor(16, 38, 4);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text('IV. RECENT CASE INCIDENT LOG (TOP 12 RECENT)', 14, y);
+  doc.text('V. RECENT CASE INCIDENT LOG (TOP 12 RECENT)', 14, y);
 
   // Construct recent report list
   const recentReportsList = allReports
@@ -567,7 +1106,7 @@ export function generateAnalyticsPDF(
     recentReportsList.push(['-', '-', 'No cases logged matching selected criteria', '-', '-', '-']);
   }
 
-  (doc as any).autoTable({
+  autoTable(doc, {
     startY: y + 3,
     head: [['ID', 'Date', 'Student Name', 'Issue / Offense', 'Reported By', 'Status']],
     body: recentReportsList,

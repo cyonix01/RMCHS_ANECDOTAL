@@ -17,6 +17,7 @@ const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState<'Daily' | 'Weekly' | 'Monthly' | 'Yearly'>('Monthly');
   const [studentGradeFilter, setStudentGradeFilter] = useState<string>('All');
   const [reportTypeFilter, setReportTypeFilter] = useState<'All' | 'General' | 'Critical' | 'CICL'>('All');
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
 const fetchData = () => {
     Promise.all([
@@ -460,8 +461,15 @@ const fetchData = () => {
     }
   };
 
-  const handleDownloadPDF = () => {
-    generateAnalyticsPDF(user, studentGradeFilter, reportTypeFilter, students, reports, criticalReports);
+  const handleDownloadPDF = async () => {
+    setGeneratingPdf(true);
+    try {
+      await generateAnalyticsPDF(user, studentGradeFilter, reportTypeFilter, students, reports, criticalReports);
+    } catch (e) {
+      console.error("Error generating PDF:", e);
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   if (loading) {
@@ -485,10 +493,11 @@ const fetchData = () => {
           </button>
           <button
             onClick={handleDownloadPDF}
-            className="flex items-center gap-2 px-4 py-2 bg-[#102604] hover:bg-[#102604]/90 text-white font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer shadow-sm rounded-sm"
+            disabled={generatingPdf}
+            className={`flex items-center gap-2 px-4 py-2 bg-[#102604] hover:bg-[#102604]/90 text-white font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer shadow-sm rounded-sm ${generatingPdf ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <Printer size={14} className="text-[#76DA0D]" />
-            <span>Download PDF Report</span>
+            <span>{generatingPdf ? "Generating..." : "Download PDF Report"}</span>
           </button>
         </div>
       </div>

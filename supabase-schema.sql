@@ -113,3 +113,15 @@ create table if not exists notifications (
   created_at text not null
 );
 
+-- Create signatory_settings table
+create table if not exists signatory_settings (
+  id integer primary key default 1,
+  prepared_by_name text default '',
+  prepared_by_position text default '',
+  noted_by_name text default '',
+  noted_by_position text default '',
+  approved_by_name text default '',
+  approved_by_position text default '',
+  updated_at text
+);
+

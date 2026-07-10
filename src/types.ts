@@ -152,4 +152,15 @@ export interface AppNotification {
   createdAt: string;
 }
 
+export interface SignatorySettings {
+  id?: number;
+  preparedByName: string;
+  preparedByPosition: string;
+  notedByName: string;
+  notedByPosition: string;
+  approvedByName: string;
+  approvedByPosition: string;
+  updatedAt?: string;
+}
+
 

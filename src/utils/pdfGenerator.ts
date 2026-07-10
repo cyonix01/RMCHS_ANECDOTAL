@@ -67,16 +67,16 @@ function drawDepEdHeader(
   const pageWidth = doc.internal.pageSize.getWidth();
   
   // Draw DepEd logo centered at the top middle of the header
-  // 2cm by 2cm is 20mm by 20mm
+  // 1.5cm by 1.5cm is 15mm by 15mm
   if (depEdLogoImg && depEdLogoImg.complete && depEdLogoImg.naturalWidth > 0) {
     try {
       const croppedLogoBase64 = cropImageToCircle(depEdLogoImg);
-      const logoX = (pageWidth - 20) / 2;
+      const logoX = (pageWidth - 15) / 2;
       const logoY = 8;
       if (croppedLogoBase64) {
-        doc.addImage(croppedLogoBase64, 'PNG', logoX, logoY, 20, 20);
+        doc.addImage(croppedLogoBase64, 'PNG', logoX, logoY, 15, 15);
       } else {
-        doc.addImage(depEdLogoImg, 'PNG', logoX, logoY, 20, 20);
+        doc.addImage(depEdLogoImg, 'PNG', logoX, logoY, 15, 15);
       }
     } catch (e) {
       console.warn("Could not draw circular cropped DepEd image to PDF:", e);
@@ -86,47 +86,49 @@ function drawDepEdHeader(
   // DepEd text labels (shifted down to avoid overlapping the centered 2cm logo)
   doc.setTextColor(100, 116, 139); // Slate-500
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.text('REPUBLIC OF THE PHILIPPINES', pageWidth / 2, 34, { align: 'center' });
+  doc.setFontSize(10);
+  doc.text('REPUBLIC OF THE PHILIPPINES', pageWidth / 2, 26, { align: 'center' });
 
   doc.setTextColor(51, 65, 85); // Slate-700
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text('DEPARTMENT OF EDUCATION', pageWidth / 2, 39, { align: 'center' });
+  doc.text('DEPARTMENT OF EDUCATION', pageWidth / 2, 31, { align: 'center' });
 
   doc.setTextColor(71, 85, 105); // Slate-600
   doc.setFont('helvetica', 'oblique');
-  doc.setFontSize(8.5);
-  doc.text('National Capital Region • Division of City Schools', pageWidth / 2, 43.5, { align: 'center' });
+  doc.setFontSize(10);
+  doc.text('National Capital Region', pageWidth / 2, 36, { align: 'center' });
+  doc.text('Schools Division Office, Quezon City', pageWidth / 2, 41, { align: 'center' });
 
   doc.setTextColor(16, 38, 4); // Deep Green #102604
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.text('RAMON MAGSAYSAY (CUBAO) HIGH SCHOOL', pageWidth / 2, 49, { align: 'center' });
+  doc.setFontSize(11);
+  doc.text('RAMON MAGSAYSAY (CUBAO) HIGH SCHOOL', pageWidth / 2, 47, { align: 'center' });
 
   doc.setTextColor(148, 163, 184); // Slate-400
   doc.setFont('courier', 'bold');
-  doc.setFontSize(7.5);
-  doc.text('PROJECT C.A.R.E. (COUNSELING & ACADEMIC RECORDS ENGAGEMENT)', pageWidth / 2, 53.5, { align: 'center' });
+  doc.setFontSize(10);
+  doc.text('PROJECT C.A.R.E. (COUNSELING & ACADEMIC RECORDS ENGAGEMENT)', pageWidth / 2, 52, { align: 'center' });
 
   // Decorative divider
   doc.setDrawColor(16, 38, 4); // Deep Green
   doc.setLineWidth(1.5);
-  doc.line(14, 57, pageWidth - 14, 57);
+  doc.line(14, 56, pageWidth - 14, 56);
 
   doc.setDrawColor(118, 218, 13); // Gold
   doc.setLineWidth(0.5);
-  doc.line(14, 58.2, pageWidth - 14, 58.2);
+  doc.line(14, 57.2, pageWidth - 14, 57.2);
 
   // Memorandum Title block
   doc.setTextColor(16, 38, 4);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
-  doc.text(title.toUpperCase(), pageWidth / 2, 66, { align: 'center' });
+  doc.text(title.toUpperCase(), pageWidth / 2, 65, { align: 'center' });
 
   doc.setTextColor(100, 116, 139);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text(subtitle, pageWidth / 2, 71, { align: 'center' });
+  doc.text(subtitle, pageWidth / 2, 70, { align: 'center' });
 
   // Date Generated
   const dateStr = new Date().toLocaleDateString('en-US', {
@@ -138,34 +140,41 @@ function drawDepEdHeader(
     minute: '2-digit'
   });
   doc.setFontSize(7.5);
-  doc.text(`Report Generated: ${dateStr}`, pageWidth / 2, 75, { align: 'center' });
+  doc.text(`Report Generated: ${dateStr}`, pageWidth / 2, 74, { align: 'center' });
 
   // Personnel details card background
   doc.setFillColor(248, 250, 252); // slate-50
   doc.setDrawColor(226, 232, 240); // slate-200
   doc.setLineWidth(0.5);
-  doc.rect(14, 79, pageWidth - 28, 14, 'FD');
+  doc.rect(14, 78, pageWidth - 28, 14, 'FD');
 
   doc.setTextColor(100, 116, 139);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
-  doc.text('AUTHORIZED STAFF / ADVISER', 18, 84);
-  doc.text('ORGANIZATIONAL SCOPE', pageWidth / 2 + 6, 84);
+  doc.text('AUTHORIZED STAFF / ADVISER', 18, 83);
+  doc.text('ORGANIZATIONAL SCOPE', pageWidth / 2 + 6, 83);
 
   doc.setTextColor(15, 23, 42); // slate-900
   doc.setFontSize(9);
-  doc.text(`${personnelName} (${personnelRole})`, 18, 89);
-  doc.text(subtitle.replace('•', '•'), pageWidth / 2 + 6, 89);
+  doc.text(`${personnelName} (${personnelRole})`, 18, 88);
+  doc.text(subtitle.replace('•', '•'), pageWidth / 2 + 6, 88);
 }
 
-// Draw professional Signatures Block
-function drawSignaturesBlock(doc: jsPDF, yStart: number, prepName: string, prepTitle: string, noteTitle: string) {
+// Draw professional Signatures Block (with 3-column layout for Prepared by, Noted by, Approved by)
+function drawSignaturesBlock(
+  doc: jsPDF,
+  yStart: number,
+  prepNameFallback: string,
+  prepTitleFallback: string,
+  noteTitleFallback: string,
+  signatories?: any
+) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
   // Make sure we have enough space, otherwise push to next page
   let y = yStart;
-  if (y + 35 > pageHeight) {
+  if (y + 40 > pageHeight) {
     doc.addPage();
     y = 20;
   }
@@ -177,27 +186,72 @@ function drawSignaturesBlock(doc: jsPDF, yStart: number, prepName: string, prepT
   y += 8;
   doc.setTextColor(100, 116, 139);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.text('PREPARED BY:', 18, y);
-  doc.text('NOTED / APPROVED BY:', pageWidth / 2 + 6, y);
+  doc.setFontSize(7.5);
+
+  const col1X = 18;
+  const col2X = 76;
+  const col3X = 134;
+
+  doc.text('PREPARED BY:', col1X, y);
+  doc.text('NOTED BY:', col2X, y);
+  doc.text('APPROVED BY:', col3X, y);
 
   y += 14;
   doc.setTextColor(15, 23, 42);
-  doc.setFontSize(9);
-  doc.text(prepName, 18, y);
-  doc.setTextColor(148, 163, 184);
-  doc.text('[Signature Over Printed Name]', pageWidth / 2 + 6, y);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
 
-  // Line indicators
+  // Prepare names and positions
+  const pName = (signatories?.preparedByName || prepNameFallback || "").trim();
+  const pPos = (signatories?.preparedByPosition || prepTitleFallback || "").trim();
+
+  const nName = (signatories?.notedByName || "").trim();
+  const nPos = (signatories?.notedByPosition || noteTitleFallback || "Guidance Coordinator").trim();
+
+  const aName = (signatories?.approvedByName || "").trim();
+  const aPos = (signatories?.approvedByPosition || "School Principal / Approving Authority").trim();
+
+  // Draw Prepared By (Column 1)
+  if (pName) {
+    doc.text(pName, col1X, y);
+  } else {
+    doc.setTextColor(148, 163, 184);
+    doc.text('[Signature Over Printed Name]', col1X, y);
+    doc.setTextColor(15, 23, 42);
+  }
   doc.setDrawColor(148, 163, 184);
-  doc.line(18, y + 1.5, 90, y + 1.5);
-  doc.line(pageWidth / 2 + 6, y + 1.5, pageWidth - 18, y + 1.5);
+  doc.setLineWidth(0.2);
+  doc.line(col1X, y + 1.5, col1X + 52, y + 1.5);
+
+  // Draw Noted By (Column 2)
+  if (nName) {
+    doc.text(nName, col2X, y);
+  } else {
+    doc.setTextColor(148, 163, 184);
+    doc.text('[Signature Over Printed Name]', col2X, y);
+    doc.setTextColor(15, 23, 42);
+  }
+  doc.line(col2X, y + 1.5, col2X + 52, y + 1.5);
+
+  // Draw Approved By (Column 3)
+  if (aName) {
+    doc.text(aName, col3X, y);
+  } else {
+    doc.setTextColor(148, 163, 184);
+    doc.text('[Signature Over Printed Name]', col3X, y);
+    doc.setTextColor(15, 23, 42);
+  }
+  doc.line(col3X, y + 1.5, col3X + 52, y + 1.5);
 
   y += 5;
   doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.text(prepTitle, 18, y);
-  doc.text(noteTitle, pageWidth / 2 + 6, y);
+
+  // Positions with word-wrapping
+  doc.text(pPos, col1X, y, { maxWidth: 52 });
+  doc.text(nPos, col2X, y, { maxWidth: 52 });
+  doc.text(aPos, col3X, y, { maxWidth: 52 });
 }
 
 // Donut segment drawer using radial overlap algorithm (100% reliable)
@@ -661,6 +715,119 @@ function drawTopStudents(doc: jsPDF, x: number, y: number, w: number, h: number,
   });
 }
 
+// Draw Grade & Gender Distribution Stacked Bar Chart
+function drawGradeGenderDistribution(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  reports: any[],
+  criticalReports: any[],
+  students: any[]
+) {
+  drawCardContainer(doc, x, y, w, h, "Grade & Gender Distribution", "This Year");
+
+  // Legends - Male (Blue), Female (Pink)
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(5);
+
+  doc.setFillColor(59, 130, 246); // Blue #3b82f6
+  doc.rect(x + w - 30, y + 5.5, 2, 2, 'F');
+  doc.setTextColor(100, 116, 139);
+  doc.text('Male', x + w - 27, y + 7.2);
+
+  doc.setFillColor(236, 72, 153); // Pink #ec4899
+  doc.rect(x + w - 16, y + 5.5, 2, 2, 'F');
+  doc.text('Female', x + w - 13, y + 7.2);
+
+  const grades = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'];
+  const displayGrades = ['G7', 'G8', 'G9', 'G10', 'G11', 'G12'];
+
+  const counts: Record<string, { Male: number; Female: number }> = {
+    'Grade 7': { Male: 0, Female: 0 },
+    'Grade 8': { Male: 0, Female: 0 },
+    'Grade 9': { Male: 0, Female: 0 },
+    'Grade 10': { Male: 0, Female: 0 },
+    'Grade 11': { Male: 0, Female: 0 },
+    'Grade 12': { Male: 0, Female: 0 }
+  };
+
+  const studentMap = new Map(students.map(s => [s.lrn, s]));
+  const allReports = [...reports, ...criticalReports];
+  allReports.forEach(r => {
+    const student = studentMap.get(r.studentLrn);
+    if (student && student.gradeLevel && student.gender) {
+      if (counts[student.gradeLevel]) {
+        if (student.gender === 'Male' || student.gender === 'Female') {
+          counts[student.gradeLevel][student.gender]++;
+        }
+      }
+    }
+  });
+
+  // Calculate max stacked value for scaling
+  let maxStacked = 5;
+  grades.forEach(g => {
+    const total = counts[g].Male + counts[g].Female;
+    if (total > maxStacked) {
+      maxStacked = total;
+    }
+  });
+
+  // Round maxStacked to nearest even number
+  if (maxStacked % 2 !== 0) {
+    maxStacked += 1;
+  }
+
+  const plotLeft = x + 10;
+  const plotRight = x + w - 6;
+  const plotTop = y + 12;
+  const plotBottom = y + h - 8;
+  const cw = plotRight - plotLeft;
+  const ch = plotBottom - plotTop;
+
+  // Grid
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(5.5);
+  doc.setTextColor(148, 163, 184);
+  doc.setLineWidth(0.1);
+  doc.setDrawColor(241, 245, 249);
+
+  const gridSteps = 4;
+  for (let i = 0; i <= gridSteps; i++) {
+    const val = Math.round((maxStacked / gridSteps) * i);
+    const gy = plotBottom - (i / gridSteps) * ch;
+    doc.text(`${val}`, plotLeft - 3, gy + 1.5, { align: 'right' });
+    doc.line(plotLeft, gy, plotRight, gy);
+  }
+
+  const stepX = cw / 6;
+  const barW = 3.5;
+
+  grades.forEach((g, i) => {
+    const cx = plotLeft + (i + 0.5) * stepX;
+    const mCount = counts[g].Male;
+    const fCount = counts[g].Female;
+
+    const mHeight = (mCount / maxStacked) * ch;
+    const fHeight = (fCount / maxStacked) * ch;
+
+    // Draw stacked bars
+    if (mHeight > 0) {
+      doc.setFillColor(59, 130, 246);
+      doc.rect(cx - barW / 2, plotBottom - mHeight, barW, mHeight, 'F');
+    }
+    if (fHeight > 0) {
+      doc.setFillColor(236, 72, 153);
+      doc.rect(cx - barW / 2, plotBottom - mHeight - fHeight, barW, fHeight, 'F');
+    }
+
+    doc.setTextColor(100, 116, 139);
+    doc.text(displayGrades[i], cx, plotBottom + 4.5, { align: 'center' });
+  });
+}
+
 // 1. ADVISER SECTION PDF GENERATION
 export async function generateAdviserPDF(
   user: any,
@@ -679,6 +846,17 @@ export async function generateAdviserPDF(
 
   // Pre-load DepEd logo
   const depEdLogoImg = await loadDepEdLogo();
+
+  // Load signatories from API
+  let signatories: any = null;
+  try {
+    const res = await fetch("/api/signatories");
+    if (res.ok) {
+      signatories = await res.json();
+    }
+  } catch (err) {
+    console.error("Failed to load signatories for PDF:", err);
+  }
 
   // Draw DepEd Header & Info
   drawDepEdHeader(doc, title, subtitle, personnelName, personnelRole, depEdLogoImg);
@@ -851,13 +1029,17 @@ export async function generateAdviserPDF(
   drawTopIssues(doc, 14, 110, colW, 35, reports, criticalReports);
   drawTopStudents(doc, 14 + colW + 4, 110, colW, 35, reports, criticalReports, students);
 
+  // Row 4 - Grade & Gender Distribution
+  drawGradeGenderDistribution(doc, 14, 148, pageWidth - 28, 40, reports, criticalReports, students);
+
   // Signatures at the bottom of the data visualization page
   drawSignaturesBlock(
     doc,
-    155,
+    192,
     personnelName,
     "Class Adviser / Faculty Member",
-    "Guidance Counselor / School Principal"
+    "Guidance Counselor / School Principal",
+    signatories
   );
 
   // Save the PDF document
@@ -883,6 +1065,17 @@ export async function generateAnalyticsPDF(
 
   // Pre-load DepEd logo
   const depEdLogoImg = await loadDepEdLogo();
+
+  // Load signatories from API
+  let signatories: any = null;
+  try {
+    const res = await fetch("/api/signatories");
+    if (res.ok) {
+      signatories = await res.json();
+    }
+  } catch (err) {
+    console.error("Failed to load signatories for PDF:", err);
+  }
 
   // Draw DepEd Header & Info
   drawDepEdHeader(doc, title, subtitle, personnelName, personnelRole, depEdLogoImg);
@@ -1075,6 +1268,9 @@ export async function generateAnalyticsPDF(
   drawTopIssues(doc, 14, 110, colW, 35, allReports, []);
   drawTopStudents(doc, 14 + colW + 4, 110, colW, 35, allReports, [], students);
 
+  // Row 4 - Grade & Gender Distribution
+  drawGradeGenderDistribution(doc, 14, 148, pageWidth - 28, 40, allReports, [], students);
+
   // V. Recent Case Incident Log Table
   doc.addPage();
   y = 18;
@@ -1132,7 +1328,8 @@ export async function generateAnalyticsPDF(
     y,
     personnelName,
     "Guidance Counselor / Department Staff",
-    "School Principal / High Authority"
+    "School Principal / High Authority",
+    signatories
   );
 
   // Save the PDF document

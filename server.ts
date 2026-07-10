@@ -49,7 +49,9 @@ import {
   markAllNotificationsAsRead,
   clearNotifications,
   getStudentByLrn,
-  uploadFileToSupabaseStorage
+  uploadFileToSupabaseStorage,
+  getSignatorySettings,
+  saveSignatorySettings
 } from "./server/database";
 import { UserAccount, Student, AppNotification } from "./src/types";
 
@@ -181,6 +183,29 @@ async function startServer() {
     const status: any = getDatabaseStatus();
     status.google_env_keys = Object.keys(process.env).filter(k => k.startsWith("GOOGLE"));
     res.json(status);
+  });
+
+  // API ROUTE: Get Signatory Settings
+  app.get("/api/signatories", async (req, res) => {
+    try {
+      const settings = await getSignatorySettings();
+      res.json(settings);
+    } catch (err: any) {
+      console.error("Failed to load signatory settings:", err);
+      res.status(500).json({ error: err.message || "Failed to load signatory settings" });
+    }
+  });
+
+  // API ROUTE: Save Signatory Settings
+  app.post("/api/signatories", async (req, res) => {
+    try {
+      const settings = req.body;
+      const saved = await saveSignatorySettings(settings);
+      res.json(saved);
+    } catch (err: any) {
+      console.error("Failed to save signatory settings:", err);
+      res.status(500).json({ error: err.message || "Failed to save signatory settings" });
+    }
   });
 
   // API ROUTE 1.05: Diagnose Supabase Storage Bucket Access

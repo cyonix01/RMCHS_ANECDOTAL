@@ -16,6 +16,7 @@ import AnecdoteChart from "./AnecdoteChart";
 import SectionManagerModal from "./SectionManagerModal";
 import ReportsViewerModal from "./ReportsViewerModal";
 import AdviserAssignmentModal from "./AdviserAssignmentModal";
+import SignatorySettingsModal from "./SignatorySettingsModal";
 import NotificationBell from "./NotificationBell";
 import { useNotification } from "./NotificationProvider";
 import StudentListDashboard from "./StudentListDashboard";
@@ -71,6 +72,7 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
   const [showResolvedReportsViewer, setShowResolvedReportsViewer] = useState(false);
   const [reportsViewerQuery, setReportsViewerQuery] = useState("");
   const [showAdviserAssignment, setShowAdviserAssignment] = useState(false);
+  const [showSignatorySettingsModal, setShowSignatorySettingsModal] = useState(false);
   const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<{ month: string; count: number }[]>([]);
   const [topStudents, setTopStudents] = useState<{ name: string; lrn: string; count: number }[]>([]);
@@ -496,6 +498,16 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
                       <UserPlus size={14} className="text-[#76DA0D]" />
                       <span>Set Adviser</span>
                     </button>
+                    <button
+                      onClick={() => {
+                        setShowSignatorySettingsModal(true);
+                        setShowAdminMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors border-t border-slate-100"
+                    >
+                      <UserCheck size={14} className="text-orange-500" />
+                      <span>Signatories</span>
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -893,6 +905,10 @@ export default function DashboardView({ user, onLogout, onUpdateUser }: Dashboar
 
         {showAdviserAssignment && (
           <AdviserAssignmentModal onClose={() => setShowAdviserAssignment(false)} />
+        )}
+
+        {showSignatorySettingsModal && (
+          <SignatorySettingsModal onClose={() => setShowSignatorySettingsModal(false)} />
         )}
 
         {showRegisterStudent && (

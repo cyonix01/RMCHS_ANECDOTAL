@@ -1237,5 +1237,128 @@ export async function uploadFileToSupabaseStorage(
   };
 }
 
+// ==========================================
+// SIGNATORY SETTINGS DATABASE OPERATIONS
+// ==========================================
+
+import { SignatorySettings } from "../src/types";
+
+const SIGNATORIES_DB_PATH = path.join(LOCAL_DB_DIR, "signatory_settings.json");
+
+function mapSupabaseRowToSignatorySettings(row: any): SignatorySettings {
+  return {
+    id: row.id,
+    preparedByName: row.prepared_by_name || "",
+    preparedByPosition: row.prepared_by_position || "",
+    notedByName: row.noted_by_name || "",
+    notedByPosition: row.noted_by_position || "",
+    approvedByName: row.approved_by_name || "",
+    approvedByPosition: row.approved_by_position || "",
+    updatedAt: row.updated_at || ""
+  };
+}
+
+function mapSignatorySettingsToSupabaseRow(s: SignatorySettings) {
+  return {
+    id: 1, // Single settings row
+    prepared_by_name: s.preparedByName || "",
+    prepared_by_position: s.preparedByPosition || "",
+    noted_by_name: s.notedByName || "",
+    noted_by_position: s.notedByPosition || "",
+    approved_by_name: s.approvedByName || "",
+    approved_by_position: s.approvedByPosition || "",
+    updated_at: s.updatedAt || new Date().toISOString()
+  };
+}
+
+export function getSignatorySettingsLocally(): SignatorySettings {
+  try {
+    if (fs.existsSync(SIGNATORIES_DB_PATH)) {
+      const data = fs.readFileSync(SIGNATORIES_DB_PATH, "utf-8");
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error("Failed to load local signatory settings:", err);
+  }
+  return {
+    preparedByName: "",
+    preparedByPosition: "",
+    notedByName: "",
+    notedByPosition: "",
+    approvedByName: "",
+    approvedByPosition: ""
+  };
+}
+
+export function saveSignatorySettingsLocally(settings: SignatorySettings): void {
+  try {
+    fs.writeFileSync(SIGNATORIES_DB_PATH, JSON.stringify(settings, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to save local signatory settings:", err);
+  }
+}
+
+export async function getSignatorySettings(): Promise<SignatorySettings> {
+  const localSettings = getSignatorySettingsLocally();
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return localSettings;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("signatory_settings")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (error) {
+      if (error.code !== "PGRST116" && !error.message?.includes("does not exist") && error.code !== "42P01") {
+        console.error("Supabase getSignatorySettings error:", error);
+      }
+      return localSettings;
+    }
+
+    if (data) {
+      const mapped = mapSupabaseRowToSignatorySettings(data);
+      saveSignatorySettingsLocally(mapped);
+      return mapped;
+    } else {
+      return localSettings;
+    }
+  } catch (err) {
+    console.error("Supabase getSignatorySettings exception:", err);
+    return localSettings;
+  }
+}
+
+export async function saveSignatorySettings(settings: SignatorySettings): Promise<SignatorySettings> {
+  const updatedWithTime = {
+    ...settings,
+    updatedAt: new Date().toISOString()
+  };
+
+  saveSignatorySettingsLocally(updatedWithTime);
+
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return updatedWithTime;
+  }
+
+  try {
+    const row = mapSignatorySettingsToSupabaseRow(updatedWithTime);
+    const { error } = await supabase.from("signatory_settings").upsert(row);
+    if (error) {
+      console.error("Supabase saveSignatorySettings failure:", error);
+    } else {
+      console.log("✅ Signatory settings successfully saved to Supabase.");
+    }
+  } catch (err) {
+    console.error("Supabase saveSignatorySettings exception:", err);
+  }
+
+  return updatedWithTime;
+}
+
 
 

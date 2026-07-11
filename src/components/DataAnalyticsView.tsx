@@ -19,7 +19,7 @@ const [loading, setLoading] = useState(true);
   const [reportTypeFilter, setReportTypeFilter] = useState<'All' | 'General' | 'Critical' | 'CICL'>('All');
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
-const fetchData = () => {
+  const fetchData = (showLoading = true) => {
     Promise.all([
       fetch("/api/reports").then(res => res.json()),
       fetch("/api/critical-reports").then(res => res.json()),
@@ -55,18 +55,21 @@ const fetchData = () => {
       setReports(filteredGeneral);
       setCriticalReports(filteredCritical);
       setStudents(studentsData || []);
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }).catch(err => {
-      if (err instanceof Error && err.message === "Failed to fetch") return; // Silent on network error during polling
+      if (err instanceof Error && err.message === "Failed to fetch") {
+        if (showLoading) setLoading(false);
+        return; // Silent on network error during polling
+      }
       console.error("Analytics fetch error:", err);
-      setLoading(false);
+      if (showLoading) setLoading(false);
     });
   };
 
   useEffect(() => {
     setLoading(true);
-    fetchData();
-    const interval = setInterval(fetchData, 10000);
+    fetchData(true);
+    const interval = setInterval(() => fetchData(false), 10000);
     return () => clearInterval(interval);
   }, [user]);
 

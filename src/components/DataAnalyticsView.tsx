@@ -71,7 +71,7 @@ const [loading, setLoading] = useState(true);
     fetchData(true);
     const interval = setInterval(() => fetchData(false), 10000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user?.firstName, user?.lastName, user?.role, user?.gradeLevel, user?.section]);
 
 
 

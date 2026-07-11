@@ -26,6 +26,7 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [reportTypeFilter, setReportTypeFilter] = useState<'All' | 'General' | 'Critical' | 'CICL'>('All');
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -160,8 +161,6 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
       alert("No reports available to download.");
     }
   };
-
-  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const handleDownloadPDF = async () => {
     setGeneratingPdf(true);

@@ -59,12 +59,14 @@ interface DashboardViewProps {
 }
 
 export default function DashboardView({ user: propsUser, onLogout, onUpdateUser }: DashboardViewProps) {
-  const user = {
+  const user = React.useMemo(() => ({
     ...propsUser,
     firstName: propsUser.firstName || "User",
     lastName: propsUser.lastName || "",
-    role: propsUser.role || "Non-Adviser"
-  };
+    role: (propsUser.role || "Non-Adviser") as UserAccount['role'],
+    gradeLevel: propsUser.gradeLevel as UserAccount['gradeLevel'],
+    section: propsUser.section || ""
+  }), [propsUser]);
   const { notify, confirm } = useNotification();
   const [showSettings, setShowSettings] = useState(false);
   const [showRegisterStudent, setShowRegisterStudent] = useState(false);

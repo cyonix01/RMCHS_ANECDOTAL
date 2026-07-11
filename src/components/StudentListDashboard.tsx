@@ -13,7 +13,13 @@ interface StudentListDashboardProps {
   user: any;
 }
 
-export default function StudentListDashboard({ user }: StudentListDashboardProps) {
+export default function StudentListDashboard({ user: propsUser }: StudentListDashboardProps) {
+  const user = {
+    ...propsUser,
+    firstName: propsUser.firstName || "User",
+    lastName: propsUser.lastName || "",
+    role: propsUser.role || "Non-Adviser"
+  };
   const [students, setStudents] = useState<Student[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [criticalReports, setCriticalReports] = useState<CriticalReport[]>([]);

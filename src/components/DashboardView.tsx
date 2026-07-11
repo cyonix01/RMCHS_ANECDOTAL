@@ -58,7 +58,13 @@ interface DashboardViewProps {
   onUpdateUser: (freshUser: Partial<UserAccount>) => void;
 }
 
-export default function DashboardView({ user, onLogout, onUpdateUser }: DashboardViewProps) {
+export default function DashboardView({ user: propsUser, onLogout, onUpdateUser }: DashboardViewProps) {
+  const user = {
+    ...propsUser,
+    firstName: propsUser.firstName || "User",
+    lastName: propsUser.lastName || "",
+    role: propsUser.role || "Non-Adviser"
+  };
   const { notify, confirm } = useNotification();
   const [showSettings, setShowSettings] = useState(false);
   const [showRegisterStudent, setShowRegisterStudent] = useState(false);

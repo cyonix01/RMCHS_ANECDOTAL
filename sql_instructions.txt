@@ -1,0 +1,19 @@
+Here is the SQL command you can run in your Supabase SQL Editor to create the `signatory_settings` table:
+
+```sql
+CREATE TABLE signatory_settings (
+  id integer PRIMARY KEY DEFAULT 1,
+  prepared_by_name text,
+  prepared_by_position text,
+  noted_by_name text,
+  noted_by_position text,
+  approved_by_name text,
+  approved_by_position text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Insert a default row
+INSERT INTO signatory_settings (id, prepared_by_name, prepared_by_position, noted_by_name, noted_by_position, approved_by_name, approved_by_position)
+VALUES (1, '', '', '', '', '', '');
+```

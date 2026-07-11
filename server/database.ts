@@ -195,7 +195,7 @@ export async function initDatabase() {
     // Test connection with a fast light query on users table
     const { data, error } = await supabase.from("users").select("email").limit(1);
     if (error) {
-      if (error.code === "PGRST116" || error.message?.includes("does not exist") || error.code === "42P01") {
+      if (error.code === "PGRST116" || error.code === "PGRST205" || error.message?.includes("does not exist") || error.code === "42P01") {
         supabaseError = "Table 'users' does not exist in your Supabase database. Please create it in your SQL Editor.";
       } else {
         supabaseError = `Supabase API error: ${error.message} (Code: ${error.code})`;
@@ -526,7 +526,9 @@ export async function getSections(): Promise<{ grade_level: string; section_name
   if (!supabase) return [];
   const { data, error } = await supabase.from("sections").select("grade_level, section_name");
   if (error) {
-    console.error("Supabase getSections error:", error);
+    if (error.code !== "PGRST116" && error.code !== "PGRST205" && error.code !== "42P01") {
+      console.error("Supabase getSections error:", error);
+    }
     return [];
   }
   console.log("Supabase getSections data:", data);
@@ -545,7 +547,9 @@ export async function getSectionsByGradeLevel(gradeLevel: string): Promise<strin
   const { data, error } = await supabase.from("sections").select("grade_level, section_name");
   
   if (error) {
-    console.error("Supabase sections error:", error);
+    if (error.code !== "PGRST116" && error.code !== "PGRST205" && error.code !== "42P01") {
+      console.error("Supabase sections error:", error);
+    }
     return [];
   }
   
@@ -1313,7 +1317,7 @@ export async function getSignatorySettings(): Promise<SignatorySettings> {
       .maybeSingle();
 
     if (error) {
-      if (error.code !== "PGRST116" && !error.message?.includes("does not exist") && error.code !== "42P01") {
+      if (error.code !== "PGRST116" && error.code !== "PGRST205" && !error.message?.includes("does not exist") && error.code !== "42P01") {
         console.error("Supabase getSignatorySettings error:", error);
       }
       return localSettings;

@@ -873,12 +873,12 @@ function drawCiclReportsTable(doc: any, startY: number, reports: any[], students
       headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
       bodyStyles: { fontSize: 7.5, textColor: [51, 65, 85] },
       columnStyles: {
-        0: { fontStyle: 'normal' },
-        1: { halign: 'left' },
-        2: { fontStyle: 'bold' },
-        3: { halign: 'left', textColor: [220, 38, 38] },
-        4: { halign: 'left' },
-        5: { halign: 'center', fontStyle: 'bold' }
+        0: { fontStyle: 'normal', cellWidth: 15 },
+        1: { halign: 'left', cellWidth: 20 },
+        2: { fontStyle: 'bold', cellWidth: 35 },
+        3: { halign: 'left', textColor: [220, 38, 38], cellWidth: 30 },
+        4: { halign: 'left', cellWidth: 'auto' },
+        5: { halign: 'center', fontStyle: 'bold', cellWidth: 15 }
       },
       margin: { left: 14, right: 14 }
     });
@@ -1382,12 +1382,12 @@ export async function generateAnalyticsPDF(
     headStyles: { fillColor: [16, 38, 4], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
     bodyStyles: { fontSize: 7.5, textColor: [51, 65, 85] },
     columnStyles: {
-      0: { fontStyle: 'normal' },
-      1: { halign: 'left' },
-      2: { fontStyle: 'bold' },
-      3: { halign: 'left' },
-      4: { halign: 'left' },
-      5: { halign: 'center', fontStyle: 'bold' }
+      0: { fontStyle: 'normal', cellWidth: 15 },
+      1: { halign: 'left', cellWidth: 20 },
+      2: { fontStyle: 'bold', cellWidth: 35 },
+      3: { halign: 'left', cellWidth: 40 },
+      4: { halign: 'left', cellWidth: 'auto' },
+      5: { halign: 'center', fontStyle: 'bold', cellWidth: 15 }
     },
     margin: { left: 14, right: 14 }
   });

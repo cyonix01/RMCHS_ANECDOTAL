@@ -28,7 +28,7 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
   const [reportTypeFilter, setReportTypeFilter] = useState<'All' | 'General' | 'Critical' | 'CICL'>('All');
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
-  useEffect(() => {
+  const fetchData = React.useCallback(() => {
     Promise.all([
       fetch("/api/students").then(res => { if (!res.ok) throw new Error("Failed to fetch students"); return res.json(); }),
       fetch("/api/reports").then(res => { if (!res.ok) throw new Error("Failed to fetch reports"); return res.json(); }),
@@ -51,6 +51,12 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
       setLoading(false);
     });
   }, [user.gradeLevel, user.section]);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   const getReportCounts = (lrn: string) => ({
     general: reports.filter(r => r.studentLrn === lrn).length,

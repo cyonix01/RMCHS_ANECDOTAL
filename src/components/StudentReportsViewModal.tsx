@@ -12,7 +12,7 @@ export default function StudentReportsViewModal({ student, onClose }: StudentRep
   const [reports, setReports] = useState<(Report & {type: 'General' | 'Critical'})[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchReports = React.useCallback(() => {
     Promise.all([
       fetch("/api/reports").then(res => { if (!res.ok) throw new Error("reports"); return res.json(); }),
       fetch("/api/critical-reports").then(res => { if (!res.ok) throw new Error("critical-reports"); return res.json(); })
@@ -37,6 +37,13 @@ export default function StudentReportsViewModal({ student, onClose }: StudentRep
       setLoading(false);
     });
   }, [student.lrn]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchReports();
+    const interval = setInterval(fetchReports, 10000);
+    return () => clearInterval(interval);
+  }, [fetchReports]);
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 font-sans">

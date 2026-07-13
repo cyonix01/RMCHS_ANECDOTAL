@@ -65,9 +65,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   const [showDetail, setShowDetail] = useState(false);
   const [movFile, setMovFile] = useState<File | null>(null);
 
-  useEffect(() => {
-    const fetchAllData = async () => {
-    setLoading(true);
+  const fetchAllData = React.useCallback(async () => {
     try {
       const [genRes, critRes, studentRes] = await Promise.all([
         fetch("/api/reports"),
@@ -127,34 +125,38 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
           })
         ];
 
-          const teacherName = `${userFirstName || ''} ${userLastName || ''}`.trim();
-          let filteredCombined = combined;
+        const teacherName = `${userFirstName || ''} ${userLastName || ''}`.trim();
+        let filteredCombined = combined;
 
-          if (userRole === 'Admin' || userRole === 'Guidance') {
-            // Admin and Guidance see all records across entire school
-          } else if (userRole === 'Adviser') {
-            // Advisers see only records under their sections/gradeLevel
-            filteredCombined = combined.filter(r => r.grade === userGradeLevel && r.section === userSection);
-          } else {
-            // Fallback or Non-Adviser (only see reports they reported)
-            filteredCombined = combined.filter(r => r.reportedBy === teacherName);
-          }
-
-          // Sort by date descending
-          filteredCombined.sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
-          setReports(filteredCombined);
+        if (userRole === 'Admin' || userRole === 'Guidance') {
+          // Admin and Guidance see all records across entire school
+        } else if (userRole === 'Adviser') {
+          // Advisers see only records under their sections/gradeLevel
+          filteredCombined = combined.filter(r => r.grade === userGradeLevel && r.section === userSection);
         } else {
-          notify("error", "Failed to retrieve institutional records.");
+          // Fallback or Non-Adviser (only see reports they reported)
+          filteredCombined = combined.filter(r => r.reportedBy === teacherName);
         }
-      } catch (err) {
-        notify("error", "Network error while accessing database.");
-      } finally {
-        setLoading(false);
-      }
-    };
 
+        // Sort by date descending
+        filteredCombined.sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
+        setReports(filteredCombined);
+      } else {
+        notify("error", "Failed to retrieve institutional records.");
+      }
+    } catch (err) {
+      notify("error", "Network error while accessing database.");
+    } finally {
+      setLoading(false);
+    }
+  }, [userFirstName, userLastName, userRole, userGradeLevel, userSection, notify]);
+
+  useEffect(() => {
+    setLoading(true);
     fetchAllData();
-  }, []);
+    const interval = setInterval(fetchAllData, 10000);
+    return () => clearInterval(interval);
+  }, [fetchAllData]);
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {

@@ -174,7 +174,7 @@ function drawSignaturesBlock(
   
   // Make sure we have enough space, otherwise push to next page
   let y = yStart;
-  if (y + 40 > pageHeight) {
+  if (y + 65 > pageHeight) {
     doc.addPage();
     y = 20;
   }
@@ -182,24 +182,6 @@ function drawSignaturesBlock(
   doc.setDrawColor(203, 213, 225); // slate-300
   doc.setLineWidth(0.5);
   doc.line(14, y, pageWidth - 14, y);
-
-  y += 8;
-  doc.setTextColor(100, 116, 139);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-
-  const col1X = 18;
-  const col2X = 76;
-  const col3X = 134;
-
-  doc.text('PREPARED BY:', col1X, y);
-  doc.text('NOTED BY:', col2X, y);
-  doc.text('APPROVED BY:', col3X, y);
-
-  y += 14;
-  doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
 
   // Prepare names and positions
   const pName = (signatories?.preparedByName || prepNameFallback || "").trim();
@@ -211,47 +193,82 @@ function drawSignaturesBlock(
   const aName = (signatories?.approvedByName || "").trim();
   const aPos = (signatories?.approvedByPosition || "School Principal / Approving Authority").trim();
 
-  // Draw Prepared By (Column 1)
+  const colLeft = 20;
+  const colRight = 120;
+  const lineWidth = 65;
+
+  // --- FIRST ROW: PREPARED BY & NOTED BY ---
+  y += 8;
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+
+  doc.text('PREPARED BY:', colLeft, y);
+  doc.text('NOTED BY:', colRight, y);
+
+  y += 14;
+  doc.setTextColor(15, 23, 42);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+
+  // Draw Prepared By (Left Column)
   if (pName) {
-    doc.text(pName, col1X, y);
+    doc.text(pName, colLeft, y);
   } else {
     doc.setTextColor(148, 163, 184);
-    doc.text('[Signature Over Printed Name]', col1X, y);
+    doc.text('[Signature Over Printed Name]', colLeft, y);
     doc.setTextColor(15, 23, 42);
   }
   doc.setDrawColor(148, 163, 184);
-  doc.setLineWidth(0.2);
-  doc.line(col1X, y + 1.5, col1X + 52, y + 1.5);
+  doc.setLineWidth(0.25);
+  doc.line(colLeft, y + 1.5, colLeft + lineWidth, y + 1.5);
 
-  // Draw Noted By (Column 2)
+  // Draw Noted By (Right Column)
   if (nName) {
-    doc.text(nName, col2X, y);
+    doc.text(nName, colRight, y);
   } else {
     doc.setTextColor(148, 163, 184);
-    doc.text('[Signature Over Printed Name]', col2X, y);
+    doc.text('[Signature Over Printed Name]', colRight, y);
     doc.setTextColor(15, 23, 42);
   }
-  doc.line(col2X, y + 1.5, col2X + 52, y + 1.5);
-
-  // Draw Approved By (Column 3)
-  if (aName) {
-    doc.text(aName, col3X, y);
-  } else {
-    doc.setTextColor(148, 163, 184);
-    doc.text('[Signature Over Printed Name]', col3X, y);
-    doc.setTextColor(15, 23, 42);
-  }
-  doc.line(col3X, y + 1.5, col3X + 52, y + 1.5);
+  doc.line(colRight, y + 1.5, colRight + lineWidth, y + 1.5);
 
   y += 5;
   doc.setTextColor(100, 116, 139);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
+  doc.text(pPos, colLeft, y, { maxWidth: lineWidth });
+  doc.text(nPos, colRight, y, { maxWidth: lineWidth });
 
-  // Positions with word-wrapping
-  doc.text(pPos, col1X, y, { maxWidth: 52 });
-  doc.text(nPos, col2X, y, { maxWidth: 52 });
-  doc.text(aPos, col3X, y, { maxWidth: 52 });
+  // --- SECOND ROW (HIERARCHY): APPROVED BY ---
+  y += 20; // Distinct space for the higher level of authority
+  
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.text('APPROVED BY:', colRight, y); // Approved by is aligned on the right under the Noting authority
+
+  y += 14;
+  doc.setTextColor(15, 23, 42);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+
+  if (aName) {
+    doc.text(aName, colRight, y);
+  } else {
+    doc.setTextColor(148, 163, 184);
+    doc.text('[Signature Over Printed Name]', colRight, y);
+    doc.setTextColor(15, 23, 42);
+  }
+  doc.setDrawColor(148, 163, 184);
+  doc.setLineWidth(0.25);
+  doc.line(colRight, y + 1.5, colRight + lineWidth, y + 1.5);
+
+  y += 5;
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.text(aPos, colRight, y, { maxWidth: lineWidth });
 }
 
 // Donut segment drawer using radial overlap algorithm (100% reliable)
@@ -564,6 +581,113 @@ function drawIssueBreakdown(doc: jsPDF, x: number, y: number, w: number, h: numb
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(5.5);
     doc.text(`Others: ${othersCount} (${Math.round(percent * 100)}%)`, x + 48, topY + 1.8);
+  }
+}
+
+// Native high-fidelity Category-specific Donut chart drawing
+function drawCategoryDonutBreakdown(
+  doc: jsPDF, 
+  x: number, 
+  y: number, 
+  w: number, 
+  h: number, 
+  title: string, 
+  list: any[],
+  themeType: 'General' | 'Critical' | 'CICL'
+) {
+  drawCardContainer(doc, x, y, w, h, title);
+
+  const issueCounts: Record<string, number> = {};
+  list.forEach(r => {
+    const issue = r.issue || 'Others';
+    issueCounts[issue] = (issueCounts[issue] || 0) + 1;
+  });
+
+  const total = list.length;
+  
+  const sortedIssues = Object.entries(issueCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+
+  let colors = [
+    { r: 71, g: 85, b: 105 },  // slate-600
+    { r: 59, g: 130, b: 246 }, // blue-500
+    { r: 16, g: 185, b: 129 }, // emerald-500
+    { r: 99, g: 102, b: 241 }  // indigo-500
+  ];
+
+  if (themeType === 'Critical') {
+    colors = [
+      { r: 220, g: 38, b: 38 },  // red-600
+      { r: 239, g: 68, b: 68 },  // red-500
+      { r: 185, g: 28, b: 28 },  // red-700
+      { r: 248, g: 113, b: 113 } // red-400
+    ];
+  } else if (themeType === 'CICL') {
+    colors = [
+      { r: 249, g: 115, b: 22 },  // orange-500
+      { r: 217, g: 119, b: 6 },   // amber-600
+      { r: 245, g: 158, b: 11 },  // amber-500
+      { r: 251, g: 191, b: 36 }   // amber-400
+    ];
+  }
+
+  const otherColor = { r: 148, g: 163, b: 184 }; // Slate
+
+  const cx = x + 15;
+  const cy = y + h / 2 + 1;
+  const rOuter = 11;
+  const rInner = 6.5;
+
+  let currentDeg = 0;
+  
+  if (total === 0) {
+    drawDonutSector(doc, cx, cy, rOuter, rInner, 0, 360, 226, 232, 240);
+    doc.setTextColor(148, 163, 184);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5.5);
+    doc.text("No cases", x + 28, y + h / 2 + 1.5);
+    return;
+  }
+
+  let colorIdx = 0;
+  let topY = y + 8;
+
+  sortedIssues.forEach(([issue, count]) => {
+    const percent = count / total;
+    const deg = percent * 360;
+    const col = colors[colorIdx % colors.length];
+
+    drawDonutSector(doc, cx, cy, rOuter, rInner, currentDeg, currentDeg + deg, col.r, col.g, col.b);
+    currentDeg += deg;
+
+    // Legend block
+    doc.setFillColor(col.r, col.g, col.b);
+    doc.rect(x + 28, topY, 1.5, 1.5, 'F');
+    
+    doc.setTextColor(51, 65, 85);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(4.5);
+    const label = issue.length > 13 ? issue.substring(0, 11) + '...' : issue;
+    doc.text(`${label}: ${count} (${Math.round(percent * 100)}%)`, x + 30.5, topY + 1.3);
+
+    topY += 3.8;
+    colorIdx++;
+  });
+
+  const topSum = sortedIssues.reduce((acc, curr) => acc + curr[1], 0);
+  const othersCount = total - topSum;
+  if (othersCount > 0) {
+    const percent = othersCount / total;
+    const deg = percent * 360;
+    drawDonutSector(doc, cx, cy, rOuter, rInner, currentDeg, currentDeg + deg, otherColor.r, otherColor.g, otherColor.b);
+    
+    doc.setFillColor(otherColor.r, otherColor.g, otherColor.b);
+    doc.rect(x + 28, topY, 1.5, 1.5, 'F');
+    doc.setTextColor(51, 65, 85);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(4.5);
+    doc.text(`Others: ${othersCount} (${Math.round(percent * 100)}%)`, x + 30.5, topY + 1.3);
   }
 }
 
@@ -985,34 +1109,147 @@ export async function generateAdviserPDF(
   doc.setTextColor(16, 38, 4);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text('II. OFFENSE / BEHAVIORAL ISSUE CATEGORIZATION', 14, y);
+  doc.text('II. OFFENSE / BEHAVIORAL CATEGORIES BREAKDOWNS', 14, y);
+  y += 5;
 
-  // Group issue counts
-  const issueCounts: Record<string, number> = {};
-  allSectionReports.forEach(r => {
-    const issue = r.issue || 'Others';
-    issueCounts[issue] = (issueCounts[issue] || 0) + 1;
+  const ciclIssuesList = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
+
+  const sectionGeneral = allSectionReports.filter(r => {
+    if (criticalReports.some(cr => cr.id === r.id)) return false;
+    if (ciclIssuesList.includes(r.issue || "")) return false;
+    return true;
   });
 
-  const issueBreakdownData = Object.entries(issueCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, value]) => [name, `${value} incident(s)`, `${totalReportsCount > 0 ? Math.round((value / totalReportsCount) * 100) : 0}%`]);
+  const sectionCritical = allSectionReports.filter(r => {
+    return criticalReports.some(cr => cr.id === r.id);
+  });
 
-  if (issueBreakdownData.length === 0) {
-    issueBreakdownData.push(['No incident reports logged for this section under selected filter', '-', '-']);
+  const sectionCicl = allSectionReports.filter(r => {
+    return !criticalReports.some(cr => cr.id === r.id) && ciclIssuesList.includes(r.issue || "");
+  });
+
+  const getTableDataForList = (list: any[]) => {
+    const counts: Record<string, { Male: number; Female: number; Total: number }> = {};
+    list.forEach(r => {
+      const issue = r.issue || 'Others';
+      if (!counts[issue]) {
+        counts[issue] = { Male: 0, Female: 0, Total: 0 };
+      }
+      const student = students.find(s => s.lrn === r.studentLrn);
+      const gender = student ? student.gender : 'Unknown';
+      if (gender === 'Male') {
+        counts[issue].Male++;
+      } else if (gender === 'Female') {
+        counts[issue].Female++;
+      }
+      counts[issue].Total++;
+    });
+    const total = list.length;
+    return Object.entries(counts)
+      .sort((a, b) => b[1].Total - a[1].Total)
+      .map(([name, val]) => [
+        name,
+        `${val.Male}`,
+        `${val.Female}`,
+        `${val.Total}`,
+        `${total > 0 ? Math.round((val.Total / total) * 100) : 0}%`
+      ]);
+  };
+
+  // II-A. General Issues Table
+  doc.setTextColor(16, 38, 4);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text(`II-A. GENERAL BEHAVIORAL ISSUES (${sectionGeneral.length} cases)`, 14, y);
+
+  const generalTableData = getTableDataForList(sectionGeneral);
+  if (generalTableData.length === 0) {
+    generalTableData.push(['No general behavioral issues recorded', '0', '0', '0', '0%']);
   }
 
   autoTable(doc, {
-    startY: y + 3,
-    head: [['Offense / Issue', 'Count', 'Percentage Ratio']],
-    body: issueBreakdownData,
-    theme: 'striped',
-    headStyles: { fillColor: [16, 38, 4], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { fontSize: 8, textColor: [51, 65, 85] },
+    startY: y + 2,
+    head: [['General Issue Type', 'Male', 'Female', 'Combined Total', 'Percentage Ratio']],
+    body: generalTableData,
+    theme: 'grid',
+    headStyles: { fillColor: [16, 38, 4], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+    bodyStyles: { fontSize: 7.5, textColor: [51, 65, 85] },
     columnStyles: {
       0: { fontStyle: 'bold' },
-      1: { halign: 'center', cellWidth: 30 },
-      2: { halign: 'right', cellWidth: 40 }
+      1: { halign: 'center', cellWidth: 22 },
+      2: { halign: 'center', cellWidth: 22 },
+      3: { halign: 'center', cellWidth: 32 },
+      4: { halign: 'right', cellWidth: 28 }
+    },
+    margin: { left: 14, right: 14 }
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // II-B. Critical Incidents Table
+  if (y + 30 > doc.internal.pageSize.getHeight()) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setTextColor(220, 38, 38);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text(`II-B. CRITICAL INCIDENTS (${sectionCritical.length} cases)`, 14, y);
+
+  const criticalTableData = getTableDataForList(sectionCritical);
+  if (criticalTableData.length === 0) {
+    criticalTableData.push(['No critical incidents recorded', '0', '0', '0', '0%']);
+  }
+
+  autoTable(doc, {
+    startY: y + 2,
+    head: [['Critical Incident Type', 'Male', 'Female', 'Combined Total', 'Percentage Ratio']],
+    body: criticalTableData,
+    theme: 'grid',
+    headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+    bodyStyles: { fontSize: 7.5, textColor: [51, 65, 85] },
+    columnStyles: {
+      0: { fontStyle: 'bold' },
+      1: { halign: 'center', cellWidth: 22 },
+      2: { halign: 'center', cellWidth: 22 },
+      3: { halign: 'center', cellWidth: 32 },
+      4: { halign: 'right', cellWidth: 28 }
+    },
+    margin: { left: 14, right: 14 }
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // II-C. CICL Offenses Table
+  if (y + 30 > doc.internal.pageSize.getHeight()) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setTextColor(249, 115, 22);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text(`II-C. CHILDREN IN CONFLICT WITH THE LAW (CICL) OFFENSES (${sectionCicl.length} cases)`, 14, y);
+
+  const ciclTableData = getTableDataForList(sectionCicl);
+  if (ciclTableData.length === 0) {
+    ciclTableData.push(['No CICL offenses recorded', '0', '0', '0', '0%']);
+  }
+
+  autoTable(doc, {
+    startY: y + 2,
+    head: [['CICL Offense Type', 'Male', 'Female', 'Combined Total', 'Percentage Ratio']],
+    body: ciclTableData,
+    theme: 'grid',
+    headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+    bodyStyles: { fontSize: 7.5, textColor: [51, 65, 85] },
+    columnStyles: {
+      0: { fontStyle: 'bold' },
+      1: { halign: 'center', cellWidth: 22 },
+      2: { halign: 'center', cellWidth: 22 },
+      3: { halign: 'center', cellWidth: 32 },
+      4: { halign: 'right', cellWidth: 28 }
     },
     margin: { left: 14, right: 14 }
   });
@@ -1071,40 +1308,44 @@ export async function generateAdviserPDF(
     margin: { left: 14, right: 14 }
   });
 
-  // Dedicated Page for Section Graphs & Signatures
+  // Dedicated Page for Section Graphs & Visualizations
   doc.addPage();
   doc.setTextColor(16, 38, 4);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text('IV. SECTION-SPECIFIC DATA VISUALIZATIONS & BEHAVIORAL TRENDS', 14, 18);
+  doc.text('IV. SECTION-SPECIFIC DATA VISUALIZATIONS & BEHAVIORAL TRENDS', 14, 15);
 
   const colW = (pageWidth - 28 - 4) / 2;
-  // Row 1
-  drawReportTrend(doc, 14, 22, colW, 40, reports, criticalReports);
-  drawReportsVsResolutions(doc, 14 + colW + 4, 22, colW, 40, reports, criticalReports);
-  // Row 2
-  drawIssueBreakdown(doc, 14, 66, colW, 40, reports, criticalReports);
-  drawCaseStatus(doc, 14 + colW + 4, 66, colW, 40, reports, criticalReports);
-  // Row 3
-  drawTopIssues(doc, 14, 110, colW, 35, reports, criticalReports);
-  drawTopStudents(doc, 14 + colW + 4, 110, colW, 35, reports, criticalReports, students);
+  const col3W = (pageWidth - 28 - 6) / 3;
 
-  // Row 4 - Grade & Gender Distribution
-  drawGradeGenderDistribution(doc, 14, 148, pageWidth - 28, 40, reports, criticalReports, students);
+  // Row 1 - side by side Trend and Resolutions
+  drawReportTrend(doc, 14, 19, colW, 34, reports, criticalReports);
+  drawReportsVsResolutions(doc, 14 + colW + 4, 19, colW, 34, reports, criticalReports);
+  
+  // Row 2 - side by side Case Status and Grade/Gender Distribution
+  drawCaseStatus(doc, 14, 56, colW, 34, reports, criticalReports);
+  drawGradeGenderDistribution(doc, 14 + colW + 4, 56, colW, 34, reports, criticalReports, students);
+  
+  // Row 3 - Three category donuts side-by-side
+  drawCategoryDonutBreakdown(doc, 14, 93, col3W, 38, "General Issues Breakdown", sectionGeneral, 'General');
+  drawCategoryDonutBreakdown(doc, 14 + col3W + 3, 93, col3W, 38, "Critical Issues Breakdown", sectionCritical, 'Critical');
+  drawCategoryDonutBreakdown(doc, 14 + (col3W + 3) * 2, 93, col3W, 38, "CICL Issues Breakdown", sectionCicl, 'CICL');
+
+  // Row 4 - side by side Frequency Analysis
+  drawTopIssues(doc, 14, 134, colW, 34, reports, criticalReports);
+  drawTopStudents(doc, 14 + colW + 4, 134, colW, 34, reports, criticalReports, students);
 
   // CICL Reports Data Table
-  let adviserY = 200; // After graphs, maybe need a new page for signatures
-  doc.addPage();
-  adviserY = 20;
+  let adviserY = 171; // Starts right after Row 4 charts
   adviserY = drawCiclReportsTable(doc, adviserY, allSectionReports, students, "V");
 
-  // If the table pushed Y too far, add a page for signatures
+  // If the table or graphs pushed Y too far, add a page for signatures
   if (adviserY > 230) {
     doc.addPage();
     adviserY = 20;
   }
 
-  // Signatures at the bottom of the data visualization page
+  // Signatures at the bottom of the page
   drawSignaturesBlock(
     doc,
     Math.max(adviserY, 50),
@@ -1235,19 +1476,53 @@ export async function generateAnalyticsPDF(
     const gradeStudents = students.filter(s => s.gradeLevel === grade);
     const studentLrnSet = new Set(gradeStudents.map(s => s.lrn));
     
-    const gradeGeneral = reports.filter(r => studentLrnSet.has(r.studentLrn));
+    const gradeGeneralAll = reports.filter(r => studentLrnSet.has(r.studentLrn));
     const gradeCritical = criticalReports.filter(r => studentLrnSet.has(r.studentLrn));
     const gradeCICL = reports.filter(r => studentLrnSet.has(r.studentLrn) && ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"].includes(r.issue));
+    const gradeGeneral = gradeGeneralAll.filter(r => !["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"].includes(r.issue));
     
-    const totalReports = gradeGeneral.length + gradeCritical.length;
-    const resolved = [...gradeGeneral, ...gradeCritical].filter(r => r.recordStatus === 'RESOLVED').length;
+    const totalReports = gradeGeneral.length + gradeCritical.length + gradeCICL.length;
+    const resolved = [...gradeGeneralAll, ...gradeCritical].filter(r => r.recordStatus === 'RESOLVED').length;
     const rate = totalReports > 0 ? Math.round((resolved / totalReports) * 100) : 100;
+
+    let genMale = 0;
+    let genFemale = 0;
+    gradeGeneral.forEach(r => {
+      const student = students.find(s => s.lrn === r.studentLrn);
+      const gender = student ? student.gender : 'Unknown';
+      if (gender === 'Male') genMale++;
+      else if (gender === 'Female') genFemale++;
+    });
+
+    let critMale = 0;
+    let critFemale = 0;
+    gradeCritical.forEach(r => {
+      const student = students.find(s => s.lrn === r.studentLrn);
+      const gender = student ? student.gender : 'Unknown';
+      if (gender === 'Male') critMale++;
+      else if (gender === 'Female') critFemale++;
+    });
+
+    let ciclMale = 0;
+    let ciclFemale = 0;
+    gradeCICL.forEach(r => {
+      const student = students.find(s => s.lrn === r.studentLrn);
+      const gender = student ? student.gender : 'Unknown';
+      if (gender === 'Male') ciclMale++;
+      else if (gender === 'Female') ciclFemale++;
+    });
 
     return [
       grade,
       `${gradeStudents.length}`,
-      `${gradeGeneral.length - gradeCICL.length}`,
+      `${genMale}`,
+      `${genFemale}`,
+      `${gradeGeneral.length}`,
+      `${critMale}`,
+      `${critFemale}`,
       `${gradeCritical.length}`,
+      `${ciclMale}`,
+      `${ciclFemale}`,
       `${gradeCICL.length}`,
       `${totalReports}`,
       `${rate}%`
@@ -1256,19 +1531,39 @@ export async function generateAnalyticsPDF(
 
   autoTable(doc, {
     startY: y + 3,
-    head: [['Grade Level', 'Total Students', 'General', 'Critical', 'CICL', 'Total Reports', 'Resolution Rate']],
+    head: [[
+      'Grade Level',
+      'Total Students',
+      'Gen (M)',
+      'Gen (F)',
+      'Gen (T)',
+      'Crit (M)',
+      'Crit (F)',
+      'Crit (T)',
+      'CICL (M)',
+      'CICL (F)',
+      'CICL (T)',
+      'Total Cases',
+      'Res. Rate'
+    ]],
     body: gradeBreakdownStats,
     theme: 'striped',
-    headStyles: { fillColor: [16, 38, 4], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { fontSize: 8, textColor: [51, 65, 85] },
+    headStyles: { fillColor: [16, 38, 4], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 6.5 },
+    bodyStyles: { fontSize: 6.5, textColor: [51, 65, 85] },
     columnStyles: {
       0: { fontStyle: 'bold' },
       1: { halign: 'center' },
       2: { halign: 'center' },
-      3: { halign: 'center', textColor: [220, 38, 38] },
-      4: { halign: 'center', textColor: [249, 115, 22] },
-      5: { halign: 'center', fontStyle: 'bold' },
-      6: { halign: 'right', fontStyle: 'bold' }
+      3: { halign: 'center' },
+      4: { halign: 'center', fontStyle: 'bold' },
+      5: { halign: 'center', textColor: [185, 28, 28] },
+      6: { halign: 'center', textColor: [185, 28, 28] },
+      7: { halign: 'center', fontStyle: 'bold', textColor: [185, 28, 28] },
+      8: { halign: 'center', textColor: [194, 65, 12] },
+      9: { halign: 'center', textColor: [194, 65, 12] },
+      10: { halign: 'center', fontStyle: 'bold', textColor: [194, 65, 12] },
+      11: { halign: 'center', fontStyle: 'bold' },
+      12: { halign: 'right', fontStyle: 'bold' }
     },
     margin: { left: 14, right: 14 }
   });
@@ -1276,7 +1571,7 @@ export async function generateAnalyticsPDF(
   y = (doc as any).lastAutoTable.finalY + 10;
 
   // III. Offense classification
-  if (y + 50 > doc.internal.pageSize.getHeight()) {
+  if (y + 40 > doc.internal.pageSize.getHeight()) {
     doc.addPage();
     y = 20;
   }
@@ -1284,64 +1579,179 @@ export async function generateAnalyticsPDF(
   doc.setTextColor(16, 38, 4);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text('III. DETAILED OFFENSE / BEHAVIORAL CATEGORIES', 14, y);
+  doc.text('III. DETAILED OFFENSE / BEHAVIORAL CATEGORIES BREAKDOWNS', 14, y);
+  y += 5;
 
-  // Group issue counts
-  const issueCounts: Record<string, number> = {};
-  allReports.forEach(r => {
-    const issue = r.issue || 'Others';
-    issueCounts[issue] = (issueCounts[issue] || 0) + 1;
+  const ciclIssuesList = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
+
+  const generalReportsFiltered = allReports.filter(r => {
+    if (criticalReports.some(cr => cr.id === r.id)) return false;
+    if (ciclIssuesList.includes(r.issue || "")) return false;
+    return true;
   });
 
-  const issueBreakdownData = Object.entries(issueCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([name, value]) => [
-      name,
-      `${value}`,
-      `${totalReportsCount > 0 ? Math.round((value / totalReportsCount) * 100) : 0}%`
-    ]);
+  const criticalReportsFiltered = allReports.filter(r => {
+    return criticalReports.some(cr => cr.id === r.id);
+  });
 
-  if (issueBreakdownData.length === 0) {
-    issueBreakdownData.push(['No incident reports logged matching selected filters', '-', '-']);
+  const ciclReportsFiltered = allReports.filter(r => {
+    return !criticalReports.some(cr => cr.id === r.id) && ciclIssuesList.includes(r.issue || "");
+  });
+
+  const getTableDataForList = (list: any[]) => {
+    const counts: Record<string, { Male: number; Female: number; Total: number }> = {};
+    list.forEach(r => {
+      const issue = r.issue || 'Others';
+      if (!counts[issue]) {
+        counts[issue] = { Male: 0, Female: 0, Total: 0 };
+      }
+      const student = students.find(s => s.lrn === r.studentLrn);
+      const gender = student ? student.gender : 'Unknown';
+      if (gender === 'Male') {
+        counts[issue].Male++;
+      } else if (gender === 'Female') {
+        counts[issue].Female++;
+      }
+      counts[issue].Total++;
+    });
+    const total = list.length;
+    return Object.entries(counts)
+      .sort((a, b) => b[1].Total - a[1].Total)
+      .map(([name, val]) => [
+        name,
+        `${val.Male}`,
+        `${val.Female}`,
+        `${val.Total}`,
+        `${total > 0 ? Math.round((val.Total / total) * 100) : 0}%`
+      ]);
+  };
+
+  // III-A. General Issues Table
+  doc.setTextColor(16, 38, 4);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text(`III-A. GENERAL BEHAVIORAL ISSUES (${generalReportsFiltered.length} cases)`, 14, y);
+
+  const generalTableData = getTableDataForList(generalReportsFiltered);
+  if (generalTableData.length === 0) {
+    generalTableData.push(['No general behavioral issues recorded', '0', '0', '0', '0%']);
   }
 
   autoTable(doc, {
-    startY: y + 3,
-    head: [['Issue / Offense Type', 'Incident Count', 'Percentage Ratio']],
-    body: issueBreakdownData,
+    startY: y + 2,
+    head: [['General Issue Type', 'Male', 'Female', 'Combined Total', 'Percentage Ratio']],
+    body: generalTableData,
     theme: 'grid',
-    headStyles: { fillColor: [16, 38, 4], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { fontSize: 8, textColor: [51, 65, 85] },
+    headStyles: { fillColor: [16, 38, 4], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+    bodyStyles: { fontSize: 7.5, textColor: [51, 65, 85] },
     columnStyles: {
       0: { fontStyle: 'bold' },
-      1: { halign: 'center', cellWidth: 40 },
-      2: { halign: 'right', cellWidth: 40 }
+      1: { halign: 'center', cellWidth: 22 },
+      2: { halign: 'center', cellWidth: 22 },
+      3: { halign: 'center', cellWidth: 32 },
+      4: { halign: 'right', cellWidth: 28 }
+    },
+    margin: { left: 14, right: 14 }
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // III-B. Critical Incidents Table
+  if (y + 30 > doc.internal.pageSize.getHeight()) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setTextColor(220, 38, 38);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text(`III-B. CRITICAL INCIDENTS (${criticalReportsFiltered.length} cases)`, 14, y);
+
+  const criticalTableData = getTableDataForList(criticalReportsFiltered);
+  if (criticalTableData.length === 0) {
+    criticalTableData.push(['No critical incidents recorded', '0', '0', '0', '0%']);
+  }
+
+  autoTable(doc, {
+    startY: y + 2,
+    head: [['Critical Incident Type', 'Male', 'Female', 'Combined Total', 'Percentage Ratio']],
+    body: criticalTableData,
+    theme: 'grid',
+    headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+    bodyStyles: { fontSize: 7.5, textColor: [51, 65, 85] },
+    columnStyles: {
+      0: { fontStyle: 'bold' },
+      1: { halign: 'center', cellWidth: 22 },
+      2: { halign: 'center', cellWidth: 22 },
+      3: { halign: 'center', cellWidth: 32 },
+      4: { halign: 'right', cellWidth: 28 }
+    },
+    margin: { left: 14, right: 14 }
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // III-C. CICL Offenses Table
+  if (y + 30 > doc.internal.pageSize.getHeight()) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setTextColor(249, 115, 22);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.text(`III-C. CHILDREN IN CONFLICT WITH THE LAW (CICL) OFFENSES (${ciclReportsFiltered.length} cases)`, 14, y);
+
+  const ciclTableData = getTableDataForList(ciclReportsFiltered);
+  if (ciclTableData.length === 0) {
+    ciclTableData.push(['No CICL offenses recorded', '0', '0', '0', '0%']);
+  }
+
+  autoTable(doc, {
+    startY: y + 2,
+    head: [['CICL Offense Type', 'Male', 'Female', 'Combined Total', 'Percentage Ratio']],
+    body: ciclTableData,
+    theme: 'grid',
+    headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+    bodyStyles: { fontSize: 7.5, textColor: [51, 65, 85] },
+    columnStyles: {
+      0: { fontStyle: 'bold' },
+      1: { halign: 'center', cellWidth: 22 },
+      2: { halign: 'center', cellWidth: 22 },
+      3: { halign: 'center', cellWidth: 32 },
+      4: { halign: 'right', cellWidth: 28 }
     },
     margin: { left: 14, right: 14 }
   });
 
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  // IV. Administrative Data Visualizations & Graphs Page
+  // IV. Administrative Data Visualizations & Graphs Consolidated
   doc.addPage();
   doc.setTextColor(16, 38, 4);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text('IV. ADMINISTRATIVE DATA VISUALIZATIONS & GRAPHS', 14, 18);
+  doc.text('IV. ADMINISTRATIVE DATA VISUALIZATIONS & BEHAVIORAL TRENDS', 14, 15);
 
   const colW = (pageWidth - 28 - 4) / 2;
-  // Row 1
-  drawReportTrend(doc, 14, 22, colW, 40, allReports, []);
-  drawReportsVsResolutions(doc, 14 + colW + 4, 22, colW, 40, allReports, []);
-  // Row 2
-  drawIssueBreakdown(doc, 14, 66, colW, 40, allReports, []);
-  drawCaseStatus(doc, 14 + colW + 4, 66, colW, 40, allReports, []);
-  // Row 3
-  drawTopIssues(doc, 14, 110, colW, 35, allReports, []);
-  drawTopStudents(doc, 14 + colW + 4, 110, colW, 35, allReports, [], students);
+  const col3W = (pageWidth - 28 - 6) / 3;
 
-  // Row 4 - Grade & Gender Distribution
-  drawGradeGenderDistribution(doc, 14, 148, pageWidth - 28, 40, allReports, [], students);
+  // Row 1 - side by side Trend and Resolutions
+  drawReportTrend(doc, 14, 19, colW, 34, allReports, []);
+  drawReportsVsResolutions(doc, 14 + colW + 4, 19, colW, 34, allReports, []);
+  
+  // Row 2 - side by side Case Status and Grade/Gender Distribution
+  drawCaseStatus(doc, 14, 56, colW, 34, allReports, []);
+  drawGradeGenderDistribution(doc, 14 + colW + 4, 56, colW, 34, allReports, [], students);
+  
+  // Row 3 - Three category donuts side-by-side
+  drawCategoryDonutBreakdown(doc, 14, 93, col3W, 38, "General Issues Breakdown", generalReportsFiltered, 'General');
+  drawCategoryDonutBreakdown(doc, 14 + col3W + 3, 93, col3W, 38, "Critical Issues Breakdown", criticalReportsFiltered, 'Critical');
+  drawCategoryDonutBreakdown(doc, 14 + (col3W + 3) * 2, 93, col3W, 38, "CICL Issues Breakdown", ciclReportsFiltered, 'CICL');
+
+  // Row 4 - side by side Frequency Analysis
+  drawTopIssues(doc, 14, 134, colW, 34, allReports, []);
+  drawTopStudents(doc, 14 + colW + 4, 134, colW, 34, allReports, [], students);
 
   // V. Recent Case Incident Log Table
   doc.addPage();

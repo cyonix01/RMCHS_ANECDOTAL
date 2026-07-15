@@ -883,8 +883,11 @@ function drawGradeGenderDistribution(
     const student = studentMap.get(r.studentLrn);
     if (student && student.gradeLevel && student.gender) {
       if (counts[student.gradeLevel]) {
-        if (student.gender === 'Male' || student.gender === 'Female') {
-          counts[student.gradeLevel][student.gender]++;
+        const sGender = student.gender?.toLowerCase();
+        if (sGender === 'male' || sGender === 'm') {
+          counts[student.gradeLevel]['Male']++;
+        } else if (sGender === 'female' || sGender === 'f') {
+          counts[student.gradeLevel]['Female']++;
         }
       }
     }
@@ -1136,10 +1139,10 @@ export async function generateAdviserPDF(
         counts[issue] = { Male: 0, Female: 0, Total: 0 };
       }
       const student = students.find(s => s.lrn === r.studentLrn);
-      const gender = student ? student.gender : 'Unknown';
-      if (gender === 'Male') {
+      const sGender = student?.gender?.toLowerCase() || 'unknown';
+      if (sGender === 'male' || sGender === 'm') {
         counts[issue].Male++;
-      } else if (gender === 'Female') {
+      } else if (sGender === 'female' || sGender === 'f') {
         counts[issue].Female++;
       }
       counts[issue].Total++;
@@ -1489,27 +1492,27 @@ export async function generateAnalyticsPDF(
     let genFemale = 0;
     gradeGeneral.forEach(r => {
       const student = students.find(s => s.lrn === r.studentLrn);
-      const gender = student ? student.gender : 'Unknown';
-      if (gender === 'Male') genMale++;
-      else if (gender === 'Female') genFemale++;
+      const sGender = student?.gender?.toLowerCase() || 'unknown';
+      if (sGender === 'male' || sGender === 'm') genMale++;
+      else if (sGender === 'female' || sGender === 'f') genFemale++;
     });
 
     let critMale = 0;
     let critFemale = 0;
     gradeCritical.forEach(r => {
       const student = students.find(s => s.lrn === r.studentLrn);
-      const gender = student ? student.gender : 'Unknown';
-      if (gender === 'Male') critMale++;
-      else if (gender === 'Female') critFemale++;
+      const sGender = student?.gender?.toLowerCase() || 'unknown';
+      if (sGender === 'male' || sGender === 'm') critMale++;
+      else if (sGender === 'female' || sGender === 'f') critFemale++;
     });
 
     let ciclMale = 0;
     let ciclFemale = 0;
     gradeCICL.forEach(r => {
       const student = students.find(s => s.lrn === r.studentLrn);
-      const gender = student ? student.gender : 'Unknown';
-      if (gender === 'Male') ciclMale++;
-      else if (gender === 'Female') ciclFemale++;
+      const sGender = student?.gender?.toLowerCase() || 'unknown';
+      if (sGender === 'male' || sGender === 'm') ciclMale++;
+      else if (sGender === 'female' || sGender === 'f') ciclFemale++;
     });
 
     return [
@@ -1606,10 +1609,10 @@ export async function generateAnalyticsPDF(
         counts[issue] = { Male: 0, Female: 0, Total: 0 };
       }
       const student = students.find(s => s.lrn === r.studentLrn);
-      const gender = student ? student.gender : 'Unknown';
-      if (gender === 'Male') {
+      const sGender = student?.gender?.toLowerCase() || 'unknown';
+      if (sGender === 'male' || sGender === 'm') {
         counts[issue].Male++;
-      } else if (gender === 'Female') {
+      } else if (sGender === 'female' || sGender === 'f') {
         counts[issue].Female++;
       }
       counts[issue].Total++;

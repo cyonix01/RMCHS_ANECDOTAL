@@ -58,8 +58,8 @@ export default function NotificationBell({ user, onSelectNotification }: Notific
     if (user.role === 'Guidance') {
       return n.targetRole === 'Guidance' || n.targetRole === 'All';
     }
-    // Admin sees critical & CICL
-    if (user.role === 'Admin') {
+    // Admin and Department Head see critical & CICL
+    if (user.role === 'Admin' || user.role === 'Department Head') {
       return n.targetRole === 'Admin' || n.targetRole === 'All';
     }
     // Other roles don't see system notifications unless specified
@@ -209,7 +209,7 @@ export default function NotificationBell({ user, onSelectNotification }: Notific
   };
 
   // Skip rendering bell if user has a role that doesn't receive system notifications
-  if (user.role !== 'Admin' && user.role !== 'Guidance') {
+  if (user.role !== 'Admin' && user.role !== 'Guidance' && user.role !== 'Department Head') {
     return null;
   }
 
@@ -330,8 +330,8 @@ export default function NotificationBell({ user, onSelectNotification }: Notific
               )}
             </div>
 
-            {/* Footer Clear All button for Admins */}
-            {user.role === 'Admin' && filteredNotifications.length > 0 && (
+            {/* Footer Clear All button for Admins and Dept Heads */}
+            {(user.role === 'Admin' || user.role === 'Department Head') && filteredNotifications.length > 0 && (
               <div className="p-2 border-t border-slate-100 flex justify-end bg-slate-50/50">
                 <button
                   onClick={handleClearAll}

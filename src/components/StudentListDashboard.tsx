@@ -3,7 +3,9 @@ import { Student, Report, CriticalReport } from "../types";
 import StudentReportsViewModal from "./StudentReportsViewModal";
 import { exportToCSV } from "../utils/exportCSV";
 import { generateAdviserPDF } from "../utils/pdfGenerator";
-import { Users, AlertCircle, FileText, Activity, BookOpen, Clock, CheckCircle, Download, Printer } from "lucide-react";
+import { getDriveImageUrl } from "../utils/driveUtils";
+import { Users, AlertCircle, FileText, Activity, BookOpen, Clock, CheckCircle, Download, Printer, User, X } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line
@@ -27,6 +29,7 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [reportTypeFilter, setReportTypeFilter] = useState<'All' | 'General' | 'Critical' | 'CICL'>('All');
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const fetchData = React.useCallback(() => {
     Promise.all([
@@ -344,15 +347,37 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
           <div key={gender} className="bg-white p-6 border border-slate-200 shadow-sm">
             <h4 className="font-bold text-slate-900 mb-4 uppercase text-xs tracking-widest">{gender} Students</h4>
             <div className="space-y-2">
-              {students.filter(s => s.gender === gender).map(student => {
+              {students.filter(s => {
+                const sGender = s.gender?.toLowerCase();
+                const targetGender = gender.toLowerCase();
+                return sGender === targetGender || sGender === targetGender.charAt(0);
+              }).map(student => {
                 const counts = getReportCounts(student.lrn);
                 return (
                   <button 
                     key={student.lrn}
                     onClick={() => setSelectedStudent(student)}
-                    className="w-full flex justify-between items-center p-3 hover:bg-slate-50 border border-slate-100 transition-colors text-left"
+                    className="w-full flex justify-between items-center p-3 hover:bg-slate-50 border border-slate-100 transition-colors text-left group"
                   >
-                    <span className="text-sm text-slate-800 font-medium">{student.lastName}, {student.firstName}</span>
+                    <div className="flex items-center gap-3">
+                      {student.profilePictureUrl ? (
+                        <img 
+                          src={getDriveImageUrl(student.profilePictureUrl)} 
+                          alt={student.lastName}
+                          className="w-8 h-8 rounded-full object-cover border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewImage(getDriveImageUrl(student.profilePictureUrl));
+                          }}
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                          <User size={14} className="text-slate-400" />
+                        </div>
+                      )}
+                      <span className="text-sm text-slate-800 font-medium group-hover:text-[#76DA0D] transition-colors">{student.lastName}, {student.firstName}</span>
+                    </div>
                     <div className="flex gap-2">
                       <span className="text-[10px] font-bold bg-green-100 text-green-800 px-2 py-1 rounded" title="General Reports">{counts.general}</span>
                       <span className="text-[10px] font-bold bg-red-100 text-red-800 px-2 py-1 rounded" title="Critical Reports">{counts.critical}</span>
@@ -539,6 +564,33 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {previewImage && (
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={() => setPreviewImage(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative max-w-3xl max-h-[90vh]"
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="absolute -top-12 right-0 p-2 text-white hover:text-slate-200 transition-colors"
+              >
+                <X size={24} />
+              </button>
+              <img
+                src={previewImage}
+                alt="Student Profile"
+                className="w-full h-auto max-h-[80vh] object-contain rounded shadow-2xl"
+                referrerPolicy="no-referrer"
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

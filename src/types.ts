@@ -13,7 +13,7 @@ export interface UserAccount {
   position: Position;
   passwordHash: string; // SHA-256 encrypted password
   registeredAt: string;
-  role?: 'Adviser' | 'Non-Adviser' | 'Guidance' | 'Admin';
+  role?: 'Adviser' | 'Non-Adviser' | 'Guidance' | 'Admin' | 'Department Head';
   gradeLevel?: 'Grade 7' | 'Grade 8' | 'Grade 9' | 'Grade 10' | 'Grade 11' | 'Grade 12';
   section?: string;
 }
@@ -93,6 +93,7 @@ export interface Student {
   lastName: string;
   firstName: string;
   middleName: string;
+  profilePictureUrl?: string; // Optional Google Drive link for picture
   gradeLevel: 'Grade 7' | 'Grade 8' | 'Grade 9' | 'Grade 10' | 'Grade 11' | 'Grade 12';
   section: string;
   gender: 'Male' | 'Female';

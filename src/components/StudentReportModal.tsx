@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { X, FileText } from "lucide-react";
+import { X, FileText, User } from "lucide-react";
 import { Student, Report } from "../types";
 import { useNotification } from "./NotificationProvider";
+import { getDriveImageUrl } from "../utils/driveUtils";
 
 interface StudentReportModalProps {
   student: Student;
@@ -111,8 +112,17 @@ export default function StudentReportModal({ student, userName, onClose, onSucce
       >
         <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
           <h2 className="font-bold text-sm text-slate-800 uppercase tracking-widest flex items-center gap-2">
-            <FileText size={16} className="text-[#76DA0D]" />
-            Student Report
+            {student.profilePictureUrl ? (
+              <img 
+                src={getDriveImageUrl(student.profilePictureUrl)} 
+                alt={student.lastName}
+                className="w-6 h-6 rounded-full object-cover border border-slate-200"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <FileText size={16} className="text-[#76DA0D]" />
+            )}
+            Student Report - {student.lastName}, {student.firstName}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X size={18} />

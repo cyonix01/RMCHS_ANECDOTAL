@@ -55,7 +55,7 @@ export default function RegisterView({ onRegisterSuccess, onNavigateToLogin }: R
   const [contactNumber, setContactNumber] = useState("");
   const [department, setDepartment] = useState<Department | "">("");
   const [position, setPosition] = useState<Position | "">("");
-  const [role, setRole] = useState<'Adviser' | 'Non-Adviser' | 'Guidance' | 'Admin'>('Non-Adviser');
+  const [role, setRole] = useState<'Adviser' | 'Non-Adviser' | 'Guidance' | 'Admin' | 'Department Head'>('Non-Adviser');
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 

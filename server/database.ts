@@ -220,14 +220,28 @@ export async function getAllUsers(): Promise<UserAccount[]> {
     return [];
   }
   try {
-    const { data, error } = await supabase.from("users").select("*");
-    if (error) {
-      console.error("Supabase read users failure:", error);
-      supabaseError = `Supabase query failed: ${error.message}`;
-      return [];
+    let allData: any[] = [];
+    let from = 0;
+    const step = 1000;
+    while (true) {
+      const { data, error } = await supabase.from("users").select("*").range(from, from + step - 1);
+      if (error) {
+        console.error("Supabase read users failure:", error);
+        supabaseError = `Supabase query failed: ${error.message}`;
+        return [];
+      }
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        if (data.length < step) {
+          break;
+        }
+      } else {
+        break;
+      }
+      from += step;
     }
     supabaseError = null;
-    return (data || []).map(mapSupabaseRowToUser);
+    return allData.map(mapSupabaseRowToUser);
   } catch (err: any) {
     console.error("Supabase read connection error:", err);
     supabaseError = `Supabase connection exception: ${err.message}`;
@@ -370,7 +384,7 @@ function saveStudentLocally(student: Student): void {
     const list = loadLocalStudents();
     const index = list.findIndex(s => s.lrn.trim() === student.lrn.trim());
     if (index >= 0) {
-      list[index] = student;
+       
     } else {
       list.push(student);
     }
@@ -386,7 +400,7 @@ function saveStudentsLocallyBulk(students: Student[]): void {
     for (const student of students) {
       const index = list.findIndex(s => s.lrn.trim() === student.lrn.trim());
       if (index >= 0) {
-        list[index] = student;
+         
       } else {
         list.push(student);
       }
@@ -403,6 +417,7 @@ function mapSupabaseRowToStudent(row: any): Student {
     lastName: row.last_name || "",
     firstName: row.first_name || "",
     middleName: row.middle_name || "",
+    profilePictureUrl: row.profile_picture_url || "",
     gradeLevel: row.grade_level || "Grade 7",
     section: row.section || "",
     gender: row.gender || "Male",
@@ -443,6 +458,7 @@ function mapStudentToSupabaseRow(student: Student) {
     last_name: student.lastName,
     first_name: student.firstName,
     middle_name: student.middleName,
+    profile_picture_url: student.profilePictureUrl || "",
     grade_level: student.gradeLevel,
     section: student.section,
     gender: student.gender,
@@ -669,30 +685,49 @@ export async function saveReport(report: any): Promise<any> {
 export async function getAllReports(): Promise<Report[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
-  const { data, error } = await supabase.from("reports").select("*");
-  if (error) {
-    console.error("Supabase read reports failure:", error);
+  try {
+    let allData: any[] = [];
+    let from = 0;
+    const step = 1000;
+    while (true) {
+      const { data, error } = await supabase.from("reports").select("*").range(from, from + step - 1);
+      if (error) {
+        console.error("Supabase read reports failure:", error);
+        return [];
+      }
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        if (data.length < step) {
+          break;
+        }
+      } else {
+        break;
+      }
+      from += step;
+    }
+    return allData.map((row: any) => ({
+      id: row.id,
+      studentLrn: row.student_lrn,
+      dateOfIncident: row.date_of_incident,
+      timeOfIncident: row.time_of_incident,
+      issue: row.issue,
+      description: row.description,
+      actionTaken: row.action_taken,
+      recommendation: row.recommendation,
+      reportedBy: row.reported_by,
+      dateReported: row.date_reported,
+      lastUpdatedBy: row.last_updated_by,
+      individualFactors: row.individual_factors || [],
+      familyFactors: row.family_factors || [],
+      schoolFactors: row.school_factors || [],
+      communityFactors: row.community_factors || [],
+      caseStatus: row.case_status,
+      closureDate: row.closure_date,
+    }));
+  } catch (err) {
+    console.error("Supabase read reports exception:", err);
     return [];
   }
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    studentLrn: row.student_lrn,
-    dateOfIncident: row.date_of_incident,
-    timeOfIncident: row.time_of_incident,
-    issue: row.issue,
-    description: row.description,
-    actionTaken: row.action_taken,
-    recommendation: row.recommendation,
-    reportedBy: row.reported_by,
-    dateReported: row.date_reported,
-    lastUpdatedBy: row.last_updated_by,
-    individualFactors: row.individual_factors || [],
-    familyCommunityBehaviorFactors: row.family_community_behavior_factors || [],
-    referralRecommendation: row.referral_recommendation,
-    initialAssessmentMadeBy: row.initial_assessment_made_by,
-    designation: row.designation,
-    recordStatus: row.record_status,
-  }));
 }
 
 /**
@@ -701,25 +736,46 @@ export async function getAllReports(): Promise<Report[]> {
 export async function getAllCriticalReports(): Promise<CriticalReport[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
-  const { data, error } = await supabase.from("critical_reports").select("*");
-  if (error) {
-    console.error("Supabase read critical reports failure:", error);
+  try {
+    let allData: any[] = [];
+    let from = 0;
+    const step = 1000;
+    while (true) {
+      const { data, error } = await supabase.from("critical_reports").select("*").range(from, from + step - 1);
+      if (error) {
+        console.error("Supabase read critical reports failure:", error);
+        return [];
+      }
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        if (data.length < step) {
+          break;
+        }
+      } else {
+        break;
+      }
+      from += step;
+    }
+    return allData.map((row: any) => ({
+      id: row.id,
+      studentLrn: row.student_lrn,
+      incidentDate: row.incident_date,
+      incidentTime: row.incident_time,
+      location: row.location,
+      natureOfIncident: row.nature_of_incident,
+      description: row.description,
+      witnesses: row.witnesses,
+      immediateActionTaken: row.immediate_action_taken,
+      reportedBy: row.reported_by,
+      dateReported: row.date_reported,
+      lastUpdatedBy: row.last_updated_by,
+      status: row.status,
+      closureDate: row.closure_date,
+    }));
+  } catch (err) {
+    console.error("Supabase read critical reports exception:", err);
     return [];
   }
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    studentLrn: row.student_lrn,
-    dateOfIncident: row.date_of_incident,
-    timeOfIncident: row.time_of_incident,
-    issue: row.issue,
-    description: row.description,
-    actionTaken: row.action_taken,
-    recommendation: row.recommendation,
-    reportedBy: row.reported_by,
-    dateReported: row.date_reported,
-    lastUpdatedBy: row.last_updated_by,
-    recordStatus: row.record_status,
-  }));
 }
 
 /**
@@ -769,12 +825,26 @@ export async function getAllStudents(): Promise<Student[]> {
     return loadLocalStudents();
   }
   try {
-    const { data, error } = await supabase.from("students").select("*");
-    if (error) {
-      console.error("Supabase read students failure, falling back to local cache:", error);
-      return loadLocalStudents();
+    let allData: any[] = [];
+    let from = 0;
+    const step = 1000;
+    while (true) {
+      const { data, error } = await supabase.from("students").select("*").range(from, from + step - 1);
+      if (error) {
+        console.error("Supabase read students failure, falling back to local cache:", error);
+        return loadLocalStudents();
+      }
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        if (data.length < step) {
+          break;
+        }
+      } else {
+        break;
+      }
+      from += step;
     }
-    return (data || []).map(mapSupabaseRowToStudent);
+    return allData.map(mapSupabaseRowToStudent);
   } catch (err) {
     console.error("Supabase read students exception, falling back to local cache:", err);
     return loadLocalStudents();
@@ -974,6 +1044,7 @@ export async function createStudent(student: any): Promise<void> {
     lastName: student.lastName || student.last_name || "",
     firstName: student.firstName || student.first_name || "",
     middleName: student.middleName || student.middle_name || "",
+    profilePictureUrl: student.profilePictureUrl || student.profile_picture_url || "",
     gradeLevel: student.gradeLevel || student.grade_level || "Grade 7",
     section: student.section || "",
     gender: student.gender || "Male",
@@ -1017,7 +1088,7 @@ export async function createStudent(student: any): Promise<void> {
 
   try {
     const row = mapStudentToSupabaseRow(normalizedStudent);
-    const { error } = await supabase.from("students").upsert(row);
+    const { error } = await supabase.from("students").upsert(row, { onConflict: "lrn", ignoreDuplicates: true });
     if (error) {
       console.error("Supabase upsert student failure, backed up locally:", error);
       throw new Error(`Supabase write failed: ${error.message}`);
@@ -1043,14 +1114,14 @@ export async function createStudentsBulk(students: Student[]): Promise<{ success
 
   try {
     const rows = students.map(mapStudentToSupabaseRow);
-    const { error } = await supabase.from("students").upsert(rows);
+    const { error } = await supabase.from("students").upsert(rows, { onConflict: "lrn", ignoreDuplicates: true });
     if (error) {
       console.error("Supabase bulk upsert failed. Retrying upserts individually...", error);
       // Fallback: try individual upserts
       for (const student of students) {
         try {
           const row = mapStudentToSupabaseRow(student);
-          const { error: indError } = await supabase.from("students").upsert(row);
+          const { error: indError } = await supabase.from("students").upsert(row, { onConflict: "lrn", ignoreDuplicates: true });
           if (indError) {
             response.errors.push(`LRN ${student.lrn}: ${indError.message}`);
           } else {
@@ -1454,7 +1525,7 @@ export async function saveSignatorySettings(settings: SignatorySettings): Promis
 
   try {
     const row = mapSignatorySettingsToSupabaseRow(updatedWithTime);
-    const { error } = await supabase.from("signatory_settings").upsert(row);
+    const { error } = await supabase.from("signatory_settings").upsert(row, { onConflict: "lrn", ignoreDuplicates: true });
     if (error) {
       console.error("Supabase saveSignatorySettings failure:", error);
     } else {

@@ -30,8 +30,8 @@ const [loading, setLoading] = useState(true);
       
       if (user) {
         const teacherName = `${user.firstName} ${user.lastName}`;
-        if (user.role === 'Admin' || user.role === 'Guidance') {
-          // Admin and Guidance see all records across entire school
+        if (user.role === 'Admin' || user.role === 'Guidance' || user.role === 'Department Head') {
+          // Admin, Dept Head, and Guidance see all records across entire school
         } else if (user.role === 'Adviser') {
           const adviserGrade = user.gradeLevel;
           const adviserSection = user.section;
@@ -100,8 +100,8 @@ const [loading, setLoading] = useState(true);
 // 1. Top level metrics
   const filteredStudents = studentGradeFilter === 'All' ? students : students.filter(s => s.gradeLevel === studentGradeFilter);
   const totalStudents = filteredStudents.length;
-  const maleStudents = filteredStudents.filter(s => s.gender === 'Male').length;
-  const femaleStudents = filteredStudents.filter(s => s.gender === 'Female').length;
+  const maleStudents = filteredStudents.filter(s => s.gender?.toLowerCase() === 'male' || s.gender?.toLowerCase() === 'm').length;
+  const femaleStudents = filteredStudents.filter(s => s.gender?.toLowerCase() === 'female' || s.gender?.toLowerCase() === 'f').length;
   const activeCases = allReports.filter(r => r.recordStatus !== 'RESOLVED' && r.recordStatus !== 'Resolved').length;
   const resolvedCases = allReports.filter(r => r.recordStatus === 'RESOLVED' || r.recordStatus === 'Resolved').length;
   const totalReportsCount = allReports.length;
@@ -479,8 +479,11 @@ const [loading, setLoading] = useState(true);
     const student = studentObjMap.get(r.studentLrn) as Student;
     if (student && student.gradeLevel && student.gender) {
       if (gradeGenderDataMap[student.gradeLevel]) {
-        if (student.gender === 'Male' || student.gender === 'Female') {
-          gradeGenderDataMap[student.gradeLevel][student.gender]++;
+        const sGender = student.gender?.toLowerCase();
+        if (sGender === 'male' || sGender === 'm') {
+          gradeGenderDataMap[student.gradeLevel]['Male']++;
+        } else if (sGender === 'female' || sGender === 'f') {
+          gradeGenderDataMap[student.gradeLevel]['Female']++;
         }
       }
     }

@@ -259,7 +259,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
       let filteredGeneral = reports;
       let filteredCritical = criticalReports;
 
-      if (user.role === 'Admin' || user.role === 'Guidance') {
+      if (user.role === 'Admin' || user.role === 'Guidance' || user.role === 'Department Head') {
         // Admin and Guidance see all records across entire school
       } else if (user.role === 'Adviser') {
         // Advisers see only records of students in their assigned gradeLevel and section
@@ -460,7 +460,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
             </button>
           )}
           
-          {(user.role === 'Admin' || user.role === 'Adviser' || user.role === 'Guidance') && (
+          {(user.role === 'Admin' || user.role === 'Adviser' || user.role === 'Guidance' || user.role === 'Department Head') && (
             <button
               onClick={() => setShowStudentSearch(true)}
               className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-[#76DA0D] hover:bg-slate-50 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 shadow-sm"
@@ -470,7 +470,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
             </button>
           )}
 
-          {(user.role === 'Admin' || user.role === 'Adviser' || user.role === 'Guidance') && (
+          {(user.role === 'Admin' || user.role === 'Adviser' || user.role === 'Guidance' || user.role === 'Department Head') && (
             <button
               onClick={() => setShowCICLReport(true)}
               className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-red-500 hover:bg-red-50/30 text-[#102604] font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 shadow-sm"
@@ -480,7 +480,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
             </button>
           )}
 
-          {(user.role === 'Admin' || user.role === 'Guidance') && (
+          {(user.role === 'Admin' || user.role === 'Guidance' || user.role === 'Department Head') && (
             <button
               onClick={() => setShowAnalytics(!showAnalytics)}
               className={`group flex items-center gap-2 px-4 py-2 border font-bold text-[10px] tracking-widest uppercase transition-all cursor-pointer select-none h-10 shadow-sm ${
@@ -503,7 +503,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
             <span>Profile</span>
           </button>
 
-          {(user.role === 'Admin' || user.role === 'Guidance') && (
+          {(user.role === 'Admin' || user.role === 'Guidance' || user.role === 'Department Head') && (
             <button
               id="view-reports-btn"
               onClick={() => setShowReportsViewer(true)}
@@ -514,7 +514,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
             </button>
           )}
 
-          {(user.role === 'Admin' || user.role === 'Guidance') && (
+          {(user.role === 'Admin' || user.role === 'Guidance' || user.role === 'Department Head') && (
             <button
               id="view-resolved-reports-btn"
               onClick={() => setShowResolvedReportsViewer(true)}
@@ -526,7 +526,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
           )}
 
           {/* Admin Button with Dropdown */}
-          {user.role === 'Admin' && (
+          {(user.role === 'Admin' || user.role === 'Department Head') && (
             <div className="relative">
               <button
                 id="admin-menu-trigger"
@@ -549,16 +549,18 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 shadow-xl z-50 py-1"
                   >
-                    <button
-                      onClick={() => {
-                        setShowDatabaseActions(true);
-                        setShowAdminMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors"
-                    >
-                      <Database size={14} className="text-[#76DA0D]" />
-                      <span>Database</span>
-                    </button>
+                    {user.role === 'Admin' && (
+                      <button
+                        onClick={() => {
+                          setShowDatabaseActions(true);
+                          setShowAdminMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors"
+                      >
+                        <Database size={14} className="text-[#76DA0D]" />
+                        <span>Database</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setShowSectionManager(true);
@@ -985,7 +987,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
         )}
 
         {showAdviserAssignment && (
-          <AdviserAssignmentModal onClose={() => setShowAdviserAssignment(false)} />
+          <AdviserAssignmentModal onClose={() => setShowAdviserAssignment(false)} currentUserRole={user.role} />
         )}
 
         {showSignatorySettingsModal && (

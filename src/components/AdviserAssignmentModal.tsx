@@ -11,9 +11,10 @@ import { useNotification } from "./NotificationProvider";
 
 interface AdviserAssignmentModalProps {
   onClose: () => void;
+  currentUserRole?: string;
 }
 
-const AdviserAssignmentModal: React.FC<AdviserAssignmentModalProps> = ({ onClose }) => {
+const AdviserAssignmentModal: React.FC<AdviserAssignmentModalProps> = ({ onClose, currentUserRole }) => {
   const { notify, confirm } = useNotification();
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [sections, setSections] = useState<{ grade_level: string; section_name: string }[]>([]);
@@ -22,7 +23,7 @@ const AdviserAssignmentModal: React.FC<AdviserAssignmentModalProps> = ({ onClose
   const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
   
   // Assignment State
-  const [assignedRole, setAssignedRole] = useState<'Adviser' | 'Non-Adviser' | 'Guidance' | 'Admin'>('Non-Adviser');
+  const [assignedRole, setAssignedRole] = useState<'Adviser' | 'Non-Adviser' | 'Guidance' | 'Admin' | 'Department Head'>('Non-Adviser');
   const [assignedGrade, setAssignedGrade] = useState("");
   const [assignedSection, setAssignedSection] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -57,10 +58,13 @@ const AdviserAssignmentModal: React.FC<AdviserAssignmentModalProps> = ({ onClose
     fetchData();
   }, []);
 
-  const filteredUsers = users.filter(u => 
-    `${u.firstName} ${u.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users.filter(u => {
+    // Dept Heads cannot manage Admins
+    if (currentUserRole === 'Department Head' && u.role === 'Admin') return false;
+    
+    return `${u.firstName} ${u.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.email.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const handleSelectUser = (user: UserAccount) => {
     setSelectedUser(user);
@@ -156,6 +160,7 @@ const AdviserAssignmentModal: React.FC<AdviserAssignmentModalProps> = ({ onClose
                         <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 border ${
                           u.role === 'Adviser' ? 'border-blue-100 text-blue-600 bg-blue-50' : 
                           u.role === 'Admin' ? 'border-red-100 text-red-600 bg-red-50' :
+                          u.role === 'Department Head' ? 'border-orange-100 text-orange-600 bg-orange-50' :
                           'border-slate-100 text-slate-400'
                         }`}>
                           {u.role || 'Staff'}
@@ -211,7 +216,9 @@ const AdviserAssignmentModal: React.FC<AdviserAssignmentModalProps> = ({ onClose
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Institutional Role</label>
                     <div className="grid grid-cols-2 gap-2">
-                      {(['Non-Adviser', 'Adviser', 'Guidance', 'Admin'] as const).map(role => (
+                      {(['Non-Adviser', 'Adviser', 'Guidance', 'Department Head', 'Admin'] as const)
+                        .filter(role => currentUserRole === 'Department Head' ? role !== 'Admin' : true)
+                        .map(role => (
                         <button
                           key={role}
                           onClick={() => setAssignedRole(role)}

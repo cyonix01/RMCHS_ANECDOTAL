@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, FileText, AlertTriangle, ShieldAlert } from "lucide-react";
+import { X, FileText, AlertTriangle, ShieldAlert, User } from "lucide-react";
 import { Student, Report, CriticalReport } from "../types";
+import { getDriveImageUrl } from "../utils/driveUtils";
 
 function parseRobustDateTime(val: any): Date | null {
   if (val === null || val === undefined) return null;
@@ -124,7 +125,18 @@ export default function StudentReportsViewModal({ student, onClose }: StudentRep
       >
         <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
           <h2 className="font-bold text-sm text-slate-800 uppercase tracking-widest flex items-center gap-2">
-            <FileText size={16} className="text-[#76DA0D]" />
+            {student.profilePictureUrl ? (
+              <img 
+                src={getDriveImageUrl(student.profilePictureUrl)} 
+                alt={student.lastName}
+                className="w-6 h-6 rounded-full object-cover border border-slate-200"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-6 h-6 bg-slate-200 rounded-full flex items-center justify-center shrink-0">
+                <User size={12} className="text-slate-500" />
+              </div>
+            )}
             Reports for {student.lastName}, {student.firstName}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">

@@ -5,8 +5,10 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Download, UploadCloud, CheckCircle2, AlertTriangle, User, Users, Home, BookOpen, Check, ArrowRight, ArrowLeft } from "lucide-react";
+import { X, Download, UploadCloud, CheckCircle2, AlertTriangle, User, Users, Home, BookOpen, Check, ArrowRight, ArrowLeft, Camera, Loader2, Upload } from "lucide-react";
 import { Student } from "../types";
+import Papa from "papaparse";
+import { getDriveImageUrl } from "../utils/driveUtils";
 
 interface RegisterStudentModalProps {
   onClose: () => void;
@@ -38,6 +40,7 @@ const INITIAL_FORM_STATE: Omit<Student, "registeredAt" | "registeredBy"> = {
   lastName: "",
   firstName: "",
   middleName: "",
+  profilePictureUrl: "",
   gradeLevel: "Grade 7",
   section: "",
   gender: "Male",
@@ -70,7 +73,7 @@ const INITIAL_FORM_STATE: Omit<Student, "registeredAt" | "registeredBy"> = {
 };
 
 const CSV_HEADER_COLUMNS = [
-  "lrn", "lastName", "firstName", "middleName", "gradeLevel", "section", "gender", "dateOfBirth",
+  "lrn", "lastName", "firstName", "middleName", "profilePictureUrl", "gradeLevel", "section", "gender", "dateOfBirth",
   "heightCm", "weightKg", "religion", "religionSpecify", "is4ps", "isIndigenous",
   "fatherName", "fatherContact", "fatherIncome", "motherName", "motherContact", "motherIncome",
   "guardianName", "guardianRelationship", "guardianContact", "guardianIncome",
@@ -79,8 +82,8 @@ const CSV_HEADER_COLUMNS = [
 ];
 
 const CSV_TEMPLATE_CONTENT = `${CSV_HEADER_COLUMNS.join(",")}
-123456789012,Dela Cruz,Juan,Mercado,Grade 7,Section A,Male,2013-10-24,152,42,Catholic,,No,No,Ramon Dela Cruz,09171234567,20000,Maria Dela Cruz,09187654321,18000,Maria Dela Cruz,Mother,09187654321,18000,2,1,1st,45,Magsaysay Boulevard,Barangay 58,Quezon City,Face-to-Face,Fiber broadband internet (wifi)
-123456789013,Santos,Maria,Gomez,Grade 8,Section B,Female,2012-04-12,148,39,Muslim,,Yes,No,Jose Santos,09151234567,15000,Ana Santos,09161234567,12000,,,09161234567,12000,3,2,2nd,12,Rizal St,Barangay 2,Manila,Modular (print),Mobile Data`;
+123456789012,Dela Cruz,Juan,Mercado,,Grade 7,Section A,Male,2013-10-24,152,42,Catholic,,No,No,Ramon Dela Cruz,09171234567,20000,Maria Dela Cruz,09187654321,18000,Maria Dela Cruz,Mother,09187654321,18000,2,1,1st,45,Magsaysay Boulevard,Barangay 58,Quezon City,Face-to-Face,Fiber broadband internet (wifi)
+123456789013,Santos,Maria,Gomez,https://drive.google.com/file/d/123/view,Grade 8,Section B,Female,2012-04-12,148,39,Muslim,,Yes,No,Jose Santos,09151234567,15000,Ana Santos,09161234567,12000,,,09161234567,12000,3,2,2nd,12,Rizal St,Barangay 2,Manila,Modular (print),Mobile Data`;
 
 export default function RegisterStudentModal({ onClose, registeredByEmail }: RegisterStudentModalProps) {
   const [method, setMethod] = useState<"individual" | "bulk">("individual");
@@ -103,6 +106,7 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
   const [csvPreview, setCsvPreview] = useState<any[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [csvError, setCsvError] = useState("");
+  const [csvWarning, setCsvWarning] = useState("");
 
   // Loading/submission states
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,6 +116,54 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
   const [validationError, setValidationError] = useState("");
   const [dbStatus, setDbStatus] = useState<{ configured: boolean; error: string | null } | null>(null);
   const [contactType, setContactType] = useState<"father" | "mother" | "guardian">("father");
+
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File is too large. Max size is 5MB.");
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = (event.target?.result as string).split(',')[1];
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file: {
+              base64,
+              name: file.name,
+              mimeType: file.type
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || "Upload failed");
+        }
+
+        const data = await response.json();
+        if (data.url) {
+          setForm(prev => ({ ...prev, profilePictureUrl: data.url }));
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      console.error("Photo upload failed:", err);
+      alert("Photo upload failed: " + err.message);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   React.useEffect(() => {
     fetch("/api/db-status")
@@ -242,84 +294,82 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
     }
   };
 
-  // CSV Parsing
-  const parseCSVLine = (line: string): string[] => {
-    const result: string[] = [];
-    let current = "";
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = "";
-      } else {
-        current += char;
-      }
-    }
-    result.push(current.trim());
-    return result;
-  };
-
   const handleCsvFileLoad = (file: File) => {
-    setCsvError("");
+    setCsvError(""); setCsvWarning("");
     setCsvFile(file);
     
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        const lines = text.split(/\r?\n/);
-        if (lines.length < 2) {
-          throw new Error("CSV file must contain at least headers and one student row.");
-        }
-
-        const headers = parseCSVLine(lines[0]);
-        // Validate headers map the fields properly
-        const invalidHeaders = CSV_HEADER_COLUMNS.filter(col => !headers.includes(col));
-        if (invalidHeaders.length > 5) { // allow some mismatch but flag major issues
-          throw new Error("CSV headers mismatch. Please download and use our official starter template.");
-        }
-
-        const studentsList: any[] = [];
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (!line) continue;
-          
-          const values = parseCSVLine(line);
-          const studentRow: any = {};
-          
-          headers.forEach((header, idx) => {
-            const val = values[idx] || "";
-            // map clean header fields
-            if (CSV_HEADER_COLUMNS.includes(header)) {
-              if (header === "heightCm" || header === "weightKg" || header === "siblingsCount" || header === "siblingsBelow18") {
-                studentRow[header] = Number(val) || 0;
-              } else {
-                studentRow[header] = val;
-              }
-            }
-          });
-
-          // basic row validation
-          if (studentRow.lrn && studentRow.lastName && studentRow.firstName) {
-            studentsList.push(studentRow);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        try {
+          if (results.errors.length > 0) {
+             console.warn("CSV parsing errors:", results.errors);
           }
-        }
+          const rows = results.data as any[];
+          if (rows.length === 0) {
+            throw new Error("CSV file is empty or contains no student rows.");
+          }
 
-        if (studentsList.length === 0) {
-          throw new Error("No valid student records found. Check if LRN, LastName, and FirstName are supplied.");
-        }
+          const headers = results.meta.fields || [];
+          const invalidHeaders = CSV_HEADER_COLUMNS.filter(col => !headers.includes(col));
+          if (invalidHeaders.length > 5) {
+            throw new Error("CSV headers mismatch. Please download and use our official starter template.");
+          }
 
-        setCsvPreview(studentsList);
-      } catch (err: any) {
-        setCsvError(err.message || "Failed to parse CSV file.");
+          let skippedCount = 0;
+          let duplicateCount = 0;
+          const studentsList: any[] = []; 
+          const seenLrns = new Set<string>();
+
+          for (const row of rows) {
+            const studentRow: any = {};
+            
+            headers.forEach((header) => {
+              const val = row[header] ? row[header].toString().trim() : "";
+              if (CSV_HEADER_COLUMNS.includes(header)) {
+                if (header === "heightCm" || header === "weightKg" || header === "siblingsCount" || header === "siblingsBelow18") {
+                  studentRow[header] = Number(val) || 0;
+                } else {
+                  studentRow[header] = val;
+                }
+              }
+            });
+
+            if (studentRow.lrn && studentRow.lastName && studentRow.firstName) {
+              if (!seenLrns.has(studentRow.lrn)) { 
+                seenLrns.add(studentRow.lrn); 
+                studentsList.push(studentRow); 
+              } else {
+                duplicateCount++;
+              }
+            } else {
+              skippedCount++;
+            }
+          }
+
+          if (studentsList.length === 0) {
+            throw new Error("No valid student records found. Ensure LRN, LastName, and FirstName are supplied.");
+          }
+
+          if (skippedCount > 0 || duplicateCount > 0) {
+            console.log(`Loaded ${studentsList.length} rows. Skipped: ${skippedCount} missing required data, ${duplicateCount} duplicates.`);
+            // You can optionally show a toast here if you have a toast system
+          }
+
+          setCsvPreview(studentsList);
+        } catch (err: any) {
+          setCsvError(err.message || "Failed to parse CSV file.");
+          setCsvPreview([]);
+          setCsvFile(null);
+        }
+      },
+      error: (err) => {
+        setCsvError(err.message || "Failed to read CSV file."); setCsvWarning("");
         setCsvPreview([]);
         setCsvFile(null);
       }
-    };
-    reader.readAsText(file);
+    });
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -671,6 +721,71 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                               <option key={`${section}-${index}`} value={section}>{section}</option>
                             ))}
                           </select>
+                        </div>
+                      </div>
+
+                      <div className="mb-6 flex flex-col items-center">
+                        <div className="relative group">
+                          <div className="w-24 h-24 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center overflow-hidden">
+                            {form.profilePictureUrl ? (
+                              <img 
+                                src={getDriveImageUrl(form.profilePictureUrl)} 
+                                alt="Preview" 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Error';
+                                }}
+                              />
+                            ) : (
+                              <User size={40} className="text-slate-300" />
+                            )}
+                            {isUploadingPhoto && (
+                              <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                                <Loader2 size={24} className="text-[#76DA0D] animate-spin" />
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => photoInputRef.current?.click()}
+                            disabled={isUploadingPhoto}
+                            className="absolute bottom-0 right-0 p-2 bg-[#76DA0D] text-white rounded-full shadow-lg hover:bg-[#65ba0b] transition-colors"
+                            title="Upload Profile Picture"
+                          >
+                            <Camera size={14} />
+                          </button>
+                          <input 
+                            type="file" 
+                            ref={photoInputRef}
+                            onChange={handlePhotoUpload}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                        </div>
+                        <p className="text-[9px] uppercase font-bold text-slate-400 mt-2">Student Photo</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-4">
+                        <div>
+                          <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-500 mb-1">Profile Picture (URL or Upload above) <span className="text-xs font-normal text-slate-400 normal-case">(Optional)</span></label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              name="profilePictureUrl"
+                              value={form.profilePictureUrl || ""}
+                              onChange={handleChange}
+                              className="flex-1 px-3 py-2 border border-slate-300 text-xs focus:outline-none focus:border-[#76DA0D]"
+                              placeholder="e.g. https://drive.google.com/file/d/..."
+                            />
+                            <button
+                              type="button"
+                              onClick={() => photoInputRef.current?.click()}
+                              className="px-3 py-2 bg-slate-100 text-slate-600 border border-slate-300 hover:bg-slate-200 transition-colors flex items-center gap-1 text-xs"
+                            >
+                              <Upload size={14} />
+                              <span>Upload</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
 
@@ -1246,6 +1361,12 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                     <div className="p-3 bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2">
                       <AlertTriangle size={14} className="shrink-0" />
                       <span className="font-semibold">{csvError}</span>
+                    </div>
+                  )}
+                  {csvWarning && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+                      <AlertTriangle size={14} className="shrink-0" />
+                      <span className="font-semibold">{csvWarning}</span>
                     </div>
                   )}
 

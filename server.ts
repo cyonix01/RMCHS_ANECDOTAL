@@ -289,6 +289,39 @@ async function startServer() {
   });
 
   // API ROUTE: Save Signatory Settings
+  // API ROUTE: Generic Upload (Supabase with Local Fallback)
+  app.post("/api/upload", async (req, res) => {
+    try {
+      const { file } = req.body;
+      if (!file || !file.base64) {
+        return res.status(400).json({ error: "File data is required." });
+      }
+
+      let savedFileUrl: string | undefined = undefined;
+      let uploadWarning: string | null = null;
+
+      try {
+        console.log(`[UPLOAD] Attempting to upload '${file.name}' to Supabase Storage.`);
+        const uploaded = await uploadFileToSupabaseStorage(file.base64, file.name, file.mimeType);
+        savedFileUrl = uploaded.publicUrl;
+      } catch (uploadErr: any) {
+        console.warn(`[UPLOAD] Supabase upload failed: ${uploadErr.message}. Falling back to local storage.`);
+        try {
+          const localFile = saveFileLocally(file.base64, file.name);
+          savedFileUrl = localFile.fileUrl;
+          uploadWarning = `Supabase upload failed, but file was saved locally.`;
+        } catch (localErr: any) {
+          throw new Error(`Upload failed: Both Supabase and Local storage failed.`);
+        }
+      }
+
+      res.json({ url: savedFileUrl, warning: uploadWarning });
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post("/api/signatories", async (req, res) => {
     try {
       const settings = req.body;

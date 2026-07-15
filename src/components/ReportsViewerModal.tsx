@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, Search, Calendar, FileText, Download, Filter, User, ChevronRight, AlertCircle, ShieldAlert, Clock, Trash2, CheckSquare, Square } from "lucide-react";
 import { Report, CriticalReport } from "../types";
 import { useNotification } from "./NotificationProvider";
+import { getDriveImageUrl } from "../utils/driveUtils";
 
 interface ReportsViewerModalProps {
   onClose: () => void;
@@ -25,6 +26,7 @@ interface CombinedReport {
   id: string | number;
   studentName: string;
   studentLrn: string;
+  profilePictureUrl?: string;
   grade: string;
   section: string;
   issue: string;
@@ -129,6 +131,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   const [statusEdit, setStatusEdit] = useState<'On Going' | 'RESOLVED'>('On Going');
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [movFile, setMovFile] = useState<File | null>(null);
   const [selectedReportIds, setSelectedReportIds] = useState<Set<string | number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
@@ -146,15 +149,16 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
         const critData: CriticalReport[] = await critRes.json();
         const students: any[] = await studentRes.json();
 
-        const studentMap = new Map(students.map(s => [s.lrn, { name: `${s.firstName} ${s.lastName}`, grade: s.gradeLevel, section: s.section }]));
+        const studentMap = new Map(students.map(s => [s.lrn, { name: `${s.firstName} ${s.lastName}`, grade: s.gradeLevel, section: s.section, profilePictureUrl: s.profilePictureUrl }]));
 
         const combined: CombinedReport[] = [
           ...genData.map(r => {
-            const sInfo = studentMap.get(r.studentLrn) || { name: "Unknown Student", grade: "N/A", section: "N/A" };
+            const sInfo = studentMap.get(r.studentLrn) || { name: "Unknown Student", grade: "N/A", section: "N/A", profilePictureUrl: "" };
             return {
               id: r.id || Math.random(),
               studentName: sInfo.name,
               studentLrn: r.studentLrn,
+              profilePictureUrl: sInfo.profilePictureUrl,
               grade: sInfo.grade,
               section: sInfo.section,
               issue: r.issue,
@@ -171,11 +175,12 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
             };
           }),
           ...critData.map(r => {
-            const sInfo = studentMap.get(r.studentLrn) || { name: "Unknown Student", grade: "N/A", section: "N/A" };
+            const sInfo = studentMap.get(r.studentLrn) || { name: "Unknown Student", grade: "N/A", section: "N/A", profilePictureUrl: "" };
             return {
               id: r.id || Math.random(),
               studentName: sInfo.name,
               studentLrn: r.studentLrn,
+              profilePictureUrl: sInfo.profilePictureUrl,
               grade: sInfo.grade,
               section: sInfo.section,
               issue: r.issue,
@@ -741,9 +746,22 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-slate-100 flex items-center justify-center rounded-full shrink-0">
-                            <User size={14} className="text-slate-400" />
-                          </div>
+                          {report.profilePictureUrl ? (
+                            <img 
+                              src={getDriveImageUrl(report.profilePictureUrl)} 
+                              alt={report.studentName}
+                              className="w-8 h-8 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity border border-slate-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewImage(getDriveImageUrl(report.profilePictureUrl));
+                              }}
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 bg-slate-100 flex items-center justify-center rounded-full shrink-0">
+                              <User size={14} className="text-slate-400" />
+                            </div>
+                          )}
                           <div>
                             <p className="text-[11px] font-bold text-[#102604] uppercase tracking-wider">{report.studentName}</p>
                             <p className="text-[9px] font-medium text-slate-400 tabular-nums">LRN: {report.studentLrn}</p>
@@ -1072,6 +1090,33 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                     </button>
                   </div>
                 </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+        
+        <AnimatePresence>
+          {previewImage && (
+            <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={() => setPreviewImage(null)}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="relative max-w-3xl max-h-[90vh]"
+                onClick={e => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => setPreviewImage(null)}
+                  className="absolute -top-12 right-0 p-2 text-white hover:text-slate-200 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+                <img
+                  src={previewImage}
+                  alt="Student Profile"
+                  className="w-full h-auto max-h-[80vh] object-contain rounded shadow-2xl"
+                  referrerPolicy="no-referrer"
+                />
               </motion.div>
             </div>
           )}

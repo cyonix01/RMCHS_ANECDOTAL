@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { X, AlertTriangle } from "lucide-react";
+import { X, AlertTriangle, User } from "lucide-react";
 import { Student, CriticalReport } from "../types";
 import { useNotification } from "./NotificationProvider";
+import { getDriveImageUrl } from "../utils/driveUtils";
 
 interface CriticalReportModalProps {
   student: Student;
@@ -113,8 +114,17 @@ export default function CriticalReportModal({ student, userName, onClose, onSucc
       >
         <div className="p-4 border-b border-red-100 flex justify-between items-center bg-red-50">
           <h2 className="font-bold text-sm text-red-800 uppercase tracking-widest flex items-center gap-2">
-            <AlertTriangle size={16} className="text-red-600" />
-            Critical Incident Report
+            {student.profilePictureUrl ? (
+              <img 
+                src={getDriveImageUrl(student.profilePictureUrl)} 
+                alt={student.lastName}
+                className="w-6 h-6 rounded-full object-cover border border-slate-200"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <AlertTriangle size={16} className="text-red-600" />
+            )}
+            Critical Incident Report - {student.lastName}, {student.firstName}
           </h2>
           <button onClick={onClose} className="text-red-400 hover:text-red-600">
             <X size={18} />

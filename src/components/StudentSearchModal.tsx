@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, X, FileText, AlertTriangle } from "lucide-react";
+import { Search, X, FileText, AlertTriangle, User } from "lucide-react";
 import { Student } from "../types";
 import StudentReportModal from "./StudentReportModal";
 import CriticalReportModal from "./CriticalReportModal";
+import { getDriveImageUrl } from "../utils/driveUtils";
 
 interface StudentSearchModalProps {
   userName: string;
@@ -17,6 +18,7 @@ export default function StudentSearchModal({ userName, onClose, onReportFiled }:
   const [loading, setLoading] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedCriticalStudent, setSelectedCriticalStudent] = useState<Student | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -87,7 +89,27 @@ export default function StudentSearchModal({ userName, onClose, onReportFiled }:
                   {results.map((s) => (
                     <tr key={s.lrn} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 font-mono text-slate-600">{s.lrn}</td>
-                      <td className="px-4 py-3 font-medium text-slate-800">{s.lastName}, {s.firstName} {s.middleName}</td>
+                      <td className="px-4 py-3 font-medium text-slate-800">
+                        <div className="flex items-center gap-2">
+                          {s.profilePictureUrl ? (
+                            <img 
+                              src={getDriveImageUrl(s.profilePictureUrl)} 
+                              alt={s.lastName}
+                              className="w-6 h-6 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity border border-slate-200 shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewImage(getDriveImageUrl(s.profilePictureUrl));
+                              }}
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 bg-slate-100 flex items-center justify-center rounded-full shrink-0">
+                              <User size={10} className="text-slate-400" />
+                            </div>
+                          )}
+                          <span>{s.lastName}, {s.firstName} {s.middleName}</span>
+                        </div>
+                      </td>
                       <td className="px-4 py-3">{s.gradeLevel}</td>
                       <td className="px-4 py-3">{s.section}</td>
                       <td className="px-4 py-3 text-right flex justify-end gap-2">
@@ -131,6 +153,31 @@ export default function StudentSearchModal({ userName, onClose, onReportFiled }:
             onClose={() => setSelectedCriticalStudent(null)} 
             onSuccess={onReportFiled}
           />
+        )}
+        
+        {previewImage && (
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4" onClick={() => setPreviewImage(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative max-w-3xl max-h-[90vh]"
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="absolute -top-12 right-0 p-2 text-white hover:text-slate-200 transition-colors"
+              >
+                <X size={24} />
+              </button>
+              <img
+                src={previewImage}
+                alt="Student Profile"
+                className="w-full h-auto max-h-[80vh] object-contain rounded shadow-2xl"
+                referrerPolicy="no-referrer"
+              />
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>

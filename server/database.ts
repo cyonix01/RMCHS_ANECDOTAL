@@ -495,23 +495,51 @@ export async function searchStudents(query: string): Promise<Student[]> {
 /**
  * Save critical student report.
  */
-/**
- * Save critical student report.
- */
-export async function saveCriticalReport(report: CriticalReport): Promise<any> {
+export async function saveCriticalReport(report: any): Promise<any> {
   const supabase = getSupabaseClient();
+
+  // Handle both camelCase, snake_case, and flat lowercase properties
+  const studentLrn = String(report.studentLrn || report.student_lrn || report.studentlrn || "").trim();
+  const dateOfIncident = report.dateOfIncident || report.date_of_incident || report.dateofincident || "";
+  const timeOfIncident = report.timeOfIncident || report.time_of_incident || report.timeofincident || "";
+  const issue = report.issue || "";
+  const description = report.description || "";
+  const actionTaken = report.actionTaken || report.action_taken || report.actiontaken || "";
+  const recommendation = report.recommendation || "";
+  const reportedBy = report.reportedBy || report.reported_by || report.reportedby || "";
+  const dateReported = report.dateReported || report.date_reported || report.datereported || new Date().toISOString();
+  const recordStatus = report.recordStatus || report.record_status || report.recordstatus || 'On Going';
+
+  if (!studentLrn) {
+    throw new Error("Student LRN is required.");
+  }
+
+  // Ensure student exists in Supabase so the foreign key constraint is satisfied
+  const existingStudent = await getStudentByLrn(studentLrn);
+  if (!existingStudent) {
+    console.log(`[Auto-Register] Student LRN ${studentLrn} not found for Critical Report. Creating placeholder student.`);
+    await createStudent({
+      lrn: studentLrn,
+      firstName: "Pending",
+      lastName: `Student (${studentLrn})`,
+      gradeLevel: "Grade 7",
+      section: "Pending",
+      gender: "Male"
+    });
+  }
+
   const { data, error } = await supabase.from("critical_reports").insert([
     {
-      student_lrn: report.studentLrn,
-      date_of_incident: report.dateOfIncident,
-      time_of_incident: report.timeOfIncident,
-      issue: report.issue,
-      description: report.description,
-      action_taken: report.actionTaken,
-      recommendation: report.recommendation,
-      reported_by: report.reportedBy,
-      date_reported: report.dateReported,
-      record_status: report.recordStatus || 'On Going',
+      student_lrn: studentLrn,
+      date_of_incident: dateOfIncident,
+      time_of_incident: timeOfIncident,
+      issue: issue,
+      description: description,
+      action_taken: actionTaken,
+      recommendation: recommendation,
+      reported_by: reportedBy,
+      date_reported: dateReported,
+      record_status: recordStatus,
     },
   ]);
   if (error) throw error;
@@ -562,27 +590,64 @@ export async function getSectionsByGradeLevel(gradeLevel: string): Promise<strin
 /**
  * Save student report.
  */
-export async function saveReport(report: Report): Promise<any> {
+export async function saveReport(report: any): Promise<any> {
   const supabase = getSupabaseClient();
+
+  // Handle both camelCase, snake_case, and flat lowercase properties
+  const studentLrn = String(report.studentLrn || report.student_lrn || report.studentlrn || "").trim();
+  const dateOfIncident = report.dateOfIncident || report.date_of_incident || report.dateofincident || "";
+  const timeOfIncident = report.timeOfIncident || report.time_of_incident || report.timeofincident || "";
+  const issue = report.issue || "";
+  const description = report.description || "";
+  const actionTaken = report.actionTaken || report.action_taken || report.actiontaken || "";
+  const recommendation = report.recommendation || "";
+  const createdBy = report.createdBy || report.created_by || report.createdby || "";
+  const reportedBy = report.reportedBy || report.reported_by || report.reportedby || "";
+  const dateReported = report.dateReported || report.date_reported || report.datereported || new Date().toISOString();
+  const individualFactors = report.individualFactors || report.individual_factors || report.individualfactors || [];
+  const familyCommunityBehaviorFactors = report.familyCommunityBehaviorFactors || report.family_community_behavior_factors || report.familycommunitybehaviorfactors || [];
+  const referralRecommendation = report.referralRecommendation || report.referral_recommendation || report.referralrecommendation || "";
+  const initialAssessmentMadeBy = report.initialAssessmentMadeBy || report.initial_assessment_made_by || report.initialassessmentmadeby || "";
+  const designation = report.designation || "";
+  const recordStatus = report.recordStatus || report.record_status || report.recordstatus || 'On Going';
+
+  if (!studentLrn) {
+    throw new Error("Student LRN is required.");
+  }
+
+  // Ensure student exists in Supabase so the foreign key constraint is satisfied
+  const existingStudent = await getStudentByLrn(studentLrn);
+  if (!existingStudent) {
+    console.log(`[Auto-Register] Student LRN ${studentLrn} not found for General/CICL Report. Creating placeholder student.`);
+    await createStudent({
+      lrn: studentLrn,
+      firstName: "Pending",
+      lastName: `Student (${studentLrn})`,
+      gradeLevel: "Grade 7",
+      section: "Pending",
+      gender: "Male"
+    });
+  }
+
   const { data, error } = await supabase.from("reports").insert([
     {
-      student_lrn: report.studentLrn,
-      date_of_incident: report.dateOfIncident,
-      time_of_incident: report.timeOfIncident,
-      issue: report.issue,
-      description: report.description,
-      action_taken: report.actionTaken,
-      recommendation: report.recommendation,
+      student_lrn: studentLrn,
+      date_of_incident: dateOfIncident,
+      time_of_incident: timeOfIncident,
+      issue: issue,
+      description: description,
+      action_taken: actionTaken,
+      recommendation: recommendation,
       created_at: new Date().toISOString(),
-      created_by: report.createdBy,
-      reported_by: report.reportedBy,
-      date_reported: report.dateReported,
-      individual_factors: report.individualFactors,
-      family_community_behavior_factors: report.familyCommunityBehaviorFactors,
-      referral_recommendation: report.referralRecommendation,
-      initial_assessment_made_by: report.initialAssessmentMadeBy,
-      designation: report.designation,
-      record_status: report.recordStatus || 'On Going',
+      created_by: createdBy,
+      reported_by: reportedBy,
+      date_reported: dateReported,
+      individual_factors: individualFactors,
+      family_community_behavior_factors: familyCommunityBehaviorFactors,
+      referral_recommendation: referralRecommendation,
+      initial_assessment_made_by: initialAssessmentMadeBy,
+      designation: designation,
+      record_status: recordStatus,
     },
   ]);
   if (error) {
@@ -903,9 +968,47 @@ export async function deleteSection(grade: string, name: string): Promise<void> 
 /**
  * Registers a single student into Supabase with localized JSON write-through backup.
  */
-export async function createStudent(student: Student): Promise<void> {
+export async function createStudent(student: any): Promise<void> {
+  const normalizedStudent: Student = {
+    lrn: String(student.lrn || "").trim(),
+    lastName: student.lastName || student.last_name || "",
+    firstName: student.firstName || student.first_name || "",
+    middleName: student.middleName || student.middle_name || "",
+    gradeLevel: student.gradeLevel || student.grade_level || "Grade 7",
+    section: student.section || "",
+    gender: student.gender || "Male",
+    dateOfBirth: student.dateOfBirth || student.date_of_birth || "",
+    heightCm: Number(student.heightCm || student.height_cm || 0),
+    weightKg: Number(student.weightKg || student.weight_kg || 0),
+    religion: student.religion || "",
+    religionSpecify: student.religionSpecify || student.religion_specify || "",
+    is4ps: student.is4ps || student.is_4ps || "No",
+    isIndigenous: student.isIndigenous || student.is_indigenous || "No",
+    fatherName: student.fatherName || student.father_name || "",
+    fatherContact: student.fatherContact || student.father_contact || "",
+    fatherIncome: student.fatherIncome || student.father_income || "",
+    motherName: student.motherName || student.mother_name || "",
+    motherContact: student.motherContact || student.mother_contact || "",
+    motherIncome: student.motherIncome || student.mother_income || "",
+    guardianName: student.guardianName || student.guardian_name || "",
+    guardianRelationship: student.guardianRelationship || student.guardian_relationship || "",
+    guardianContact: student.guardianContact || student.guardian_contact || "",
+    guardianIncome: student.guardianIncome || student.guardian_income || "",
+    siblingsCount: Number(student.siblingsCount || student.siblings_count || 0),
+    siblingsBelow18: Number(student.siblingsBelow18 || student.siblings_below_18 || 0),
+    ordinalOrder: student.ordinalOrder || student.ordinal_order || "",
+    houseNumber: student.houseNumber || student.house_number || "",
+    street: student.street || "",
+    barangay: student.barangay || "",
+    city: student.city || "",
+    learningModality: student.learningModality || student.learning_modality || "Face-to-Face",
+    internetConnectivity: student.internetConnectivity || student.internet_connectivity || "None",
+    registeredAt: student.registeredAt || student.registered_at || new Date().toISOString(),
+    registeredBy: student.registeredBy || student.registered_by || "",
+  };
+
   // Always update local cache backup
-  saveStudentLocally(student);
+  saveStudentLocally(normalizedStudent);
 
   const supabase = getSupabaseClient();
   if (!supabase) {
@@ -913,7 +1016,7 @@ export async function createStudent(student: Student): Promise<void> {
   }
 
   try {
-    const row = mapStudentToSupabaseRow(student);
+    const row = mapStudentToSupabaseRow(normalizedStudent);
     const { error } = await supabase.from("students").upsert(row);
     if (error) {
       console.error("Supabase upsert student failure, backed up locally:", error);

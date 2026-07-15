@@ -3,6 +3,72 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, FileText, AlertTriangle, ShieldAlert } from "lucide-react";
 import { Student, Report, CriticalReport } from "../types";
 
+function parseRobustDateTime(val: any): Date | null {
+  if (val === null || val === undefined) return null;
+  
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? null : val;
+  }
+  
+  if (typeof val === "number") {
+    const adjusted = val < 10000000000 ? val * 1000 : val;
+    const d = new Date(adjusted);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  
+  if (typeof val === "string") {
+    let trimmed = val.trim();
+    if (!trimmed) return null;
+    
+    if (/^\d+$/.test(trimmed)) {
+      const num = Number(trimmed);
+      const adjusted = num < 10000000000 ? num * 1000 : num;
+      const d = new Date(adjusted);
+      if (!isNaN(d.getTime())) return d;
+    }
+    
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(:\d{2})?(\.\d+)?$/.test(trimmed)) {
+      trimmed = trimmed.replace(/\s+/, 'T');
+    }
+    
+    let d = new Date(trimmed);
+    if (!isNaN(d.getTime())) return d;
+    
+    d = new Date(trimmed.replace(/\//g, '-'));
+    if (!isNaN(d.getTime())) return d;
+  }
+  
+  return null;
+}
+
+function getReportSortValue(report: any): number {
+  if (!report) return 0;
+  
+  const dateReportedVal = report.dateReported;
+  const parsedReported = parseRobustDateTime(dateReportedVal);
+  if (parsedReported) {
+    return parsedReported.getTime();
+  }
+  
+  const dateOfIncidentVal = report.dateOfIncident;
+  const timeOfIncidentVal = report.timeOfIncident;
+  
+  if (dateOfIncidentVal) {
+    const datePart = String(dateOfIncidentVal).trim();
+    const timePart = String(timeOfIncidentVal || "00:00").trim();
+    const parsedIncident = parseRobustDateTime(`${datePart}T${timePart}`);
+    if (parsedIncident) {
+      return parsedIncident.getTime();
+    }
+    const parsedJustDate = parseRobustDateTime(datePart);
+    if (parsedJustDate) {
+      return parsedJustDate.getTime();
+    }
+  }
+  
+  return 0;
+}
+
 interface StudentReportsViewModalProps {
   student: Student;
   onClose: () => void;
@@ -27,7 +93,10 @@ export default function StudentReportsViewModal({ student, onClose }: StudentRep
         if (a.recordStatus !== 'On Going' && b.recordStatus === 'On Going') return 1;
         
         // If statuses are the same (both On Going or both RESOLVED), sort by date
-        return new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime();
+        const valA = getReportSortValue(a);
+        const valB = getReportSortValue(b);
+        if (valA !== valB) return valB - valA;
+        return String(b.id || "").localeCompare(String(a.id || ""));
       });
       
       setReports(studentReports);

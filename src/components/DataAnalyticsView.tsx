@@ -323,6 +323,82 @@ const [loading, setLoading] = useState(true);
       color: COLORS[i % COLORS.length]
     })).slice(0, 7);
 
+  // Helper to filter by Grade and Time for any sub-array
+  const getFilteredByTimeAndGrade = (rawList: any[]) => {
+    let gradeFiltered = studentGradeFilter === 'All' 
+      ? rawList 
+      : rawList.filter(r => {
+          const student = students.find(s => s.lrn === r.studentLrn);
+          return student && student.gradeLevel === studentGradeFilter;
+        });
+
+    const filterToday = new Date();
+    filterToday.setHours(23, 59, 59, 999);
+
+    let finalFiltered = gradeFiltered;
+    if (timeFilter === 'Daily') {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 6);
+      cutoff.setHours(0, 0, 0, 0);
+      finalFiltered = gradeFiltered.filter(r => {
+        const d = new Date(r.dateReported || r.dateOfIncident || r.createdAt || Date.now());
+        return !isNaN(d.getTime()) && d >= cutoff && d <= filterToday;
+      });
+    } else if (timeFilter === 'Weekly') {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 28);
+      cutoff.setHours(0, 0, 0, 0);
+      finalFiltered = gradeFiltered.filter(r => {
+        const d = new Date(r.dateReported || r.dateOfIncident || r.createdAt || Date.now());
+        return !isNaN(d.getTime()) && d > cutoff && d <= filterToday;
+      });
+    } else if (timeFilter === 'Monthly') {
+      const currentYear = filterToday.getFullYear();
+      finalFiltered = gradeFiltered.filter(r => {
+        const d = new Date(r.dateReported || r.dateOfIncident || r.createdAt || Date.now());
+        return !isNaN(d.getTime()) && d.getFullYear() === currentYear;
+      });
+    } else if (timeFilter === 'Yearly') {
+      const cutoffYear = filterToday.getFullYear() - 4;
+      finalFiltered = gradeFiltered.filter(r => {
+        const d = new Date(r.dateReported || r.dateOfIncident || r.createdAt || Date.now());
+        return !isNaN(d.getTime()) && d.getFullYear() >= cutoffYear;
+      });
+    }
+    return finalFiltered;
+  };
+
+  const ciclIssuesList = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
+
+  const rawGeneralReports = reports.filter(r => !ciclIssuesList.includes(r.issue || ""));
+  const rawCriticalReports = criticalReports;
+  const rawCiclReports = reports.filter(r => ciclIssuesList.includes(r.issue || ""));
+
+  const generalFiltered = getFilteredByTimeAndGrade(rawGeneralReports);
+  const criticalFiltered = getFilteredByTimeAndGrade(rawCriticalReports);
+  const ciclFiltered = getFilteredByTimeAndGrade(rawCiclReports);
+
+  const getBreakdownForList = (list: any[]) => {
+    const counts: Record<string, number> = {};
+    list.forEach(r => {
+      const issue = r.issue || 'Others';
+      counts[issue] = (counts[issue] || 0) + 1;
+    });
+    
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, value], i) => ({
+        name: name.length > 20 ? name.substring(0, 20) + '...' : name,
+        value: Number(((value / (list.length || 1)) * 100).toFixed(1)),
+        count: value,
+        color: COLORS[i % COLORS.length]
+      })).slice(0, 7);
+  };
+
+  const generalIssueBreakdown = getBreakdownForList(generalFiltered);
+  const criticalIssueBreakdown = getBreakdownForList(criticalFiltered);
+  const ciclIssueBreakdown = getBreakdownForList(ciclFiltered);
+
   // 4. Case Status
   const statusCounts: Record<string, number> = {};
   filteredReports.forEach(r => {
@@ -660,7 +736,7 @@ const [loading, setLoading] = useState(true);
       {/* Row 3: Charts */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
         {/* Trend Line */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1">
+        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1 md:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-[11px] font-bold text-slate-700 uppercase">Report Trend</h3>
             <select
@@ -710,34 +786,6 @@ const [loading, setLoading] = useState(true);
           </div>
         </div>
 
-        {/* Issue Breakdown Donut */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1 flex flex-col">
-          <h3 className="text-[11px] font-bold text-slate-700 uppercase mb-2">Issue Breakdown <span className="text-slate-400 font-normal capitalize">({timeLabel})</span></h3>
-          <div className="flex-1 flex items-center">
-            <div className="w-1/2 h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={issueBreakdownData} innerRadius={35} outerRadius={60} paddingAngle={0} dataKey="value">
-                    {issueBreakdownData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="w-1/2 flex flex-col gap-1">
-              {issueBreakdownData.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-[10px]">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.color}}></div>
-                    <span className="text-slate-600 font-medium truncate w-20">{item.name}</span>
-                  </div>
-                  <span className="text-slate-800 font-bold">{item.value}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
         {/* Status Donut */}
         <div className="bg-white p-4 rounded border border-slate-200 shadow-sm col-span-1 flex flex-col">
           <h3 className="text-[11px] font-bold text-slate-700 uppercase mb-2">Case Status <span className="text-slate-400 font-normal capitalize">({timeLabel})</span></h3>
@@ -767,6 +815,126 @@ const [loading, setLoading] = useState(true);
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Category-wise Issue Breakdowns */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        {/* General Issues Breakdown */}
+        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm flex flex-col h-[210px]">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">General Issues Breakdown</h3>
+            <span className="text-[9px] bg-slate-100 text-slate-600 font-extrabold px-1.5 py-0.5 rounded">
+              {generalFiltered.length} Case{generalFiltered.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          {generalIssueBreakdown.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+              <p className="text-[10px] italic">No general reports in this period</p>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center min-h-0">
+              <div className="w-1/2 h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={generalIssueBreakdown} innerRadius={28} outerRadius={48} paddingAngle={0} dataKey="value">
+                      {generalIssueBreakdown.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip formatter={(value) => `${value}%`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-1/2 flex flex-col gap-1 overflow-y-auto max-h-full pr-1">
+                {generalIssueBreakdown.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-[10px]">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{backgroundColor: item.color}}></div>
+                      <span className="text-slate-600 font-medium truncate" title={item.name}>{item.name}</span>
+                    </div>
+                    <span className="text-slate-800 font-bold shrink-0">{item.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Critical Issues Breakdown */}
+        <div className="bg-white p-4 rounded border border-red-200 shadow-sm shadow-red-50/50 flex flex-col h-[210px]">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] font-bold text-red-700 uppercase tracking-wider">Critical Issues Breakdown</h3>
+            <span className="text-[9px] bg-red-50 text-red-600 font-extrabold px-1.5 py-0.5 rounded">
+              {criticalFiltered.length} Case{criticalFiltered.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          {criticalIssueBreakdown.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+              <p className="text-[10px] italic">No critical reports in this period</p>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center min-h-0">
+              <div className="w-1/2 h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={criticalIssueBreakdown} innerRadius={28} outerRadius={48} paddingAngle={0} dataKey="value">
+                      {criticalIssueBreakdown.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip formatter={(value) => `${value}%`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-1/2 flex flex-col gap-1 overflow-y-auto max-h-full pr-1">
+                {criticalIssueBreakdown.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-[10px]">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{backgroundColor: item.color}}></div>
+                      <span className="text-slate-600 font-medium truncate" title={item.name}>{item.name}</span>
+                    </div>
+                    <span className="text-slate-800 font-bold shrink-0">{item.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* CICL Issues Breakdown */}
+        <div className="bg-white p-4 rounded border border-orange-200 shadow-sm shadow-orange-50/50 flex flex-col h-[210px]">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] font-bold text-orange-700 uppercase tracking-wider">CICL Issues Breakdown</h3>
+            <span className="text-[9px] bg-orange-50 text-orange-600 font-extrabold px-1.5 py-0.5 rounded">
+              {ciclFiltered.length} Case{ciclFiltered.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          {ciclIssueBreakdown.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+              <p className="text-[10px] italic">No CICL reports in this period</p>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center min-h-0">
+              <div className="w-1/2 h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={ciclIssueBreakdown} innerRadius={28} outerRadius={48} paddingAngle={0} dataKey="value">
+                      {ciclIssueBreakdown.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip formatter={(value) => `${value}%`} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-1/2 flex flex-col gap-1 overflow-y-auto max-h-full pr-1">
+                {ciclIssueBreakdown.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-[10px]">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{backgroundColor: item.color}}></div>
+                      <span className="text-slate-600 font-medium truncate" title={item.name}>{item.name}</span>
+                    </div>
+                    <span className="text-slate-800 font-bold shrink-0">{item.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

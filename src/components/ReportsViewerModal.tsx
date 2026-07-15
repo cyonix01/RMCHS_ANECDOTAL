@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Search, Calendar, FileText, Download, Filter, User, ChevronRight, AlertCircle, ShieldAlert, Clock } from "lucide-react";
+import { X, Search, Calendar, FileText, Download, Filter, User, ChevronRight, AlertCircle, ShieldAlert, Clock, Trash2, CheckSquare, Square } from "lucide-react";
 import { Report, CriticalReport } from "../types";
 import { useNotification } from "./NotificationProvider";
 
@@ -40,6 +40,72 @@ interface CombinedReport {
   recordStatus?: 'On Going' | 'RESOLVED';
 }
 
+function parseRobustDateTime(val: any): Date | null {
+  if (val === null || val === undefined) return null;
+  
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? null : val;
+  }
+  
+  if (typeof val === "number") {
+    const adjusted = val < 10000000000 ? val * 1000 : val;
+    const d = new Date(adjusted);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  
+  if (typeof val === "string") {
+    let trimmed = val.trim();
+    if (!trimmed) return null;
+    
+    if (/^\d+$/.test(trimmed)) {
+      const num = Number(trimmed);
+      const adjusted = num < 10000000000 ? num * 1000 : num;
+      const d = new Date(adjusted);
+      if (!isNaN(d.getTime())) return d;
+    }
+    
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(:\d{2})?(\.\d+)?$/.test(trimmed)) {
+      trimmed = trimmed.replace(/\s+/, 'T');
+    }
+    
+    let d = new Date(trimmed);
+    if (!isNaN(d.getTime())) return d;
+    
+    d = new Date(trimmed.replace(/\//g, '-'));
+    if (!isNaN(d.getTime())) return d;
+  }
+  
+  return null;
+}
+
+function getReportSortValue(report: CombinedReport): number {
+  if (!report) return 0;
+  
+  const dateReportedVal = report.dateReported;
+  const parsedReported = parseRobustDateTime(dateReportedVal);
+  if (parsedReported) {
+    return parsedReported.getTime();
+  }
+  
+  const dateOfIncidentVal = report.dateOfIncident;
+  const timeOfIncidentVal = report.timeOfIncident;
+  
+  if (dateOfIncidentVal) {
+    const datePart = String(dateOfIncidentVal).trim();
+    const timePart = String(timeOfIncidentVal || "00:00").trim();
+    const parsedIncident = parseRobustDateTime(`${datePart}T${timePart}`);
+    if (parsedIncident) {
+      return parsedIncident.getTime();
+    }
+    const parsedJustDate = parseRobustDateTime(datePart);
+    if (parsedJustDate) {
+      return parsedJustDate.getTime();
+    }
+  }
+  
+  return 0;
+}
+
 const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({ 
   onClose, 
   userEmail, 
@@ -64,6 +130,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [movFile, setMovFile] = useState<File | null>(null);
+  const [selectedReportIds, setSelectedReportIds] = useState<Set<string | number>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchAllData = React.useCallback(async () => {
     try {
@@ -138,8 +206,13 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
           filteredCombined = combined.filter(r => r.reportedBy === teacherName);
         }
 
-        // Sort by date descending
-        filteredCombined.sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
+        // Sort by date and time descending
+        filteredCombined.sort((a, b) => {
+          const valA = getReportSortValue(a);
+          const valB = getReportSortValue(b);
+          if (valA !== valB) return valB - valA;
+          return String(b.id).localeCompare(String(a.id));
+        });
         setReports(filteredCombined);
       } else {
         notify("error", "Failed to retrieve institutional records.");
@@ -287,15 +360,126 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
     }
   };
 
+  const handleDeleteReport = async (report: CombinedReport) => {
+    if (!window.confirm(`Are you sure you want to delete this ${report.type} report for ${report.studentName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const endpoint = report.type === 'General' 
+        ? `/api/reports/${report.id}` 
+        : `/api/critical-reports/${report.id}`;
+      
+      const res = await fetch(endpoint, { method: 'DELETE' });
+      if (res.ok) {
+        notify("success", "Report successfully deleted from registry.");
+        setReports(prev => prev.filter(r => !(r.id === report.id && r.type === report.type)));
+        setSelectedReportIds(prev => {
+          const next = new Set(prev);
+          next.delete(`${report.type}-${report.id}`);
+          return next;
+        });
+      } else {
+        const data = await res.json();
+        notify("error", data.error || "Failed to delete report.");
+      }
+    } catch (err) {
+      notify("error", "Connection error while deleting report.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedReportIds.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedReportIds.size} selected reports? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const compositeId of selectedReportIds) {
+      const [type, id] = (compositeId as string).split('-');
+      try {
+        const endpoint = type === 'Critical' ? `/api/critical-reports/${id}` : `/api/reports/${id}`;
+        const res = await fetch(endpoint, { method: 'DELETE' });
+        if (res.ok) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (err) {
+        failCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      notify("success", `Successfully deleted ${successCount} reports.`);
+      setReports(prev => prev.filter(r => !selectedReportIds.has(`${r.type}-${r.id}`)));
+      setSelectedReportIds(new Set());
+    }
+    if (failCount > 0) {
+      notify("error", `Failed to delete ${failCount} reports.`);
+    }
+    setIsDeleting(false);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedReportIds.size === filteredReports.length) {
+      setSelectedReportIds(new Set());
+    } else {
+      const newIds = new Set(filteredReports.map(r => `${r.type}-${r.id}`));
+      setSelectedReportIds(newIds);
+    }
+  };
+
+  const toggleSelectReport = (report: CombinedReport) => {
+    const compositeId = `${report.type}-${report.id}`;
+    setSelectedReportIds(prev => {
+      const next = new Set(prev);
+      if (next.has(compositeId)) {
+        next.delete(compositeId);
+      } else {
+        next.add(compositeId);
+      }
+      return next;
+    });
+  };
+
   const filteredReports = useMemo(() => {
-    return reports.filter(report => {
+    const filtered = reports.filter(report => {
       const matchesSearch = 
         report.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         report.studentLrn.includes(searchQuery);
       
-      const reportDate = new Date(report.dateReported);
-      const matchesStart = startDate ? reportDate >= new Date(startDate) : true;
-      const matchesEnd = endDate ? reportDate <= new Date(endDate) : true;
+      let reportDateStr = "";
+      if (report.dateReported) {
+        try {
+          const d = new Date(report.dateReported);
+          if (!isNaN(d.getTime())) {
+            const trimmedDate = String(report.dateReported).trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(trimmedDate)) {
+              reportDateStr = trimmedDate;
+            } else if (/^\d{4}-\d{2}-\d{2}\s/.test(trimmedDate) || /^\d{4}-\d{2}-\d{2}T/.test(trimmedDate)) {
+              reportDateStr = trimmedDate.substring(0, 10);
+            } else {
+              const year = d.getFullYear();
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              reportDateStr = `${year}-${month}-${day}`;
+            }
+          }
+        } catch (e) {}
+      }
+      if (!reportDateStr && report.dateReported) {
+        reportDateStr = String(report.dateReported).substring(0, 10);
+      }
+
+      const matchesStart = startDate ? reportDateStr >= startDate : true;
+      const matchesEnd = endDate ? reportDateStr <= endDate : true;
       const matchesType = typeFilter === 'All' ? true : report.type === typeFilter;
 
       const status = report.recordStatus || 'On Going';
@@ -306,6 +490,13 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
       }
 
       return matchesSearch && matchesStart && matchesEnd && matchesType;
+    });
+
+    return filtered.sort((a, b) => {
+      const valA = getReportSortValue(a);
+      const valB = getReportSortValue(b);
+      if (valA !== valB) return valB - valA;
+      return String(b.id).localeCompare(String(a.id));
     });
   }, [reports, searchQuery, startDate, endDate, typeFilter, showOnlyResolved]);
 
@@ -479,6 +670,17 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
             <Download size={14} />
             <span>Export CSV</span>
           </button>
+
+          {userRole === 'Admin' && selectedReportIds.size > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={isDeleting}
+              className="px-6 py-2.5 bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-red-700 transition-all flex items-center gap-2 h-[42px] animate-in fade-in slide-in-from-right-2"
+            >
+              <Trash2 size={14} />
+              <span>Delete {selectedReportIds.size}</span>
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 bg-white">
@@ -492,6 +694,20 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
+                    {userRole === 'Admin' && (
+                      <th className="px-6 py-4 w-10">
+                        <button 
+                          onClick={toggleSelectAll}
+                          className="text-slate-400 hover:text-[#102604] transition-colors"
+                        >
+                          {selectedReportIds.size === filteredReports.length && filteredReports.length > 0 ? (
+                            <CheckSquare size={16} className="text-[#102604]" />
+                          ) : (
+                            <Square size={16} />
+                          )}
+                        </button>
+                      </th>
+                    )}
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Date</th>
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Student Identity</th>
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Issue / Incident</th>
@@ -504,6 +720,20 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                 <tbody className="divide-y divide-slate-50">
                   {filteredReports.map((report, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                      {userRole === 'Admin' && (
+                        <td className="px-6 py-5">
+                          <button 
+                            onClick={() => toggleSelectReport(report)}
+                            className="text-slate-400 hover:text-[#102604] transition-colors"
+                          >
+                            {selectedReportIds.has(`${report.type}-${report.id}`) ? (
+                              <CheckSquare size={16} className="text-[#102604]" />
+                            ) : (
+                              <Square size={16} />
+                            )}
+                          </button>
+                        </td>
+                      )}
                       <td className="px-6 py-5 whitespace-nowrap">
                         <p className="text-[11px] font-bold text-slate-900 tabular-nums">
                           {new Date(report.dateReported).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -556,7 +786,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{report.reportedBy}</p>
                       </td>
                       <td className="px-6 py-5">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
                             onClick={() => {
                               setSelectedReportForView(report);
@@ -566,9 +796,20 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                               setShowDetail(true);
                             }}
                             className="p-1 text-slate-400 hover:text-[#102604]"
+                            title="View Details"
                           >
                             <ChevronRight size={18} />
                           </button>
+                          {userRole === 'Admin' && (
+                            <button 
+                              onClick={() => handleDeleteReport(report)}
+                              disabled={isDeleting}
+                              className="p-1 text-slate-400 hover:text-red-600 transition-colors"
+                              title="Delete Report"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

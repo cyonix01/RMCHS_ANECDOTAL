@@ -60,6 +60,98 @@ function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
 
+// Helper to parse arrays from flexible formats
+function parseFlexibleArray(field: any): string[] {
+  if (Array.isArray(field)) {
+    return field.map(String);
+  }
+  if (typeof field === "string") {
+    const trimmed = field.trim();
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map(String);
+        }
+      } catch (e) {}
+    }
+    return trimmed.split(",").map(s => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+// Helper to normalize general reports (handles camelCase, snake_case, and lowercase keys)
+function normalizeGeneralReport(body: any): any {
+  if (!body || typeof body !== "object") return {};
+  
+  const studentLrn = String(body.studentLrn ?? body.student_lrn ?? body.studentlrn ?? "").trim();
+  const dateOfIncident = String(body.dateOfIncident ?? body.date_of_incident ?? body.dateofincident ?? "");
+  const timeOfIncident = String(body.timeOfIncident ?? body.time_of_incident ?? body.timeofincident ?? "");
+  const issue = String(body.issue ?? "");
+  const description = String(body.description ?? "");
+  const actionTaken = String(body.actionTaken ?? body.action_taken ?? body.actiontaken ?? "");
+  const recommendation = String(body.recommendation ?? "");
+  
+  const individualFactors = parseFlexibleArray(body.individualFactors ?? body.individual_factors ?? body.individualfactors);
+  const familyCommunityBehaviorFactors = parseFlexibleArray(body.familyCommunityBehaviorFactors ?? body.family_community_behavior_factors ?? body.familycommunitybehaviorfactors);
+  
+  const referralRecommendation = String(body.referralRecommendation ?? body.referral_recommendation ?? body.referralrecommendation ?? "");
+  const initialAssessmentMadeBy = String(body.initialAssessmentMadeBy ?? body.initial_assessment_made_by ?? body.initialassessmentmadeby ?? "");
+  const designation = String(body.designation ?? "");
+  const recordStatus = String(body.recordStatus ?? body.record_status ?? body.recordstatus ?? "On Going");
+  const createdBy = String(body.createdBy ?? body.created_by ?? body.createdby ?? "");
+  const reportedBy = String(body.reportedBy ?? body.reported_by ?? body.reportedby ?? "");
+  const dateReported = String(body.dateReported ?? body.date_reported ?? body.datereported ?? new Date().toISOString());
+  
+  return {
+    studentLrn,
+    dateOfIncident,
+    timeOfIncident,
+    issue,
+    description,
+    actionTaken,
+    recommendation,
+    individualFactors,
+    familyCommunityBehaviorFactors,
+    referralRecommendation,
+    initialAssessmentMadeBy,
+    designation,
+    recordStatus,
+    createdBy,
+    reportedBy,
+    dateReported
+  };
+}
+
+// Helper to normalize critical reports
+function normalizeCriticalReport(body: any): any {
+  if (!body || typeof body !== "object") return {};
+  
+  const studentLrn = String(body.studentLrn ?? body.student_lrn ?? body.studentlrn ?? "").trim();
+  const dateOfIncident = String(body.dateOfIncident ?? body.date_of_incident ?? body.dateofincident ?? "");
+  const timeOfIncident = String(body.timeOfIncident ?? body.time_of_incident ?? body.timeofincident ?? "");
+  const issue = String(body.issue ?? "");
+  const description = String(body.description ?? "");
+  const actionTaken = String(body.actionTaken ?? body.action_taken ?? body.actiontaken ?? "");
+  const recommendation = String(body.recommendation ?? "");
+  const reportedBy = String(body.reportedBy ?? body.reported_by ?? body.reportedby ?? "");
+  const dateReported = String(body.dateReported ?? body.date_reported ?? body.datereported ?? new Date().toISOString());
+  const recordStatus = String(body.recordStatus ?? body.record_status ?? body.recordstatus ?? "On Going");
+  
+  return {
+    studentLrn,
+    dateOfIncident,
+    timeOfIncident,
+    issue,
+    description,
+    actionTaken,
+    recommendation,
+    reportedBy,
+    dateReported,
+    recordStatus
+  };
+}
+
 function getGoogleCredentials() {
   let saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   let saPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
@@ -633,7 +725,7 @@ async function startServer() {
   // API ROUTE 7: Save Report
   app.post("/api/reports", async (req, res) => {
     try {
-      const report = req.body;
+      const report = normalizeGeneralReport(req.body);
       await saveReport(report);
 
       try {
@@ -765,7 +857,7 @@ async function startServer() {
   // API ROUTE 7.5: Save Critical Report
   app.post("/api/critical-reports", async (req, res) => {
     try {
-      const report = req.body;
+      const report = normalizeCriticalReport(req.body);
       await saveCriticalReport(report);
 
       try {

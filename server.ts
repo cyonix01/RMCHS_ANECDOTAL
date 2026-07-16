@@ -301,17 +301,17 @@ async function startServer() {
       let uploadWarning: string | null = null;
 
       try {
-        console.log(`[UPLOAD] Attempting to upload '${file.name}' to Supabase Storage.`);
-        const uploaded = await uploadFileToSupabaseStorage(file.base64, file.name, file.mimeType);
-        savedFileUrl = uploaded.publicUrl;
+        console.log(`[UPLOAD] Attempting to upload '${file.name}' to Google Drive.`);
+        const uploaded = await uploadFileToGoogleDrive(file.base64, file.name, file.mimeType, '1Z4yhxeX8q1as5cInrQByxnszhSJp5t5Y');
+        savedFileUrl = uploaded.webViewLink || "";
       } catch (uploadErr: any) {
-        console.warn(`[UPLOAD] Supabase upload failed: ${uploadErr.message}. Falling back to local storage.`);
+        console.warn(`[UPLOAD] Google Drive upload failed: ${uploadErr.message}. Falling back to local storage.`);
         try {
           const localFile = saveFileLocally(file.base64, file.name);
           savedFileUrl = localFile.fileUrl;
-          uploadWarning = `Supabase upload failed, but file was saved locally.`;
+          uploadWarning = `Google Drive upload failed, but file was saved locally.`;
         } catch (localErr: any) {
-          throw new Error(`Upload failed: Both Supabase and Local storage failed.`);
+          throw new Error(`Upload failed: Both Google Drive and Local storage failed.`);
         }
       }
 
@@ -855,27 +855,27 @@ async function startServer() {
         }
 
         try {
-          console.log(`[MOV-UPLOAD] Attempting to upload '${file.name}' to Supabase Storage 'MOVs' bucket.`);
-          const uploaded = await uploadFileToSupabaseStorage(file.base64, file.name, file.mimeType);
-          savedFileUrl = uploaded.publicUrl;
-          savedFileName = uploaded.fileName;
+          console.log(`[MOV-UPLOAD] Attempting to upload '${file.name}' to Google Drive.`);
+          const uploaded = await uploadFileToGoogleDrive(file.base64, file.name, file.mimeType, '1oWyTYIY2piGBHGpbUS6lUtuYlOnMxnBB');
+          savedFileUrl = uploaded.webViewLink || "";
+          savedFileName = uploaded.name || file.name;
           // Set driveFile for backwards compatibility with the client success link
           driveFile = { webViewLink: savedFileUrl };
-          console.log(`[MOV-UPLOAD] Upload successful! Public URL: ${savedFileUrl}`);
+          console.log(`[MOV-UPLOAD] Upload successful! WebViewLink: ${savedFileUrl}`);
         } catch (uploadErr: any) {
-          console.error("Failed to upload MOV to Supabase Storage 'MOVs' bucket:", uploadErr);
+          console.error("Failed to upload MOV to Google Drive:", uploadErr);
           const errMsg = uploadErr.message || String(uploadErr);
-          console.warn(`Supabase Storage upload failed (${errMsg}). Falling back to local server storage.`);
+          console.warn(`Google Drive upload failed (${errMsg}). Falling back to local server storage.`);
           
           try {
             const localFile = saveFileLocally(file.base64, file.name);
             savedFileUrl = localFile.fileUrl;
             savedFileName = file.name;
             driveFile = { webViewLink: savedFileUrl };
-            driveUploadWarning = `Supabase storage upload failed (${errMsg}). File successfully saved to Local Server Storage instead!`;
+            driveUploadWarning = `Google Drive upload failed (${errMsg}). File successfully saved to Local Server Storage instead!`;
           } catch (localErr: any) {
-            console.error("Local storage fallback failed after Supabase upload failed:", localErr);
-            driveUploadWarning = `Supabase storage upload failed (${errMsg}) and Local Storage also failed (${localErr.message})`;
+            console.error("Local storage fallback failed after Google Drive upload failed:", localErr);
+            driveUploadWarning = `Google Drive upload failed (${errMsg}) and Local Storage also failed (${localErr.message})`;
           }
         }
       }

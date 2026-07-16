@@ -61,7 +61,7 @@ export default function StudentSearchModal({ userName, onClose, onReportFiled }:
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               className="flex-1 px-3 py-2 border border-slate-300 text-xs focus:outline-none focus:border-[#76DA0D]"
-              placeholder="Search by LRN or Last Name..."
+              placeholder="Search by LRN, Name, or Section..."
             />
             <button 
               onClick={handleSearch}

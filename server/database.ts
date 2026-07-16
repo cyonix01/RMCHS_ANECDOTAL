@@ -494,17 +494,18 @@ function mapStudentToSupabaseRow(student: Student) {
 }
 
 /**
- * Search students by LRN or Last Name.
+ * Search students by LRN, First Name, Last Name, or Section Name.
  */
 export async function searchStudents(query: string): Promise<Student[]> {
-  const supabase = getSupabaseClient();
   const allStudents = await getAllStudents();
   const lowerQuery = query.toLowerCase().trim();
 
   return allStudents.filter(
     (s) =>
       s.lrn.toLowerCase().includes(lowerQuery) ||
-      s.lastName.toLowerCase().includes(lowerQuery)
+      s.firstName.toLowerCase().includes(lowerQuery) ||
+      s.lastName.toLowerCase().includes(lowerQuery) ||
+      s.section.toLowerCase().includes(lowerQuery)
   );
 }
 
@@ -1525,7 +1526,7 @@ export async function saveSignatorySettings(settings: SignatorySettings): Promis
 
   try {
     const row = mapSignatorySettingsToSupabaseRow(updatedWithTime);
-    const { error } = await supabase.from("signatory_settings").upsert(row, { onConflict: "lrn", ignoreDuplicates: true });
+    const { error } = await supabase.from("signatory_settings").upsert(row, { onConflict: "id", ignoreDuplicates: true });
     if (error) {
       console.error("Supabase saveSignatorySettings failure:", error);
     } else {

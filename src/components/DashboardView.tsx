@@ -526,7 +526,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
           )}
 
           {/* Admin Button with Dropdown */}
-          {(user.role === 'Admin' || user.role === 'Department Head') && (
+          {(user.role === 'Admin' || user.role === 'Department Head' || user.role === 'Adviser') && (
             <div className="relative">
               <button
                 id="admin-menu-trigger"
@@ -538,7 +538,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
                 }`}
               >
                 <ShieldAlert size={14} className={showAdminMenu ? "text-[#76DA0D]" : "text-red-500"} />
-                <span>Admin</span>
+                <span>{user.role === 'Adviser' ? 'Settings' : 'Admin'}</span>
               </button>
 
               <AnimatePresence>
@@ -561,26 +561,30 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
                         <span>Database</span>
                       </button>
                     )}
-                    <button
-                      onClick={() => {
-                        setShowSectionManager(true);
-                        setShowAdminMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors"
-                    >
-                      <Layers size={14} className="text-blue-500" />
-                      <span>Sections</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowAdviserAssignment(true);
-                        setShowAdminMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors"
-                    >
-                      <UserPlus size={14} className="text-[#76DA0D]" />
-                      <span>Set Adviser</span>
-                    </button>
+                    {(user.role === 'Admin' || user.role === 'Department Head') && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setShowSectionManager(true);
+                            setShowAdminMenu(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors"
+                        >
+                          <Layers size={14} className="text-blue-500" />
+                          <span>Sections</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowAdviserAssignment(true);
+                            setShowAdminMenu(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors"
+                        >
+                          <UserPlus size={14} className="text-[#76DA0D]" />
+                          <span>Set Adviser</span>
+                        </button>
+                      </>
+                    )}
                     <button
                       onClick={() => {
                         setShowSignatorySettingsModal(true);

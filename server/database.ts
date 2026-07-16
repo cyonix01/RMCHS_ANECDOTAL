@@ -1376,7 +1376,8 @@ export async function getStudentByLrn(lrn: string): Promise<Student | null> {
 export async function uploadFileToSupabaseStorage(
   base64Data: string,
   fileName: string,
-  mimeType: string
+  mimeType: string,
+  bucket: string = "uploads"
 ): Promise<{ fileName: string; publicUrl: string }> {
   const supabase = getSupabaseClient();
   if (!supabase) {
@@ -1390,20 +1391,20 @@ export async function uploadFileToSupabaseStorage(
   const buffer = Buffer.from(base64Data, "base64");
 
   const { data, error } = await supabase.storage
-    .from("MOVs")
+    .from(bucket)
     .upload(uniqueFileName, buffer, {
       contentType: mimeType,
       upsert: true,
     });
 
   if (error) {
-    console.error("Supabase Storage upload error details:", error);
+    console.error(`Supabase Storage upload error details (${bucket}):`, error);
     throw error;
   }
 
   // Get public URL
   const { data: publicUrlData } = supabase.storage
-    .from("MOVs")
+    .from(bucket)
     .getPublicUrl(uniqueFileName);
 
   if (!publicUrlData || !publicUrlData.publicUrl) {

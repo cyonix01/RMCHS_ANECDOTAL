@@ -8,7 +8,6 @@ import * as path from "path";
 import * as fs from "fs";
 import * as crypto from "crypto";
 import { createServer as createViteServer } from "vite";
-import { google } from "googleapis";
 import { Readable } from "stream";
 import dotenv from "dotenv";
 
@@ -152,89 +151,7 @@ function normalizeCriticalReport(body: any): any {
   };
 }
 
-function getGoogleCredentials() {
-  let saEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  let saPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
 
-  if (saEmail) {
-    saEmail = saEmail.trim();
-    if (saEmail.startsWith('"') && saEmail.endsWith('"')) saEmail = saEmail.slice(1, -1);
-    if (saEmail.startsWith("'") && saEmail.endsWith("'")) saEmail = saEmail.slice(1, -1);
-  }
-
-  if (saPrivateKey) {
-    saPrivateKey = saPrivateKey.trim();
-    if (saPrivateKey.startsWith('"') && saPrivateKey.endsWith('"')) saPrivateKey = saPrivateKey.slice(1, -1);
-    if (saPrivateKey.startsWith("'") && saPrivateKey.endsWith("'")) saPrivateKey = saPrivateKey.slice(1, -1);
-  }
-
-  if (saPrivateKey && saPrivateKey.trim().startsWith("{")) {
-    try {
-      const parsed = JSON.parse(saPrivateKey);
-      saPrivateKey = parsed.private_key;
-      saEmail = parsed.client_email || saEmail;
-    } catch (err) {
-      console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY as JSON:", err);
-    }
-  }
-
-  return { saEmail, saPrivateKey };
-}
-
-async function uploadFileToGoogleDrive(
-  base64Data: string,
-  fileName: string,
-  mimeType: string,
-  folderId: string
-) {
-  const { saEmail, saPrivateKey } = getGoogleCredentials();
-
-  if (!saEmail || !saPrivateKey) {
-    throw new Error("Google Service Account credentials are not configured in environment variables.");
-  }
-
-  console.log(`[GAPI] Initializing JWT client. Service Account Email: ${saEmail}`);
-  const auth = new google.auth.JWT({
-    email: saEmail,
-    key: saPrivateKey.replace(/\\n/g, "\n"),
-    scopes: ["https://www.googleapis.com/auth/drive"]
-  });
-
-  console.log("[GAPI] Requesting/refreshing authorization token...");
-  const credentials = await auth.authorize();
-  if (!credentials.access_token) {
-    throw new Error("Google GAPI Authorization failed: Access token was not retrieved successfully.");
-  }
-  console.log("[GAPI] Authorization token successfully refreshed and verified! Token length:", credentials.access_token.length);
-
-  const drive = google.drive({ version: "v3", auth });
-
-  const buffer = Buffer.from(base64Data, "base64");
-  const mediaStream = new Readable();
-  mediaStream.push(buffer);
-  mediaStream.push(null);
-
-  const fileMetadata = {
-    name: fileName,
-    parents: [folderId],
-  };
-
-  const media = {
-    mimeType: mimeType,
-    body: mediaStream,
-  };
-
-  console.log(`[GAPI] Executing file upload for '${fileName}' into folder '${folderId}'...`);
-  const response = await drive.files.create({
-    requestBody: fileMetadata,
-    media: media,
-    supportsAllDrives: true,
-    fields: "id, name, webViewLink",
-  });
-
-  console.log("[GAPI] File upload succeeded. Drive File ID:", response.data.id);
-  return response.data;
-}
 
 function saveFileLocally(base64Data: string, fileName: string): { fileName: string; fileUrl: string } {
   const uploadDir = path.join(process.cwd(), "data", "uploads");
@@ -301,9 +218,9 @@ async function startServer() {
       let uploadWarning: string | null = null;
 
       try {
-        console.log(`[UPLOAD] Attempting to upload '${file.name}' to Google Drive.`);
-        const uploaded = await uploadFileToGoogleDrive(file.base64, file.name, file.mimeType, '1Z4yhxeX8q1as5cInrQByxnszhSJp5t5Y');
-        savedFileUrl = uploaded.webViewLink || "";
+        console.log(`[UPLOAD] Attempting to upload '${file.name}' to Supabase Storage.`);
+        const uploaded = await uploadFileToSupabaseStorage(file.base64, file.name, file.mimeType, 'id-pictures');
+        savedFileUrl = uploaded.publicUrl || "";
       } catch (uploadErr: any) {
         console.warn(`[UPLOAD] Google Drive upload failed: ${uploadErr.message}. Falling back to local storage.`);
         try {
@@ -855,17 +772,17 @@ async function startServer() {
         }
 
         try {
-          console.log(`[MOV-UPLOAD] Attempting to upload '${file.name}' to Google Drive.`);
-          const uploaded = await uploadFileToGoogleDrive(file.base64, file.name, file.mimeType, '1oWyTYIY2piGBHGpbUS6lUtuYlOnMxnBB');
-          savedFileUrl = uploaded.webViewLink || "";
-          savedFileName = uploaded.name || file.name;
+          console.log(`[MOV-UPLOAD] Attempting to upload '${file.name}' to Supabase Storage.`);
+          const uploaded = await uploadFileToSupabaseStorage(file.base64, file.name, file.mimeType, 'MOVs');
+          savedFileUrl = uploaded.publicUrl || "";
+          savedFileName = uploaded.fileName || file.name;
           // Set driveFile for backwards compatibility with the client success link
           driveFile = { webViewLink: savedFileUrl };
-          console.log(`[MOV-UPLOAD] Upload successful! WebViewLink: ${savedFileUrl}`);
+          console.log(`[MOV-UPLOAD] Upload successful! PublicUrl: ${savedFileUrl}`);
         } catch (uploadErr: any) {
-          console.error("Failed to upload MOV to Google Drive:", uploadErr);
+          console.error("Failed to upload MOV to Supabase Storage:", uploadErr);
           const errMsg = uploadErr.message || String(uploadErr);
-          console.warn(`Google Drive upload failed (${errMsg}). Falling back to local server storage.`);
+          console.warn(`Supabase Storage upload failed (${errMsg}). Falling back to local server storage.`);
           
           try {
             const localFile = saveFileLocally(file.base64, file.name);

@@ -797,7 +797,12 @@ async function startServer() {
         }
       }
 
-      await updateReportStatus(Number(id), status, type, savedFileUrl, savedFileName);
+      let finalStatus = status;
+      if (savedFileUrl) {
+        finalStatus = 'RESOLVED';
+      }
+
+      await updateReportStatus(Number(id), finalStatus, type, savedFileUrl, savedFileName);
       res.json({ message: "Status updated successfully", warning: driveUploadWarning, driveFile, savedFileUrl });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

@@ -722,7 +722,7 @@ export async function getAllReports(): Promise<Report[]> {
       familyFactors: row.family_factors || [],
       schoolFactors: row.school_factors || [],
       communityFactors: row.community_factors || [],
-      caseStatus: row.case_status,
+      recordStatus: row.record_status,
       closureDate: row.closure_date,
     }));
   } catch (err) {
@@ -770,7 +770,7 @@ export async function getAllCriticalReports(): Promise<CriticalReport[]> {
       reportedBy: row.reported_by,
       dateReported: row.date_reported,
       lastUpdatedBy: row.last_updated_by,
-      status: row.status,
+      recordStatus: row.record_status,
       closureDate: row.closure_date,
     }));
   } catch (err) {

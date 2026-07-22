@@ -1551,3 +1551,98 @@ export async function saveSignatorySettings(settings: SignatorySettings): Promis
 
 
 
+
+// ==========================================
+// ADMIN PASSWORDS OPERATIONS
+// ==========================================
+
+import { AdminPasswords } from "../src/types";
+
+const ADMIN_PASSWORDS_DB_PATH = path.join(LOCAL_DB_DIR, "admin_passwords.json");
+
+export function getAdminPasswordsLocally(): AdminPasswords {
+  try {
+    if (fs.existsSync(ADMIN_PASSWORDS_DB_PATH)) {
+      const data = fs.readFileSync(ADMIN_PASSWORDS_DB_PATH, "utf-8");
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error("Failed to load local admin passwords:", err);
+  }
+  return {
+    clearReports: "NoMoreReporting",
+    clearStudents: "VacationTime",
+    deleteTeacher: "HolidayTime"
+  };
+}
+
+export function saveAdminPasswordsLocally(settings: AdminPasswords): void {
+  try {
+    fs.writeFileSync(ADMIN_PASSWORDS_DB_PATH, JSON.stringify(settings, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to save local admin passwords:", err);
+  }
+}
+
+export async function getAdminPasswords(): Promise<AdminPasswords> {
+  const localSettings = getAdminPasswordsLocally();
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return localSettings;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("admin_passwords")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (error) {
+      if (error.code !== "PGRST116" && error.code !== "PGRST205" && !error.message?.includes("does not exist") && error.code !== "42P01") {
+        console.error("Supabase getAdminPasswords error:", error);
+      }
+      return localSettings;
+    }
+
+    if (data) {
+      const mapped = {
+        clearReports: data.clear_reports || "NoMoreReporting",
+        clearStudents: data.clear_students || "VacationTime",
+        deleteTeacher: data.delete_teacher || "HolidayTime"
+      };
+      saveAdminPasswordsLocally(mapped);
+      return mapped;
+    } else {
+      return localSettings;
+    }
+  } catch (err) {
+    console.error("Supabase getAdminPasswords exception:", err);
+    return localSettings;
+  }
+}
+
+export async function saveAdminPasswords(settings: AdminPasswords): Promise<AdminPasswords> {
+  saveAdminPasswordsLocally(settings);
+
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return settings;
+  }
+
+  try {
+    const row = {
+      id: 1,
+      clear_reports: settings.clearReports,
+      clear_students: settings.clearStudents,
+      delete_teacher: settings.deleteTeacher
+    };
+    const { error } = await supabase.from("admin_passwords").upsert(row, { onConflict: "id", ignoreDuplicates: true });
+    if (error) {
+      console.error("Supabase saveAdminPasswords failure:", error);
+    }
+  } catch (err) {
+    console.error("Supabase saveAdminPasswords exception:", err);
+  }
+  return settings;
+}

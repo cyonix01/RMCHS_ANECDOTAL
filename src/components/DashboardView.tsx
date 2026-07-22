@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { LogOut, Settings2, ShieldCheck, Sun, Clock, Calendar, Compass, Clipboard, UserPlus, FileText, Table, BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight, ShieldAlert, Database, Layers, Trash2, Plus, Edit, Download, CheckSquare, Square, UserCheck } from "lucide-react";
+import { LogOut, Shield, Settings2, ShieldCheck, Sun, Clock, Calendar, Compass, Clipboard, UserPlus, FileText, Table, BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight, ShieldAlert, Database, Layers, Trash2, Plus, Edit, Download, CheckSquare, Square, UserCheck } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { UserAccount, Report, CriticalReport } from "../types";
 import AccountSettingsView from "./AccountSettingsView";
@@ -17,6 +17,7 @@ import SectionManagerModal from "./SectionManagerModal";
 import ReportsViewerModal from "./ReportsViewerModal";
 import AdviserAssignmentModal from "./AdviserAssignmentModal";
 import SignatorySettingsModal from "./SignatorySettingsModal";
+import { AdminPasswordsModal } from "./AdminPasswordsModal";
 import NotificationBell from "./NotificationBell";
 import { useNotification } from "./NotificationProvider";
 import StudentListDashboard from "./StudentListDashboard";
@@ -149,6 +150,9 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
   const [reportsViewerQuery, setReportsViewerQuery] = useState("");
   const [showAdviserAssignment, setShowAdviserAssignment] = useState(false);
   const [showSignatorySettingsModal, setShowSignatorySettingsModal] = useState(false);
+  const [showAdminPasswordsModal, setShowAdminPasswordsModal] = useState(false);
+  const [adminAction, setAdminAction] = useState<{ type: string, email?: string } | null>(null);
+  const [adminActionPassword, setAdminActionPassword] = useState("");
   const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<{ month: string; count: number }[]>([]);
   const [topStudents, setTopStudents] = useState<{ name: string; lrn: string; count: number }[]>([]);
@@ -622,6 +626,16 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
                       <UserCheck size={14} className="text-orange-500" />
                       <span>Signatories</span>
                     </button>
+                    <button
+                      onClick={() => {
+                        setShowAdminPasswordsModal(true);
+                        setShowAdminMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors border-t border-slate-100"
+                    >
+                      <Shield size={14} className="text-blue-500" />
+                      <span>Admin Passwords</span>
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -887,6 +901,8 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
               <div className="p-6 space-y-4">
                 <button
                   onClick={() => {
+                    const pwd = prompt("Enter password to clear reports:");
+                    if (!pwd) return;
                     confirm({
                       title: "Clear Reports",
                       message: "Are you sure you want to clear ALL student reports? This action is permanent and cannot be undone.",
@@ -894,9 +910,12 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
                       variant: "danger",
                       onConfirm: async () => {
                         try {
-                          const res = await fetch("/api/admin/clear-reports", { method: "DELETE" });
+                          const res = await fetch(`/api/admin/clear-reports?password=${encodeURIComponent(pwd)}`, { method: "DELETE" });
                           if (res.ok) notify("success", "Institutional reports cleared successfully.");
-                          else notify("error", "System failed to clear reports.");
+                          else {
+                            const errData = await res.json().catch(()=>({}));
+                            notify("error", errData.error || "System failed to clear reports.");
+                          }
                         } catch (e) { notify("error", "Network error during database operation."); }
                       }
                     });
@@ -912,6 +931,8 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
 
                 <button
                   onClick={() => {
+                    const pwd = prompt("Enter password to clear student registry:");
+                    if (!pwd) return;
                     confirm({
                       title: "Clear Student Registry",
                       message: "Are you sure you want to clear ALL registered students? This will remove all student records from the portal.",
@@ -919,9 +940,12 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
                       variant: "danger",
                       onConfirm: async () => {
                         try {
-                          const res = await fetch("/api/admin/clear-students", { method: "DELETE" });
+                          const res = await fetch(`/api/admin/clear-students?password=${encodeURIComponent(pwd)}`, { method: "DELETE" });
                           if (res.ok) notify("success", "Student registry cleared successfully.");
-                          else notify("error", "System failed to clear student registry.");
+                          else {
+                            const errData = await res.json().catch(()=>({}));
+                            notify("error", errData.error || "System failed to clear student registry.");
+                          }
                         } catch (e) { notify("error", "Network error during registry operation."); }
                       }
                     });
@@ -939,6 +963,8 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
                   onClick={() => {
                     const email = prompt("Enter the teacher's email/username to delete:");
                     if (email) {
+                      const pwd = prompt("Enter password to delete teacher account:");
+                      if (!pwd) return;
                       confirm({
                         title: "Delete Staff Account",
                         message: `Are you sure you want to permanently delete account: ${email}? This user will lose all access immediately.`,
@@ -946,10 +972,10 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
                         variant: "danger",
                         onConfirm: async () => {
                           try {
-                            const res = await fetch(`/api/admin/delete-teacher?email=${encodeURIComponent(email)}`, { method: "DELETE" });
+                            const res = await fetch(`/api/admin/delete-teacher?email=${encodeURIComponent(email)}&password=${encodeURIComponent(pwd)}`, { method: "DELETE" });
                             if (res.ok) notify("success", "Teacher account deleted successfully.");
                             else {
-                              const data = await res.json();
+                              const data = await res.json().catch(()=>({}));
                               notify("error", data.error || "Failed to delete account.");
                             }
                           } catch (e) { notify("error", "Network error during account deletion."); }
@@ -1041,6 +1067,10 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
 
         {showSignatorySettingsModal && (
           <SignatorySettingsModal onClose={() => setShowSignatorySettingsModal(false)} />
+        )}
+        
+        {showAdminPasswordsModal && (
+          <AdminPasswordsModal onClose={() => setShowAdminPasswordsModal(false)} />
         )}
 
         {showRegisterStudent && (

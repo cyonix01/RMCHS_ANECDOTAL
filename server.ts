@@ -50,6 +50,8 @@ import {
   getStudentByLrn,
   uploadFileToSupabaseStorage,
   getSignatorySettings,
+  getAdminPasswords,
+  saveAdminPasswords,
   saveSignatorySettings
 } from "./server/database";
 import { UserAccount, Student, AppNotification } from "./src/types";
@@ -963,9 +965,34 @@ async function startServer() {
     }
   });
 
-  // ADMIN API: Clear Reports
+    // ADMIN API: Admin Passwords
+  app.get("/api/admin/passwords", async (req, res) => {
+    try {
+      const passwords = await getAdminPasswords();
+      res.json(passwords);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admin/passwords", async (req, res) => {
+    try {
+      const newPasswords = req.body;
+      const saved = await saveAdminPasswords(newPasswords);
+      res.json(saved);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+// ADMIN API: Clear Reports
   app.delete("/api/admin/clear-reports", async (req, res) => {
     try {
+      const { password } = req.query;
+      const passwords = await getAdminPasswords();
+      if (password !== passwords.clearReports) {
+        return res.status(401).json({ error: "Invalid password." });
+      }
       await clearAllReports();
       res.json({ message: "All reports cleared." });
     } catch (err: any) {
@@ -976,6 +1003,11 @@ async function startServer() {
   // ADMIN API: Clear Students
   app.delete("/api/admin/clear-students", async (req, res) => {
     try {
+      const { password } = req.query;
+      const passwords = await getAdminPasswords();
+      if (password !== passwords.clearStudents) {
+        return res.status(401).json({ error: "Invalid password." });
+      }
       await clearAllStudents();
       res.json({ message: "All students cleared." });
     } catch (err: any) {

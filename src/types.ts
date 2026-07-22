@@ -165,3 +165,9 @@ export interface SignatorySettings {
 }
 
 
+
+export interface AdminPasswords {
+  clearReports: string;
+  clearStudents: string;
+  deleteTeacher: string;
+}

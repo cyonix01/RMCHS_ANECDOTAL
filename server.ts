@@ -759,18 +759,14 @@ async function startServer() {
   app.put("/api/reports/:id/status", async (req, res) => {
     try {
       const { id } = req.params;
-      const { status, type, file } = req.body;
+      const { status, type, file, adminComment } = req.body;
 
       let driveUploadWarning: string | null = null;
       let driveFile: any = null;
       let savedFileUrl: string | undefined = undefined;
       let savedFileName: string | undefined = undefined;
 
-      if (status === 'RESOLVED') {
-        if (!file || !file.base64) {
-          return res.status(400).json({ error: "Mean of Verification (MOV) file is required to resolve this report." });
-        }
-
+      if (file && file.base64) {
         try {
           console.log(`[MOV-UPLOAD] Attempting to upload '${file.name}' to Supabase Storage.`);
           const uploaded = await uploadFileToSupabaseStorage(file.base64, file.name, file.mimeType, 'MOVs');
@@ -789,20 +785,21 @@ async function startServer() {
             savedFileUrl = localFile.fileUrl;
             savedFileName = file.name;
             driveFile = { webViewLink: savedFileUrl };
-            driveUploadWarning = `Google Drive upload failed (${errMsg}). File successfully saved to Local Server Storage instead!`;
+            driveUploadWarning = `Supabase upload failed (${errMsg}). File successfully saved to Local Server Storage instead!`;
           } catch (localErr: any) {
-            console.error("Local storage fallback failed after Google Drive upload failed:", localErr);
-            driveUploadWarning = `Google Drive upload failed (${errMsg}) and Local Storage also failed (${localErr.message})`;
+            console.error("Local storage fallback failed after Supabase upload failed:", localErr);
+            driveUploadWarning = `Supabase upload failed (${errMsg}) and Local Storage also failed (${localErr.message})`;
           }
         }
       }
 
       let finalStatus = status;
-      if (savedFileUrl) {
-        finalStatus = 'RESOLVED';
-      }
+      // If a teacher uploaded a file and the target status is 'RESOLVED',
+      // but we actually want them to go to 'Pending Resolved' first?
+      // The frontend now passes 'Pending Resolved' explicitly.
+      // So we can just use the status provided by the frontend.
 
-      await updateReportStatus(Number(id), finalStatus, type, savedFileUrl, savedFileName);
+      await updateReportStatus(Number(id), finalStatus, type, savedFileUrl, savedFileName, adminComment);
       res.json({ message: "Status updated successfully", warning: driveUploadWarning, driveFile, savedFileUrl });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

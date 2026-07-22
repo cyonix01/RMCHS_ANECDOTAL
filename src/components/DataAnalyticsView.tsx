@@ -143,7 +143,7 @@ const [loading, setLoading] = useState(true);
   });
 
     // Secondary metrics
-  const academicIssuesCount = allReports.filter(r => r.issue && r.issue.toLowerCase().includes('academic')).length;
+  const academicIssuesCount = allReports.filter(r => r.issue && r.issue?.toLowerCase()?.includes('academic')).length;
   const underReviewCount = allReports.filter(r => r.recordStatus === 'On Going').length;
   
   const teacherSet = new Set(allReports.map(r => r.reportedBy).filter(Boolean));

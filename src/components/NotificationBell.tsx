@@ -10,7 +10,7 @@ interface NotificationBellProps {
 }
 
 export default function NotificationBell({ user, onSelectNotification }: NotificationBellProps) {
-  const { notify } = useNotification();
+  const { notify, confirm } = useNotification();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -174,23 +174,31 @@ export default function NotificationBell({ user, onSelectNotification }: Notific
   };
 
   const handleClearAll = async () => {
-    if (!window.confirm("Are you sure you want to delete all notifications from the system? This action cannot be undone.")) {
-      return;
-    }
-    try {
-      setLoading(true);
-      const res = await fetch("/api/notifications", {
-        method: "DELETE"
-      });
-      if (res.ok) {
-        notify("success", "Notifications cleared successfully!");
-        setNotifications([]);
+    confirm({
+      title: "Clear All Notifications",
+      message: "Are you sure you want to delete all notifications from the system? This action cannot be undone.",
+      confirmText: "Clear All",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const res = await fetch("/api/notifications", {
+            method: "DELETE"
+          });
+          if (res.ok) {
+            notify("success", "Notifications cleared successfully!");
+            setNotifications([]);
+          } else {
+            notify("error", "Failed to clear notifications from database.");
+          }
+        } catch (err) {
+          console.error(err);
+          notify("error", "Failed to clear notifications.");
+        } finally {
+          setLoading(false);
+        }
       }
-    } catch (err) {
-      console.error("Failed to clear notifications:", err);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   // Helper for displaying time

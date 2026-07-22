@@ -94,7 +94,7 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
   const activeCases = allSectionReports.filter(r => r.recordStatus !== 'RESOLVED' && r.recordStatus !== 'Resolved').length;
   const resolvedCases = allSectionReports.filter(r => r.recordStatus === 'RESOLVED' || r.recordStatus === 'Resolved').length;
 
-  const academicIssuesCount = allSectionReports.filter(r => r.issue && r.issue.toLowerCase().includes('academic')).length;
+  const academicIssuesCount = allSectionReports.filter(r => r.issue && r.issue?.toLowerCase()?.includes('academic')).length;
   const underReviewCount = allSectionReports.filter(r => r.recordStatus === 'On Going').length;
 
   // Trend Data (Last 6 Months)

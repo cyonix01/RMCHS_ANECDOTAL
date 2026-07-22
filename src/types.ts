@@ -65,7 +65,7 @@ export interface Report {
   referralRecommendation: string;
   initialAssessmentMadeBy: string;
   designation: string;
-  recordStatus: 'On Going' | 'RESOLVED';
+  recordStatus: 'On Going' | 'Pending Approval' | 'RESOLVED';
   createdAt?: string;
   createdBy?: string;
   reportedBy: string;
@@ -85,7 +85,7 @@ export interface CriticalReport {
   reportedBy: string;
   dateReported: string;
   lastUpdatedBy?: string;
-  recordStatus: 'On Going' | 'RESOLVED';
+  recordStatus: 'On Going' | 'Pending Approval' | 'RESOLVED';
 }
 
 export interface Student {

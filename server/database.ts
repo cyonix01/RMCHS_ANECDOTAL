@@ -724,7 +724,7 @@ export async function getAllReports(): Promise<Report[]> {
       communityFactors: row.community_factors || [],
       recordStatus: row.record_status,
       closureDate: row.closure_date,
-    }));
+    })) as any;
   } catch (err) {
     console.error("Supabase read reports exception:", err);
     return [];
@@ -772,7 +772,7 @@ export async function getAllCriticalReports(): Promise<CriticalReport[]> {
       lastUpdatedBy: row.last_updated_by,
       recordStatus: row.record_status,
       closureDate: row.closure_date,
-    }));
+    })) as any;
   } catch (err) {
     console.error("Supabase read critical reports exception:", err);
     return [];
@@ -787,7 +787,8 @@ export async function updateReportStatus(
   status: string,
   type: 'General' | 'Critical',
   movFileUrl?: string,
-  movFileName?: string
+  movFileName?: string,
+  adminComment?: string
 ): Promise<void> {
   const supabase = getSupabaseClient();
   if (!supabase) return;
@@ -795,7 +796,7 @@ export async function updateReportStatus(
 
   let updateFields: any = { record_status: status };
 
-  if (movFileUrl && movFileName) {
+  if (movFileUrl || adminComment) {
     // Fetch current action_taken so we don't lose it
     const { data, error: fetchError } = await supabase
       .from(table)
@@ -803,14 +804,22 @@ export async function updateReportStatus(
       .eq("id", id)
       .single();
 
+    let newAction = "";
     if (!fetchError && data) {
-      const currentAction = data.action_taken || "";
-      // Clean up "N/A" or whitespace if needed, but simple append is safest
-      const separator = currentAction.trim() ? "\n\n" : "";
-      updateFields.action_taken = `${currentAction}${separator}[MOV File: ${movFileName}](${movFileUrl})`;
-    } else {
-      updateFields.action_taken = `[MOV File: ${movFileName}](${movFileUrl})`;
+      newAction = data.action_taken || "";
     }
+    
+    if (movFileUrl && movFileName) {
+      const separator = newAction.trim() ? "\n\n" : "";
+      newAction = `${newAction}${separator}[MOV File: ${movFileName}](${movFileUrl})`;
+    }
+    
+    if (adminComment) {
+      const separator = newAction.trim() ? "\n\n" : "";
+      newAction = `${newAction}${separator}**Admin Comment:** ${adminComment}`;
+    }
+    
+    updateFields.action_taken = newAction;
   }
 
   const { error } = await supabase.from(table).update(updateFields).eq("id", id);
@@ -1210,7 +1219,7 @@ export async function saveNotification(notification: Omit<AppNotification, "id">
         }
       } else {
         if (error && error.code !== "PGRST116" && error.code !== "42P01") {
-          console.warn("Supabase notification insert skipped or errored:", error ? error.message : "no data returned");
+          // console.warn("Supabase notification insert skipped or errored", error?.message);
         }
       }
     } catch (e: any) {

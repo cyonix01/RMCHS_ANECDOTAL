@@ -20,6 +20,7 @@ interface ReportsViewerModalProps {
   userLastName?: string;
   initialSearchQuery?: string;
   showOnlyResolved?: boolean;
+  showOnlyPendingApproval?: boolean;
 }
 
 interface CombinedReport {
@@ -39,7 +40,7 @@ interface CombinedReport {
   recommendation: string;
   type: 'General' | 'Critical';
   lastUpdatedBy?: string;
-  recordStatus?: 'On Going' | 'RESOLVED';
+  recordStatus?: 'On Going' | 'Pending Approval' | 'RESOLVED';
 }
 
 function parseRobustDateTime(val: any): Date | null {
@@ -117,9 +118,10 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   userFirstName,
   userLastName,
   initialSearchQuery = "",
-  showOnlyResolved = false
+  showOnlyResolved = false,
+  showOnlyPendingApproval = false
 }) => {
-  const { notify } = useNotification();
+  const { notify, confirm } = useNotification();
   const [reports, setReports] = useState<CombinedReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
@@ -128,11 +130,12 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   const [typeFilter, setTypeFilter] = useState<'All' | 'General' | 'Critical'>('All');
   const [selectedReportForView, setSelectedReportForView] = useState<CombinedReport | null>(null);
   const [recommendationEdit, setRecommendationEdit] = useState("");
-  const [statusEdit, setStatusEdit] = useState<'On Going' | 'RESOLVED'>('On Going');
+  const [statusEdit, setStatusEdit] = useState<'On Going' | 'Pending Approval' | 'RESOLVED'>('On Going');
   const [isUpdating, setIsUpdating] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [movFile, setMovFile] = useState<File | null>(null);
+  const [adminComment, setAdminComment] = useState("");
   const [selectedReportIds, setSelectedReportIds] = useState<Set<string | number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -251,9 +254,14 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   const handleUpdateArchive = async () => {
     if (!selectedReportForView) return;
 
-    // Check if transitioning to RESOLVED and we need a file
+    // Check if transitioning to RESOLVED or Pending Resolved and we need a file
     const isTransitioningToResolved = statusEdit === 'RESOLVED' && selectedReportForView.recordStatus !== 'RESOLVED';
-    if (isTransitioningToResolved && !movFile) {
+    const isTransitioningToPending = statusEdit === 'Pending Approval' && selectedReportForView.recordStatus !== 'Pending Approval';
+    // Check if actionTaken already contains an MOV file url
+    const hasMovAlready = selectedReportForView.actionTaken && selectedReportForView.actionTaken.includes('[MOV File:');
+
+    const isApproving = statusEdit === 'RESOLVED' && selectedReportForView.recordStatus === 'Pending Approval';
+    if ((isTransitioningToResolved || isTransitioningToPending) && !isApproving && !movFile && !hasMovAlready) {
       notify("error", "Mean of Verification (MOV) file is required to resolve this report.");
       return;
     }
@@ -264,11 +272,11 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
     let statusUpdateSuccess = true;
 
     try {
-      // 1. If status has changed or a new file is uploaded
+      // 1. If status has changed, a new file is uploaded, or adminComment is added
       const statusChanged = statusEdit !== selectedReportForView.recordStatus;
-      if (statusChanged || movFile) {
+      if (statusChanged || movFile || adminComment.trim()) {
         let filePayload = null;
-        if (statusEdit === 'RESOLVED' && movFile) {
+        if ((statusEdit === 'RESOLVED' || statusEdit === 'Pending Approval') && movFile) {
           try {
             const base64Data = await fileToBase64(movFile);
             const originalName = movFile.name;
@@ -293,7 +301,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
           body: JSON.stringify({
             status: statusEdit,
             type: selectedReportForView.type,
-            file: filePayload
+            file: filePayload,
+            adminComment: adminComment.trim() || undefined
           })
         });
 
@@ -336,8 +345,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
         if (driveUploadWarning) {
           notify("warning", `Archive updated! ${driveUploadWarning}`);
         } else {
-          const successMsg = statusEdit === 'RESOLVED' && selectedReportForView.recordStatus !== 'RESOLVED'
-            ? `Report successfully resolved and MOV saved to Supabase Storage!${driveFileResult?.webViewLink ? " File Link: " + driveFileResult.webViewLink : ""}`
+          const successMsg = (statusEdit === 'RESOLVED' || statusEdit === 'Pending Approval') && selectedReportForView.recordStatus !== statusEdit
+            ? `Report status updated to ${statusEdit} and MOV saved!${driveFileResult?.webViewLink ? " File Link: " + driveFileResult.webViewLink : ""}`
             : "Archive successfully updated and saved.";
           notify("success", successMsg);
         }
@@ -355,6 +364,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
           lastUpdatedBy: userEmail 
         } : null);
         setMovFile(null); // Clear selected file
+        setAdminComment(""); // Clear admin comment
       } else {
         notify("error", dataRec.error || "Failed to commit recommendation update to registry.");
       }
@@ -366,43 +376,51 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   };
 
   const handleDeleteReport = async (report: CombinedReport) => {
-    if (!window.confirm(`Are you sure you want to delete this ${report.type} report for ${report.studentName}? This action cannot be undone.`)) {
-      return;
-    }
-
-    setIsDeleting(true);
-    try {
-      const endpoint = report.type === 'General' 
-        ? `/api/reports/${report.id}` 
-        : `/api/critical-reports/${report.id}`;
-      
-      const res = await fetch(endpoint, { method: 'DELETE' });
-      if (res.ok) {
-        notify("success", "Report successfully deleted from registry.");
-        setReports(prev => prev.filter(r => !(r.id === report.id && r.type === report.type)));
-        setSelectedReportIds(prev => {
-          const next = new Set(prev);
-          next.delete(`${report.type}-${report.id}`);
-          return next;
-        });
-      } else {
-        const data = await res.json();
-        notify("error", data.error || "Failed to delete report.");
+    confirm({
+      title: "Delete Report",
+      message: `Are you sure you want to delete this ${report.type} report for ${report.studentName}? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "danger",
+      onConfirm: async () => {
+        setIsDeleting(true);
+        try {
+          const endpoint = report.type === 'General' 
+            ? `/api/reports/${report.id}` 
+            : `/api/critical-reports/${report.id}`;
+          
+          const res = await fetch(endpoint, { method: 'DELETE' });
+          if (res.ok) {
+            notify("success", "Report successfully deleted from registry.");
+            setReports(prev => prev.filter(r => !(r.id === report.id && r.type === report.type)));
+            setSelectedReportIds(prev => {
+              const next = new Set(prev);
+              next.delete(`${report.type}-${report.id}`);
+              return next;
+            });
+            setShowDetail(false);
+          } else {
+            const errData = await res.json();
+            notify("error", errData.error || "Failed to delete report.");
+          }
+        } catch (err) {
+          notify("error", "Connection error while deleting report.");
+        } finally {
+          setIsDeleting(false);
+        }
       }
-    } catch (err) {
-      notify("error", "Connection error while deleting report.");
-    } finally {
-      setIsDeleting(false);
-    }
+    });
   };
 
   const handleBulkDelete = async () => {
     if (selectedReportIds.size === 0) return;
-    if (!window.confirm(`Are you sure you want to delete ${selectedReportIds.size} selected reports? This action cannot be undone.`)) {
-      return;
-    }
-
-    setIsDeleting(true);
+    
+    confirm({
+      title: "Bulk Delete",
+      message: `Are you sure you want to delete ${selectedReportIds.size} selected reports? This action cannot be undone.`,
+      confirmText: "Delete All",
+      variant: "danger",
+      onConfirm: async () => {
+        setIsDeleting(true);
     let successCount = 0;
     let failCount = 0;
 
@@ -421,15 +439,17 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
       }
     }
 
-    if (successCount > 0) {
-      notify("success", `Successfully deleted ${successCount} reports.`);
-      setReports(prev => prev.filter(r => !selectedReportIds.has(`${r.type}-${r.id}`)));
-      setSelectedReportIds(new Set());
-    }
-    if (failCount > 0) {
-      notify("error", `Failed to delete ${failCount} reports.`);
-    }
-    setIsDeleting(false);
+        if (successCount > 0) {
+          notify("success", `Successfully deleted ${successCount} reports.`);
+          setReports(prev => prev.filter(r => !selectedReportIds.has(`${r.type}-${r.id}`)));
+          setSelectedReportIds(new Set());
+        }
+        if (failCount > 0) {
+          notify("error", `Failed to delete ${failCount} reports.`);
+        }
+        setIsDeleting(false);
+      }
+    });
   };
 
   const toggleSelectAll = () => {
@@ -457,8 +477,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   const filteredReports = useMemo(() => {
     const filtered = reports.filter(report => {
       const matchesSearch = 
-        report.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        report.studentLrn.includes(searchQuery);
+        report.studentName?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+        report.studentLrn?.includes(searchQuery);
       
       let reportDateStr = "";
       if (report.dateReported) {
@@ -490,8 +510,10 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
       const status = report.recordStatus || 'On Going';
       if (showOnlyResolved) {
         if (status !== 'RESOLVED') return false;
+      } else if (showOnlyPendingApproval) {
+        if (status !== 'Pending Approval') return false;
       } else {
-        if (status === 'RESOLVED') return false;
+        if (status === 'RESOLVED' || status === 'Pending Approval') return false;
       }
 
       return matchesSearch && matchesStart && matchesEnd && matchesType;
@@ -503,7 +525,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
       if (valA !== valB) return valB - valA;
       return String(b.id).localeCompare(String(a.id));
     });
-  }, [reports, searchQuery, startDate, endDate, typeFilter, showOnlyResolved]);
+  }, [reports, searchQuery, startDate, endDate, typeFilter, showOnlyResolved, showOnlyPendingApproval]);
 
   const handleExport = () => {
     if (filteredReports.length === 0) {
@@ -607,10 +629,10 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
             </div>
             <div>
               <h3 className="serif font-serif text-2xl text-slate-900 leading-tight">
-                {showOnlyResolved ? "Resolved Reports Archive" : "Institutional Record Archive"}
+                {showOnlyResolved ? "Resolved Reports Archive" : showOnlyPendingApproval ? "Pending Approval Reports" : "Institutional Record Archive"}
               </h3>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mt-1">
-                {showOnlyResolved ? "Registry of all resolved student reports and critical incidents" : "Registry of all student reports and critical incidents"}
+                {showOnlyResolved ? "Registry of all resolved student reports and critical incidents" : showOnlyPendingApproval ? "Registry of reports pending final approval" : "Registry of all student reports and critical incidents"}
               </p>
             </div>
           </div>
@@ -775,6 +797,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                             setRecommendationEdit(report.recommendation);
                             setStatusEdit(report.recordStatus || 'On Going');
                             setMovFile(null);
+                            setAdminComment("");
                             setShowDetail(true);
                           }}
                           className="text-[11px] font-bold text-left text-[#102604] hover:text-[#76DA0D] transition-colors leading-snug underline underline-offset-4 decoration-slate-200"
@@ -795,7 +818,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                         <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
                           report.recordStatus === 'RESOLVED' 
                             ? 'border-[#76DA0D]/20 text-[#102604] bg-[#76DA0D]/10' 
-                            : 'border-orange-100 text-orange-600 bg-orange-50'
+                            : report?.recordStatus === 'Pending Approval' ? 'border-blue-200 text-blue-700 bg-blue-50' : 'border-orange-100 text-orange-600 bg-orange-50'
                         }`}>
                           {report.recordStatus || 'On Going'}
                         </span>
@@ -811,6 +834,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                               setRecommendationEdit(report.recommendation);
                               setStatusEdit(report.recordStatus || 'On Going');
                               setMovFile(null);
+                              setAdminComment("");
                               setShowDetail(true);
                             }}
                             className="p-1 text-slate-400 hover:text-[#102604]"
@@ -954,24 +978,25 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Current DB Status:</span>
                             <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 border rounded-sm ${
                               selectedReportForView.recordStatus === 'RESOLVED' 
-                                ? 'border-[#76DA0D]/20 text-[#102604] bg-[#76DA0D]/10' 
-                                : 'border-orange-100 text-orange-600 bg-orange-50'
+                                ? 'border-[#76DA0D]/20 text-[#102604] bg-[#76DA0D]/10'
+                                : selectedReportForView.recordStatus === 'Pending Approval' ? 'border-blue-200 text-blue-700 bg-blue-50' : 'border-orange-100 text-orange-600 bg-orange-50'
                             }`}>
                               {selectedReportForView.recordStatus || 'On Going'}
                             </span>
                           </div>
                           
-                          {(userRole === 'Admin' || userRole === 'Guidance') ? (
+                          
+                          {(userRole === 'Admin' || userRole === 'Guidance' || userRole === 'Adviser' || userRole === 'Department Head') ? (
                             <div className="space-y-1.5">
                               <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400">
                                 Target Status for Submission
                               </label>
-                              <div className="flex bg-slate-100 p-1 rounded-sm max-w-[280px]">
+                              <div className="flex bg-slate-100 p-1 rounded-sm flex-wrap gap-1">
                                 <button
                                   type="button"
                                   onClick={() => setStatusEdit('On Going')}
                                   disabled={isUpdating}
-                                  className={`flex-1 py-1.5 px-3 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 ${
+                                  className={`flex-1 py-1.5 px-2 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 ${
                                     statusEdit === 'On Going'
                                       ? 'bg-white text-orange-600 shadow-sm border border-slate-200/50 font-bold'
                                       : 'text-slate-500 hover:text-slate-700'
@@ -979,28 +1004,60 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                                 >
                                   On Going
                                 </button>
+                                
+                                {selectedReportForView.recordStatus !== 'Pending Approval' && selectedReportForView.recordStatus !== 'RESOLVED' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setStatusEdit('Pending Approval')}
+                                  disabled={isUpdating}
+                                  className={`flex-1 py-1.5 px-2 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 ${
+                                    statusEdit === 'Pending Approval'
+                                      ? 'bg-blue-600 text-white shadow-sm font-bold'
+                                      : 'text-slate-500 hover:text-blue-600'
+                                  }`}
+                                >
+                                  SUBMIT FOR APPROVAL
+                                </button>
+                                )}
+
+                                {(userRole === 'Admin' || userRole === 'Department Head') && (
                                 <button
                                   type="button"
                                   onClick={() => setStatusEdit('RESOLVED')}
-                                  disabled={isUpdating}
-                                  className={`flex-1 py-1.5 px-3 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 ${
-                                    statusEdit === 'RESOLVED'
-                                      ? 'bg-[#102604] text-white shadow-sm font-bold'
-                                      : 'text-slate-500 hover:text-[#102604]'
-                                  }`}
-                                >
-                                  RESOLVED
+                                    disabled={isUpdating}
+                                    className={`flex-1 py-1.5 px-2 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 ${
+                                      statusEdit === 'RESOLVED'
+                                        ? 'bg-[#102604] text-white shadow-sm font-bold'
+                                        : 'text-slate-500 hover:text-[#102604]'
+                                    }`}
+                                  >
+                                    RESOLVED (Approve)
                                 </button>
+                                )}
                               </div>
                             </div>
                           ) : (
                             <p className="text-[10px] text-slate-500 italic">
-                              * Only Administrators or Guidance counselors can update status.
+                              * Only Administrators, Guidance counselors or Advisers can update status.
                             </p>
                           )}
                         </div>
 
-                        {statusEdit === 'RESOLVED' && selectedReportForView.recordStatus !== 'RESOLVED' && (userRole === 'Admin' || userRole === 'Guidance') && (
+                        {selectedReportForView.recordStatus === 'Pending Approval' && (userRole === 'Admin' || userRole === 'Department Head') && (
+                          <div className="space-y-1.5 pt-2">
+                            <label className="block text-[9px] font-black uppercase tracking-widest text-slate-700">
+                              Reviewer Comment (Optional)
+                            </label>
+                            <textarea
+                              value={adminComment}
+                              onChange={(e) => setAdminComment(e.target.value)}
+                              placeholder="Leave a comment regarding your decision to approve or deny this pending report..."
+                              className="w-full h-20 p-3 bg-slate-50 border border-slate-200 rounded text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#76DA0D] focus:ring-1 focus:ring-[#76DA0D] transition-all resize-none"
+                            />
+                          </div>
+                        )}
+
+                        {(statusEdit === 'RESOLVED' || statusEdit === 'Pending Approval') && selectedReportForView.recordStatus !== statusEdit && (userRole === 'Admin' || userRole === 'Guidance' || userRole === 'Adviser' || userRole === 'Department Head') && (
                           <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded space-y-3">
                             <div className="space-y-1">
                               <label className="block text-[9px] font-black uppercase tracking-widest text-slate-700">

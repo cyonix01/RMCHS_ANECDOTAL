@@ -89,7 +89,8 @@ function getReportSortValue(report: any): number {
 
 const ciclOffenses = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
 
-const mapToCategory = (issue: string) => {
+const mapToCategory = (issue?: string) => {
+  if (!issue) return "Others";
   const attendanceIssues = [
     "Habitual tardiness", 
     "Cutting classes / Unexcused absences", 
@@ -144,6 +145,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
   const [showSectionManager, setShowSectionManager] = useState(false);
   const [showReportsViewer, setShowReportsViewer] = useState(false);
   const [showResolvedReportsViewer, setShowResolvedReportsViewer] = useState(false);
+  const [showPendingApprovalViewer, setShowPendingApprovalViewer] = useState(false);
   const [reportsViewerQuery, setReportsViewerQuery] = useState("");
   const [showAdviserAssignment, setShowAdviserAssignment] = useState(false);
   const [showSignatorySettingsModal, setShowSignatorySettingsModal] = useState(false);
@@ -414,7 +416,8 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
+  
+  return () => clearInterval(interval);
   }, [fetchData]);
 
   const filteredReports = allTeacherReports.filter(report => {
@@ -428,6 +431,9 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
 
     return matchesSearch && matchesCategory;
   });
+
+  const onGoingReportsCount = allTeacherReports.filter(r => r.recordStatus === 'On Going' || !r.recordStatus).length;
+  const pendingApprovalReportsCount = allTeacherReports.filter(r => r.recordStatus === 'Pending Approval').length;
 
   return (
     <div id="dashboard-layout" className="min-h-screen bg-slate-50 flex flex-col font-sans text-[#102604]">
@@ -511,6 +517,11 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
             >
               <FileText size={14} className="text-[#102604]" />
               <span>View Reports</span>
+              {onGoingReportsCount > 0 && (
+                <span className="bg-[#102604] text-white text-[9px] px-1.5 py-0.5 rounded-sm">
+                  {onGoingReportsCount}
+                </span>
+              )}
             </button>
           )}
 
@@ -522,6 +533,22 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
             >
               <FileText size={14} className="text-[#76DA0D]" />
               <span>View Resolved</span>
+            </button>
+          )}
+
+          {(user.role === 'Admin' || user.role === 'Department Head') && (
+            <button
+              id="view-pending-approval-reports-btn"
+              onClick={() => setShowPendingApprovalViewer(true)}
+              className="group flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 font-bold text-[10px] tracking-widest uppercase transition-all hover:border-blue-500 hover:bg-slate-50 text-[#102604] cursor-pointer select-none h-10 shadow-sm"
+            >
+              <FileText size={14} className="text-blue-500" />
+              <span>Pending Approval</span>
+              {pendingApprovalReportsCount > 0 && (
+                <span className="bg-blue-500 text-white text-[9px] px-1.5 py-0.5 rounded-sm">
+                  {pendingApprovalReportsCount}
+                </span>
+              )}
             </button>
           )}
 
@@ -987,6 +1014,24 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
             userLastName={user.lastName}
             initialSearchQuery={reportsViewerQuery}
             showOnlyResolved={true}
+          />
+        )}
+
+        {showPendingApprovalViewer && (
+          <ReportsViewerModal 
+            onClose={() => {
+              setShowPendingApprovalViewer(false);
+              setReportsViewerQuery("");
+            }} 
+            userEmail={user.email || ""}
+            userRole={user.role}
+            userGradeLevel={user.gradeLevel}
+            userSection={user.section}
+            userFirstName={user.firstName}
+            userLastName={user.lastName}
+            initialSearchQuery={reportsViewerQuery}
+            showOnlyResolved={false}
+            showOnlyPendingApproval={true}
           />
         )}
 

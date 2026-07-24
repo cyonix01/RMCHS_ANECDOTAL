@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Search, Calendar, FileText, Download, Filter, User, ChevronRight, AlertCircle, ShieldAlert, Clock, Trash2, CheckSquare, Square } from "lucide-react";
+import { X, Search, Calendar, FileText, Download, Filter, User, ChevronRight, AlertCircle, ShieldAlert, Clock, Trash2, CheckSquare, Square, Paperclip, ExternalLink } from "lucide-react";
 import { Report, CriticalReport } from "../types";
 import { useNotification } from "./NotificationProvider";
 import { getDriveImageUrl } from "../utils/driveUtils";
@@ -186,13 +186,13 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
               profilePictureUrl: sInfo.profilePictureUrl,
               grade: sInfo.grade,
               section: sInfo.section,
-              issue: r.issue,
+              issue: r.issue || (r as any).natureOfIncident || 'Critical Incident',
               dateReported: r.dateReported,
-              dateOfIncident: r.dateOfIncident,
-              timeOfIncident: r.timeOfIncident,
+              dateOfIncident: r.dateOfIncident || (r as any).incidentDate || 'N/A',
+              timeOfIncident: r.timeOfIncident || (r as any).incidentTime || 'N/A',
               reportedBy: r.reportedBy,
               details: r.description || '',
-              actionTaken: r.actionTaken || 'N/A',
+              actionTaken: r.actionTaken || (r as any).immediateActionTaken || 'N/A',
               recommendation: r.recommendation || '',
               type: 'Critical' as const,
               lastUpdatedBy: r.lastUpdatedBy,
@@ -253,18 +253,6 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
 
   const handleUpdateArchive = async () => {
     if (!selectedReportForView) return;
-
-    // Check if transitioning to RESOLVED or Pending Resolved and we need a file
-    const isTransitioningToResolved = statusEdit === 'RESOLVED' && selectedReportForView.recordStatus !== 'RESOLVED';
-    const isTransitioningToPending = statusEdit === 'Pending Approval' && selectedReportForView.recordStatus !== 'Pending Approval';
-    // Check if actionTaken already contains an MOV file url
-    const hasMovAlready = selectedReportForView.actionTaken && selectedReportForView.actionTaken.includes('[MOV File:');
-
-    const isApproving = statusEdit === 'RESOLVED' && selectedReportForView.recordStatus === 'Pending Approval';
-    if ((isTransitioningToResolved || isTransitioningToPending) && !isApproving && !movFile && !hasMovAlready) {
-      notify("error", "Mean of Verification (MOV) file is required to resolve this report.");
-      return;
-    }
 
     setIsUpdating(true);
     let driveUploadWarning: string | null = null;
@@ -507,13 +495,13 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
       const matchesEnd = endDate ? reportDateStr <= endDate : true;
       const matchesType = typeFilter === 'All' ? true : report.type === typeFilter;
 
-      const status = report.recordStatus || 'On Going';
+      const status = (report.recordStatus || 'On Going').trim().toUpperCase();
       if (showOnlyResolved) {
         if (status !== 'RESOLVED') return false;
       } else if (showOnlyPendingApproval) {
-        if (status !== 'Pending Approval') return false;
+        if (status !== 'PENDING APPROVAL' && status !== 'PENDING') return false;
       } else {
-        if (status === 'RESOLVED' || status === 'Pending Approval') return false;
+        if (status === 'RESOLVED' || status === 'PENDING APPROVAL' || status === 'PENDING') return false;
       }
 
       return matchesSearch && matchesStart && matchesEnd && matchesType;
@@ -563,55 +551,101 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
     notify("success", "Record archive exported successfully.");
   };
 
-  const renderActionTaken = (actionTaken: string) => {
-    if (!actionTaken) return "N/A";
-    
-    // Regex to match markdown links: [MOV File: filename](fileUrl)
-    const regex = /\[MOV File:\s*(.*?)\]\((.*?)\)/g;
-    const parts = [];
+  const renderActionTaken = (text: string) => {
+    if (!text) return "N/A";
+
+    // Match markdown links: [MOV File: filename](fileUrl) or [filename](fileUrl)
+    const markdownRegex = /\[(?:MOV File:\s*)?(.*?)\]\((.*?)\)/gi;
+    const parts: React.ReactNode[] = [];
     let lastIndex = 0;
     let match;
 
-    while ((match = regex.exec(actionTaken)) !== null) {
-      const textBefore = actionTaken.substring(lastIndex, match.index);
+    while ((match = markdownRegex.exec(text)) !== null) {
+      const textBefore = text.substring(lastIndex, match.index);
       if (textBefore) {
-        parts.push(<span key={lastIndex}>{textBefore}</span>);
+        parts.push(<span key={`txt-${lastIndex}`}>{textBefore}</span>);
       }
-      const fileName = match[1];
+      const fileName = match[1] || "Attachment";
       const fileUrl = match[2];
-      const isVideo = fileName.toLowerCase().endsWith('.mov') || fileName.toLowerCase().endsWith('.mp4');
+      const lowerName = fileName.toLowerCase();
+      const lowerUrl = fileUrl.toLowerCase();
       
+      const isVideo = lowerName.endsWith('.mov') || lowerName.endsWith('.mp4') || lowerName.endsWith('.webm') || lowerUrl.startsWith('data:video/') || lowerUrl.includes('.mov') || lowerUrl.includes('.mp4');
+      const isImage = lowerName.endsWith('.png') || lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.webp') || lowerName.endsWith('.gif') || lowerUrl.startsWith('data:image/');
+
       parts.push(
-        <div key={match.index} className="mt-3 p-3 bg-[#76DA0D]/5 border border-[#76DA0D]/20 rounded-sm flex flex-col gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#102604] shrink-0">Attached {isVideo ? 'MOV/Video' : 'File'}:</span>
-            <span className="text-[10px] text-slate-600 underline font-mono truncate" title={fileName}>
-              {fileName}
-            </span>
-          </div>
-          {isVideo ? (
-            <video controls className="w-full rounded-sm border border-slate-200" src={fileUrl} />
-          ) : (
+        <div key={`att-${match.index}`} className="mt-3 p-3.5 bg-slate-100/90 border border-slate-200 rounded-md flex flex-col gap-3 shadow-xs">
+          <div className="flex items-center justify-between gap-2 min-w-0 flex-wrap">
+            <div className="flex items-center gap-2 min-w-0">
+              <Paperclip size={14} className="text-[#102604] shrink-0" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-[#102604] shrink-0">
+                {isVideo ? 'Attached Video / MOV' : isImage ? 'Attached Image' : 'Attached File'}:
+              </span>
+              <span className="text-[11px] font-mono text-slate-700 truncate" title={fileName}>
+                {fileName}
+              </span>
+            </div>
             <a 
               href={fileUrl} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="px-3 py-1 bg-[#102604] text-white rounded-sm text-[8px] font-black uppercase tracking-widest hover:bg-[#102604]/80 transition-all text-center shrink-0"
+              className="px-3 py-1.5 bg-[#102604] text-white rounded-sm text-[9px] font-bold uppercase tracking-wider hover:bg-slate-800 transition-all flex items-center gap-1.5 shrink-0 shadow-xs cursor-pointer"
             >
-              View Attachment
+              <ExternalLink size={12} />
+              Open Attachment
             </a>
+          </div>
+
+          {isVideo && (
+            <div className="mt-1">
+              <video controls className="w-full max-h-80 rounded border border-slate-300 bg-black" src={fileUrl} />
+            </div>
+          )}
+
+          {isImage && (
+            <div className="mt-1">
+              <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                <img src={fileUrl} alt={fileName} className="max-h-72 object-contain rounded border border-slate-300 bg-white" />
+              </a>
+            </div>
           )}
         </div>
       );
-      lastIndex = regex.lastIndex;
+      lastIndex = markdownRegex.lastIndex;
     }
 
-    const textRemaining = actionTaken.substring(lastIndex);
+    const textRemaining = text.substring(lastIndex);
     if (textRemaining) {
-      parts.push(<span key={lastIndex}>{textRemaining}</span>);
+      const urlRegex = /(https?:\/\/[^\s]+)/gi;
+      const urlParts: React.ReactNode[] = [];
+      let urlLastIndex = 0;
+      let urlMatch;
+
+      while ((urlMatch = urlRegex.exec(textRemaining)) !== null) {
+        const preText = textRemaining.substring(urlLastIndex, urlMatch.index);
+        if (preText) urlParts.push(<span key={`utxt-${urlLastIndex}`}>{preText}</span>);
+        const linkUrl = urlMatch[1];
+        urlParts.push(
+          <a
+            key={`urllink-${urlMatch.index}`}
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-blue-600 hover:underline font-mono text-[11px] break-all my-1 px-2 py-1 bg-blue-50 border border-blue-200 rounded"
+          >
+            <ExternalLink size={11} />
+            {linkUrl}
+          </a>
+        );
+        urlLastIndex = urlRegex.lastIndex;
+      }
+      const leftover = textRemaining.substring(urlLastIndex);
+      if (leftover) urlParts.push(<span key={`leftover-${urlLastIndex}`}>{leftover}</span>);
+
+      parts.push(...urlParts);
     }
 
-    return parts.length > 0 ? parts : actionTaken;
+    return parts.length > 0 ? parts : text;
   };
 
   return (
@@ -1061,7 +1095,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                           <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded space-y-3">
                             <div className="space-y-1">
                               <label className="block text-[9px] font-black uppercase tracking-widest text-slate-700">
-                                Required: Upload Mean of Verification (MOV)
+                                Upload Mean of Verification (MOV) (Optional)
                               </label>
                               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
                                 File will be uploaded to Supabase Storage as: <span className="font-mono text-[#102604] lowercase select-all">Rerport {selectedReportForView.id}_{selectedReportForView.grade}_{selectedReportForView.section}.[ext]</span>
@@ -1078,7 +1112,6 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                                   }
                                 }}
                                 className="text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:border file:border-slate-300 file:rounded-sm file:font-sans file:font-bold file:text-[9px] file:uppercase file:tracking-wider file:bg-white file:text-slate-700 hover:file:bg-slate-50 cursor-pointer disabled:opacity-50"
-                                required
                               />
                               {movFile && (
                                 <span className="text-[8px] font-black uppercase tracking-widest text-[#102604] bg-[#76DA0D]/10 border border-[#76DA0D]/20 px-2 py-1">

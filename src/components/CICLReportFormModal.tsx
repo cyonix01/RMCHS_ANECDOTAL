@@ -74,17 +74,18 @@ export default function CICLReportFormModal({ student, userName, onClose, onSucc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    const payload = { ...form, recordStatus: 'On Going' as const, type: 'CICL' };
     try {
       const response = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({...form, type: 'CICL'}), 
+        body: JSON.stringify(payload), 
       });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to save report");
       }
-      notify("success", "CICL report saved successfully!");
+      notify("success", "CICL report submitted successfully!");
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
@@ -232,20 +233,22 @@ export default function CICLReportFormModal({ student, userName, onClose, onSucc
              Reported by: <span className="font-bold">{userName}</span> | Date Reported: {form.dateReported}
           </div>
 
-          <button 
-            type="submit" 
-            disabled={isSaving}
-            className="w-full py-2 bg-red-500 text-white text-xs font-bold uppercase tracking-wider hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isSaving ? (
-              <>
-                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Processing...
-              </>
-            ) : (
-              "Save CICL Report"
-            )}
-          </button>
+          <div className="pt-2">
+            <button 
+              type="submit" 
+              disabled={isSaving}
+              className="w-full py-2.5 bg-amber-600 text-white font-bold text-xs uppercase tracking-wider hover:bg-amber-700 disabled:opacity-50 transition-all rounded-sm shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {isSaving ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Report"
+              )}
+            </button>
+          </div>
         </form>
       </motion.div>
     </div>

@@ -674,10 +674,36 @@ async function startServer() {
     }
   });
 
+  // Helper to process report attachments
+  async function processReportAttachment(filePayload: any): Promise<{ url: string; name: string } | null> {
+    if (!filePayload || !filePayload.base64) return null;
+    try {
+      const uploaded = await uploadFileToSupabaseStorage(filePayload.base64, filePayload.name, filePayload.mimeType || 'application/octet-stream', 'MOVs');
+      return { url: uploaded.publicUrl, name: uploaded.fileName || filePayload.name };
+    } catch (uploadErr) {
+      try {
+        const localFile = saveFileLocally(filePayload.base64, filePayload.name);
+        return { url: localFile.fileUrl, name: filePayload.name };
+      } catch (localErr) {
+        console.error("Local file save error:", localErr);
+        return null;
+      }
+    }
+  }
+
   // API ROUTE 7: Save Report
   app.post("/api/reports", async (req, res) => {
     try {
       const report = normalizeGeneralReport(req.body);
+
+      if (req.body.file && req.body.file.base64) {
+        const attachResult = await processReportAttachment(req.body.file);
+        if (attachResult) {
+          const sep = report.actionTaken ? "\n\n" : "";
+          report.actionTaken = `${report.actionTaken || ''}${sep}[MOV File: ${attachResult.name}](${attachResult.url})`;
+        }
+      }
+
       await saveReport(report);
 
       try {
@@ -812,6 +838,15 @@ async function startServer() {
   app.post("/api/critical-reports", async (req, res) => {
     try {
       const report = normalizeCriticalReport(req.body);
+
+      if (req.body.file && req.body.file.base64) {
+        const attachResult = await processReportAttachment(req.body.file);
+        if (attachResult) {
+          const sep = report.actionTaken ? "\n\n" : "";
+          report.actionTaken = `${report.actionTaken || ''}${sep}[MOV File: ${attachResult.name}](${attachResult.url})`;
+        }
+      }
+
       await saveCriticalReport(report);
 
       try {

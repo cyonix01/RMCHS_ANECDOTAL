@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { X, FileText, User } from "lucide-react";
+import { X, FileText } from "lucide-react";
 import { Student, Report } from "../types";
 import { useNotification } from "./NotificationProvider";
 import { getDriveImageUrl } from "../utils/driveUtils";
@@ -81,17 +81,18 @@ export default function StudentReportModal({ student, userName, onClose, onSucce
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    const payload = { ...form, recordStatus: 'On Going' as const };
     try {
       const response = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to save report");
       }
-      notify("success", "Student report saved successfully!");
+      notify("success", "Student report submitted successfully!");
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
@@ -186,20 +187,22 @@ export default function StudentReportModal({ student, userName, onClose, onSucce
              Reported by: <span className="font-bold">{userName}</span> | Date Reported: {form.dateReported}
           </div>
 
-          <button 
-            type="submit" 
-            disabled={isSaving}
-            className="w-full py-2 bg-[#76DA0D] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#88F015] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isSaving ? (
-              <>
-                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Processing...
-              </>
-            ) : (
-              "Save Report"
-            )}
-          </button>
+          <div className="pt-2">
+            <button 
+              type="submit" 
+              disabled={isSaving}
+              className="w-full py-2.5 bg-[#76DA0D] text-[#102604] font-black text-xs uppercase tracking-wider hover:bg-[#88F015] disabled:opacity-50 transition-all rounded-sm shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+            >
+              {isSaving ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-[#102604]/30 border-t-[#102604] rounded-full animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Report"
+              )}
+            </button>
+          </div>
         </form>
       </motion.div>
     </div>

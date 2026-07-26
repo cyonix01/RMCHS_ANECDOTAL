@@ -1830,12 +1830,12 @@ export async function saveAuditLog(logEntry: Omit<AuditLog, "id" | "timestamp">)
         id: fullLog.id,
         timestamp: fullLog.timestamp,
         action: fullLog.action,
-        performed_by: fullLog.performedBy,
-        target_id: fullLog.targetId,
-        target_name: fullLog.targetName,
-        details: fullLog.details,
-        previous_values: fullLog.previousValues ? JSON.stringify(fullLog.previousValues) : null,
-        new_values: fullLog.newValues ? JSON.stringify(fullLog.newValues) : null
+        performed_by: fullLog.performedBy || "",
+        target_id: fullLog.targetId || "",
+        target_name: fullLog.targetName || "",
+        details: fullLog.details || "",
+        previous_values: fullLog.previousValues ? (typeof fullLog.previousValues === 'string' ? JSON.parse(fullLog.previousValues) : fullLog.previousValues) : null,
+        new_values: fullLog.newValues ? (typeof fullLog.newValues === 'string' ? JSON.parse(fullLog.newValues) : fullLog.newValues) : null
       };
       const { error } = await supabase.from("audit_logs").insert([row]);
       if (error) {
@@ -1873,17 +1873,27 @@ export async function getAuditLogs(): Promise<AuditLog[]> {
     }
 
     if (data && data.length > 0) {
-      const supabaseLogs: AuditLog[] = data.map((row: any) => ({
-        id: row.id,
-        timestamp: row.timestamp,
-        action: row.action,
-        performedBy: row.performed_by || "",
-        targetId: row.target_id || "",
-        targetName: row.target_name || "",
-        details: row.details || "",
-        previousValues: row.previous_values ? (typeof row.previous_values === 'string' ? JSON.parse(row.previous_values) : row.previous_values) : undefined,
-        newValues: row.new_values ? (typeof row.new_values === 'string' ? JSON.parse(row.new_values) : row.new_values) : undefined
-      }));
+      const supabaseLogs: AuditLog[] = data.map((row: any) => {
+        let prevVal = row.previous_values;
+        if (typeof prevVal === 'string') {
+          try { prevVal = JSON.parse(prevVal); } catch (e) {}
+        }
+        let newVal = row.new_values;
+        if (typeof newVal === 'string') {
+          try { newVal = JSON.parse(newVal); } catch (e) {}
+        }
+        return {
+          id: row.id,
+          timestamp: row.timestamp || new Date().toISOString(),
+          action: row.action || "UNKNOWN",
+          performedBy: row.performed_by || "",
+          targetId: row.target_id || "",
+          targetName: row.target_name || "",
+          details: row.details || "",
+          previousValues: prevVal || undefined,
+          newValues: newVal || undefined
+        };
+      });
       const map = new Map<string, AuditLog>();
       [...supabaseLogs, ...localLogs].forEach(l => map.set(l.id, l));
       const merged = Array.from(map.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());

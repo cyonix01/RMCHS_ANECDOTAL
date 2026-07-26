@@ -225,7 +225,48 @@ create table if not exists notifications (
   is_read boolean default false,
   read_by jsonb default '[]'::jsonb,
   created_at text not null
-);`;
+);
+
+-- Create sections table
+create table if not exists sections (
+  id serial primary key,
+  grade_level text not null,
+  section_name text not null
+);
+
+-- Create signatory_settings table
+create table if not exists signatory_settings (
+  id text primary key,
+  prepared_by_name text,
+  prepared_by_title text,
+  noted_by_name text,
+  noted_by_title text,
+  updated_at text
+);
+
+-- Create admin_passwords table
+create table if not exists admin_passwords (
+  id text primary key,
+  password_hash text,
+  updated_at text
+);
+
+-- Create audit_logs table
+create table if not exists audit_logs (
+  id text primary key,
+  timestamp text not null,
+  action text not null,
+  performed_by text,
+  target_id text,
+  target_name text,
+  details text,
+  previous_values jsonb,
+  new_values jsonb
+);
+
+create index if not exists idx_audit_logs_timestamp on audit_logs(timestamp desc);
+create index if not exists idx_audit_logs_action on audit_logs(action);
+create index if not exists idx_audit_logs_performed_by on audit_logs(performed_by);`;
     navigator.clipboard.writeText(sql);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

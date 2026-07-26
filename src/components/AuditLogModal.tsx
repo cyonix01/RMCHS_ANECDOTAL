@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { 
   X, 
   Search, 
@@ -15,7 +15,14 @@ import {
   ChevronUp, 
   FileText,
   Clock,
-  Filter
+  Filter,
+  LogIn,
+  Key,
+  AlertTriangle,
+  CheckCircle2,
+  Settings,
+  FolderPlus,
+  Edit3
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { AuditLog } from '../types';
@@ -66,10 +73,11 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
-      log.targetName.toLowerCase().includes(q) ||
-      log.targetId.toLowerCase().includes(q) ||
-      log.performedBy.toLowerCase().includes(q) ||
-      log.details.toLowerCase().includes(q)
+      (log.targetName || '').toLowerCase().includes(q) ||
+      (log.targetId || '').toLowerCase().includes(q) ||
+      (log.performedBy || '').toLowerCase().includes(q) ||
+      (log.details || '').toLowerCase().includes(q) ||
+      (log.action || '').toLowerCase().includes(q)
     );
   });
 
@@ -89,10 +97,10 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
       `"${log.id}"`,
       `"${new Date(log.timestamp).toLocaleString()}"`,
       `"${log.action}"`,
-      `"${log.targetName.replace(/"/g, '""')}"`,
-      `"${log.targetId.replace(/"/g, '""')}"`,
-      `"${log.performedBy.replace(/"/g, '""')}"`,
-      `"${log.details.replace(/"/g, '""')}"`
+      `"${(log.targetName || '').replace(/"/g, '""')}"`,
+      `"${(log.targetId || '').replace(/"/g, '""')}"`,
+      `"${(log.performedBy || '').replace(/"/g, '""')}"`,
+      `"${(log.details || '').replace(/"/g, '""')}"`
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -117,6 +125,12 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
 
   const getActionBadge = (action: AuditLog['action']) => {
     switch (action) {
+      case 'USER_LOGIN':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+            <LogIn size={12} /> USER LOGIN
+          </span>
+        );
       case 'UPDATE_TEACHER_PROFILE':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -165,6 +179,66 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
             <Users size={12} /> BULK IMPORT
           </span>
         );
+      case 'CREATE_REPORT':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
+            <FileText size={12} /> INCIDENT REPORT
+          </span>
+        );
+      case 'CREATE_CRITICAL_REPORT':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+            <AlertTriangle size={12} /> CRITICAL REPORT
+          </span>
+        );
+      case 'UPDATE_REPORT_STATUS':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-lime-50 text-lime-800 border border-lime-200">
+            <CheckCircle2 size={12} /> STATUS CHANGE
+          </span>
+        );
+      case 'UPDATE_RECOMMENDATION':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200">
+            <Edit3 size={12} /> RECOMMENDATION
+          </span>
+        );
+      case 'DELETE_REPORT':
+      case 'DELETE_CRITICAL_REPORT':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+            <Trash2 size={12} /> REPORT DELETE
+          </span>
+        );
+      case 'RESET_PASSWORD':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-yellow-50 text-yellow-800 border border-yellow-200">
+            <Key size={12} /> PASSWORD RESET
+          </span>
+        );
+      case 'UPDATE_SIGNATORY_SETTINGS':
+      case 'UPDATE_ADMIN_PASSWORDS':
+      case 'CONFIGURE_DATABASE':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-300">
+            <Settings size={12} /> SETTINGS UPDATE
+          </span>
+        );
+      case 'CREATE_SECTION':
+      case 'UPDATE_SECTION':
+      case 'DELETE_SECTION':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+            <FolderPlus size={12} /> SECTION MGMT
+          </span>
+        );
+      case 'CLEAR_ALL_REPORTS':
+      case 'CLEAR_ALL_STUDENTS':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-300">
+            <Trash2 size={12} /> SYSTEM RESET
+          </span>
+        );
       default:
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
@@ -190,7 +264,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
             </div>
             <div>
               <h2 className="text-base font-bold tracking-wide uppercase">Admin Audit Log System</h2>
-              <p className="text-xs text-slate-300">Data integrity trail for teacher and student profile updates</p>
+              <p className="text-xs text-slate-300">Comprehensive data integrity audit trail for all portal activities & user actions</p>
             </div>
           </div>
           <button
@@ -210,7 +284,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search target name, LRN, email, or details..."
+              placeholder="Search target name, LRN, email, performed by, or details..."
               className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#102604] focus:border-transparent"
             />
             {searchQuery && (
@@ -229,9 +303,10 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="text-xs py-2 px-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#102604] cursor-pointer font-medium text-slate-700"
+              className="text-xs py-2 px-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#102604] cursor-pointer font-medium text-slate-700 max-w-[220px]"
             >
               <option value="ALL">All Event Types ({logs.length})</option>
+              <option value="USER_LOGIN">User Logins</option>
               <option value="UPDATE_TEACHER_PROFILE">Teacher Profile Updates</option>
               <option value="UPDATE_STUDENT_PROFILE">Student Profile Updates</option>
               <option value="REGISTER_STUDENT">Student Registrations</option>
@@ -240,6 +315,14 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
               <option value="DELETE_TEACHER">Teacher Deletions</option>
               <option value="UPDATE_STUDENT_PHOTO">Student Photo Updates</option>
               <option value="BULK_REGISTER_STUDENTS">Bulk Imports</option>
+              <option value="CREATE_REPORT">General Reports</option>
+              <option value="CREATE_CRITICAL_REPORT">Critical Reports</option>
+              <option value="UPDATE_REPORT_STATUS">Status Updates</option>
+              <option value="UPDATE_RECOMMENDATION">Recommendations</option>
+              <option value="RESET_PASSWORD">Password Resets</option>
+              <option value="UPDATE_SIGNATORY_SETTINGS">Signatory Settings</option>
+              <option value="UPDATE_ADMIN_PASSWORDS">Admin Passwords</option>
+              <option value="CONFIGURE_DATABASE">Database Configs</option>
             </select>
           </div>
 
@@ -274,14 +357,16 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
               <p className="text-xs font-semibold">Loading audit trail records...</p>
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-slate-400 bg-white rounded-lg border border-slate-200">
-              <Clock size={36} className="text-slate-300 mb-2" />
-              <p className="text-sm font-bold text-slate-600">No Audit Log Entries Found</p>
-              <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                {searchQuery || actionFilter !== 'ALL' 
-                  ? 'No activity matches your active search or filter criteria.'
-                  : 'Profile updates and system administration actions will automatically be recorded here.'}
-              </p>
+            <div className="flex flex-col items-center justify-center py-12 text-center text-slate-400 bg-white rounded-lg border border-slate-200 p-6 space-y-2">
+              <Clock size={36} className="text-slate-300" />
+              <div>
+                <p className="text-sm font-bold text-slate-600">No Audit Log Entries Found</p>
+                <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                  {searchQuery || actionFilter !== 'ALL' 
+                    ? 'No activity matches your active search or filter criteria.'
+                    : 'Portal activities and user actions will automatically be recorded here.'}
+                </p>
+              </div>
             </div>
           ) : (
             <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
@@ -327,8 +412,8 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
 
                           {/* Target */}
                           <td className="py-3 px-4">
-                            <div className="font-bold text-slate-800">{log.targetName}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">{log.targetId}</div>
+                            <div className="font-bold text-slate-800">{log.targetName || 'N/A'}</div>
+                            {log.targetId && <div className="text-[10px] text-slate-400 font-mono">{log.targetId}</div>}
                           </td>
 
                           {/* Performed By */}
@@ -414,3 +499,4 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
     </div>
   );
 };
+

@@ -172,10 +172,37 @@ export interface AdminPasswords {
   deleteTeacher: string;
 }
 
+export type AuditActionType =
+  | 'UPDATE_TEACHER_PROFILE'
+  | 'UPDATE_STUDENT_PROFILE'
+  | 'REGISTER_STUDENT'
+  | 'REGISTER_TEACHER'
+  | 'ASSIGN_ADVISORY'
+  | 'DELETE_TEACHER'
+  | 'UPDATE_STUDENT_PHOTO'
+  | 'BULK_REGISTER_STUDENTS'
+  | 'USER_LOGIN'
+  | 'CREATE_REPORT'
+  | 'CREATE_CRITICAL_REPORT'
+  | 'UPDATE_REPORT_STATUS'
+  | 'UPDATE_RECOMMENDATION'
+  | 'DELETE_REPORT'
+  | 'DELETE_CRITICAL_REPORT'
+  | 'RESET_PASSWORD'
+  | 'UPDATE_SIGNATORY_SETTINGS'
+  | 'UPDATE_ADMIN_PASSWORDS'
+  | 'CONFIGURE_DATABASE'
+  | 'CREATE_SECTION'
+  | 'UPDATE_SECTION'
+  | 'DELETE_SECTION'
+  | 'CLEAR_ALL_REPORTS'
+  | 'CLEAR_ALL_STUDENTS'
+  | string;
+
 export interface AuditLog {
   id: string;
   timestamp: string;
-  action: 'UPDATE_TEACHER_PROFILE' | 'UPDATE_STUDENT_PROFILE' | 'REGISTER_STUDENT' | 'REGISTER_TEACHER' | 'ASSIGN_ADVISORY' | 'DELETE_TEACHER' | 'UPDATE_STUDENT_PHOTO' | 'BULK_REGISTER_STUDENTS';
+  action: AuditActionType;
   performedBy: string;
   targetId: string;
   targetName: string;

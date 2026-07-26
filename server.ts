@@ -261,6 +261,15 @@ async function startServer() {
     try {
       const settings = req.body;
       const saved = await saveSignatorySettings(settings);
+
+      await saveAuditLog({
+        action: 'UPDATE_SIGNATORY_SETTINGS',
+        performedBy: String(req.headers['x-user-email'] || settings.updatedBy || 'Admin'),
+        targetId: 'SIGNATORIES',
+        targetName: 'Signatory Settings',
+        details: `Updated signatory configuration (Prepared: ${settings.preparedByName || 'N/A'}, Noted: ${settings.notedByName || 'N/A'})`
+      });
+
       res.json(saved);
     } catch (err: any) {
       console.error("Failed to save signatory settings:", err);
@@ -347,6 +356,14 @@ async function startServer() {
       saveSupabaseConfig(url.trim(), anonKey.trim());
       // Re-initialize connections using the new Supabase config
       await initDatabase();
+
+      await saveAuditLog({
+        action: 'CONFIGURE_DATABASE',
+        performedBy: String(req.headers['x-user-email'] || 'Admin'),
+        targetId: 'SUPABASE_CONFIG',
+        targetName: 'Supabase Connection',
+        details: `Updated Supabase endpoint URL: ${url.trim()}`
+      });
 
       res.json({ status: "ok", message: "Supabase credentials updated successfully!" });
     } catch (err: any) {
@@ -495,6 +512,15 @@ async function startServer() {
 
       // Do not transmit hash
       const { passwordHash: _, ...authenticatedUser } = user;
+
+      await saveAuditLog({
+        action: 'USER_LOGIN',
+        performedBy: emailTrim,
+        targetId: emailTrim,
+        targetName: `${user.firstName} ${user.lastName}`,
+        details: `User logged into portal as ${user.role} (${user.department} - ${user.position})`
+      });
+
       res.json({
         message: "Login successful!",
         user: authenticatedUser
@@ -586,6 +612,14 @@ async function startServer() {
 
       // Clean up code
       resetCodes.delete(emailTrim);
+
+      await saveAuditLog({
+        action: 'RESET_PASSWORD',
+        performedBy: emailTrim,
+        targetId: emailTrim,
+        targetName: `${user.firstName} ${user.lastName}`,
+        details: `Password reset verified and changed for account ${emailTrim}`
+      });
 
       res.json({
         message: "Your passcode has been successfully recovered and updated! Please log in with your new passcode."
@@ -889,9 +923,18 @@ async function startServer() {
 
       await saveReport(report);
 
+      const student = await getStudentByLrn(report.studentLrn);
+      const studentName = student ? `${student.firstName} ${student.lastName}` : `Student (LRN: ${report.studentLrn})`;
+
+      await saveAuditLog({
+        action: 'CREATE_REPORT',
+        performedBy: String(report.reportedBy || req.headers['x-user-email'] || 'User'),
+        targetId: report.studentLrn,
+        targetName: studentName,
+        details: `Filed General Incident Report (${report.issue}) for ${studentName} on ${report.dateOfIncident || 'today'}`
+      });
+
       try {
-        const student = await getStudentByLrn(report.studentLrn);
-        const studentName = student ? `${student.firstName} ${student.lastName}` : `Student (LRN: ${report.studentLrn})`;
         const ciclOffensesList = ["Theft", "Robbery", "Physical injuries", "Sexual harassment", "Rape", "Homicide", "Murder", "Drug-related"];
         const isCicl = ciclOffensesList.includes(report.issue);
 
@@ -947,6 +990,15 @@ async function startServer() {
     try {
       const { id } = req.params;
       await deleteReport(id);
+
+      await saveAuditLog({
+        action: 'DELETE_REPORT',
+        performedBy: String(req.headers['x-user-email'] || req.query.deletedBy || 'User'),
+        targetId: String(id),
+        targetName: `Report #${id}`,
+        details: `Deleted General Incident Report #${id}`
+      });
+
       res.json({ message: "Report deleted successfully" });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -959,6 +1011,15 @@ async function startServer() {
       const { id } = req.params;
       const { recommendation, updatedBy } = req.body;
       await updateReportRecommendation(id, recommendation, updatedBy);
+
+      await saveAuditLog({
+        action: 'UPDATE_RECOMMENDATION',
+        performedBy: String(updatedBy || req.headers['x-user-email'] || 'Guidance'),
+        targetId: String(id),
+        targetName: `Report #${id}`,
+        details: `Updated Guidance recommendation for Report #${id}: "${recommendation}"`
+      });
+
       res.json({ message: "Recommendation updated successfully" });
     } catch (err: any) {
       console.error("Failed to update report recommendation:", err);
@@ -970,7 +1031,7 @@ async function startServer() {
   app.put("/api/reports/:id/status", async (req, res) => {
     try {
       const { id } = req.params;
-      const { status, type, file, adminComment } = req.body;
+      const { status, type, file, adminComment, updatedBy } = req.body;
 
       let driveUploadWarning: string | null = null;
       let driveFile: any = null;
@@ -1005,12 +1066,17 @@ async function startServer() {
       }
 
       let finalStatus = status;
-      // If a teacher uploaded a file and the target status is 'RESOLVED',
-      // but we actually want them to go to 'Pending Resolved' first?
-      // The frontend now passes 'Pending Resolved' explicitly.
-      // So we can just use the status provided by the frontend.
 
       await updateReportStatus(Number(id), finalStatus, type, savedFileUrl, savedFileName, adminComment);
+
+      await saveAuditLog({
+        action: 'UPDATE_REPORT_STATUS',
+        performedBy: String(updatedBy || req.headers['x-user-email'] || 'User'),
+        targetId: String(id),
+        targetName: `Report #${id}`,
+        details: `Changed status for ${type || 'General'} Report #${id} to "${finalStatus}"${adminComment ? ` (Comment: "${adminComment}")` : ''}${savedFileName ? ` with MOV "${savedFileName}"` : ''}`
+      });
+
       res.json({ message: "Status updated successfully", warning: driveUploadWarning, driveFile, savedFileUrl });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1032,10 +1098,18 @@ async function startServer() {
 
       await saveCriticalReport(report);
 
-      try {
-        const student = await getStudentByLrn(report.studentLrn);
-        const studentName = student ? `${student.firstName} ${student.lastName}` : `Student (LRN: ${report.studentLrn})`;
+      const student = await getStudentByLrn(report.studentLrn);
+      const studentName = student ? `${student.firstName} ${student.lastName}` : `Student (LRN: ${report.studentLrn})`;
 
+      await saveAuditLog({
+        action: 'CREATE_CRITICAL_REPORT',
+        performedBy: String(report.reportedBy || req.headers['x-user-email'] || 'User'),
+        targetId: report.studentLrn,
+        targetName: studentName,
+        details: `Filed Critical Incident Report (${report.issue}) for ${studentName} on ${report.dateOfIncident || 'today'}`
+      });
+
+      try {
         // Always notify Guidance
         await saveNotification({
           message: `New Critical Report received: ${studentName} - ${report.issue}`,
@@ -1084,6 +1158,15 @@ async function startServer() {
     try {
       const { id } = req.params;
       await deleteCriticalReport(id);
+
+      await saveAuditLog({
+        action: 'DELETE_CRITICAL_REPORT',
+        performedBy: String(req.headers['x-user-email'] || 'User'),
+        targetId: String(id),
+        targetName: `Critical Report #${id}`,
+        details: `Deleted Critical Incident Report #${id}`
+      });
+
       res.json({ message: "Critical report deleted successfully" });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1096,6 +1179,15 @@ async function startServer() {
       const { id } = req.params;
       const { recommendation, updatedBy } = req.body;
       await updateCriticalReportRecommendation(id, recommendation, updatedBy);
+
+      await saveAuditLog({
+        action: 'UPDATE_RECOMMENDATION',
+        performedBy: String(updatedBy || req.headers['x-user-email'] || 'Guidance'),
+        targetId: String(id),
+        targetName: `Critical Report #${id}`,
+        details: `Updated Guidance recommendation for Critical Report #${id}: "${recommendation}"`
+      });
+
       res.json({ message: "Recommendation updated successfully" });
     } catch (err: any) {
       console.error("Failed to update critical report recommendation:", err);
@@ -1197,13 +1289,22 @@ async function startServer() {
     try {
       const newPasswords = req.body;
       const saved = await saveAdminPasswords(newPasswords);
+
+      await saveAuditLog({
+        action: 'UPDATE_ADMIN_PASSWORDS',
+        performedBy: String(req.headers['x-user-email'] || 'Admin'),
+        targetId: 'ADMIN_PASSWORDS',
+        targetName: 'Admin Passwords',
+        details: 'Updated administrative master security passwords'
+      });
+
       res.json(saved);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-// ADMIN API: Clear Reports
+  // ADMIN API: Clear Reports
   app.delete("/api/admin/clear-reports", async (req, res) => {
     try {
       const { password } = req.query;
@@ -1212,6 +1313,15 @@ async function startServer() {
         return res.status(401).json({ error: "Invalid password." });
       }
       await clearAllReports();
+
+      await saveAuditLog({
+        action: 'CLEAR_ALL_REPORTS',
+        performedBy: String(req.headers['x-user-email'] || 'Admin'),
+        targetId: 'ALL_REPORTS',
+        targetName: 'All Incident Reports',
+        details: 'Admin reset clearing all general and critical student reports'
+      });
+
       res.json({ message: "All reports cleared." });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1227,6 +1337,15 @@ async function startServer() {
         return res.status(401).json({ error: "Invalid password." });
       }
       await clearAllStudents();
+
+      await saveAuditLog({
+        action: 'CLEAR_ALL_STUDENTS',
+        performedBy: String(req.headers['x-user-email'] || 'Admin'),
+        targetId: 'ALL_STUDENTS',
+        targetName: 'All Students Roster',
+        details: 'Admin reset clearing all registered student records'
+      });
+
       res.json({ message: "All students cleared." });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1276,6 +1395,15 @@ async function startServer() {
         return res.status(400).json({ error: "Grade level and name are required." });
       }
       await createSection(gradeLevel, name);
+
+      await saveAuditLog({
+        action: 'CREATE_SECTION',
+        performedBy: String(req.headers['x-user-email'] || 'Admin'),
+        targetId: `${gradeLevel}_${name}`,
+        targetName: `${gradeLevel} - ${name}`,
+        details: `Created academic section ${gradeLevel} - ${name}`
+      });
+
       res.status(201).json({ message: "Section added." });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1287,6 +1415,15 @@ async function startServer() {
     try {
       const { oldGrade, oldName, newGrade, newName } = req.body;
       await updateSection(oldGrade, oldName, newGrade, newName);
+
+      await saveAuditLog({
+        action: 'UPDATE_SECTION',
+        performedBy: String(req.headers['x-user-email'] || 'Admin'),
+        targetId: `${newGrade}_${newName}`,
+        targetName: `${newGrade} - ${newName}`,
+        details: `Updated section "${oldGrade} - ${oldName}" to "${newGrade} - ${newName}"`
+      });
+
       res.json({ message: "Section updated." });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1301,6 +1438,15 @@ async function startServer() {
         return res.status(400).json({ error: "Grade level and name are required." });
       }
       await deleteSection(gradeLevel, name);
+
+      await saveAuditLog({
+        action: 'DELETE_SECTION',
+        performedBy: String(req.headers['x-user-email'] || 'Admin'),
+        targetId: `${gradeLevel}_${name}`,
+        targetName: `${gradeLevel} - ${name}`,
+        details: `Deleted academic section ${gradeLevel} - ${name}`
+      });
+
       res.json({ message: "Section deleted." });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

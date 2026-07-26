@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { FileText, Users, AlertCircle, CheckCircle, Clock, TrendingUp, TrendingDown, Activity, UserCheck, BookOpen, Download, Printer } from 'lucide-react';
 import { 
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, 
@@ -587,7 +588,12 @@ const [loading, setLoading] = useState(true);
       {/* Top 5 Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
         {/* Total Reports */}
-        <div className="bg-white p-4 rounded border border-green-200 shadow-sm flex flex-col justify-between gap-3">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.05 }}
+          className="bg-white p-4 rounded border border-green-200 shadow-sm flex flex-col justify-between gap-3"
+        >
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white shrink-0">
@@ -613,10 +619,15 @@ const [loading, setLoading] = useState(true);
               <span>+{reportsThisMonth} this month, +{reportsToday} today</span>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Critical Cases */}
-        <div className="bg-white p-4 rounded border border-red-200 shadow-sm flex items-center justify-between">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.1 }}
+          className="bg-white p-4 rounded border border-red-200 shadow-sm flex items-center justify-between"
+        >
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0">
               <AlertCircle size={28} />
@@ -630,10 +641,15 @@ const [loading, setLoading] = useState(true);
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Resolved Cases */}
-        <div className="bg-white p-4 rounded border border-blue-200 shadow-sm flex items-center justify-between">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.15 }}
+          className="bg-white p-4 rounded border border-blue-200 shadow-sm flex items-center justify-between"
+        >
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
               <CheckCircle size={28} />
@@ -647,10 +663,15 @@ const [loading, setLoading] = useState(true);
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Action Rate */}
-        <div className="bg-white p-4 rounded border border-orange-200 shadow-sm flex items-center justify-between">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.2 }}
+          className="bg-white p-4 rounded border border-orange-200 shadow-sm flex items-center justify-between"
+        >
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center shrink-0">
               <Activity size={28} />
@@ -666,10 +687,15 @@ const [loading, setLoading] = useState(true);
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Active Cases */}
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm flex items-center justify-between">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.25 }}
+          className="bg-white p-4 rounded border border-slate-200 shadow-sm flex items-center justify-between"
+        >
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
               <Clock size={28} />
@@ -683,7 +709,7 @@ const [loading, setLoading] = useState(true);
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Secondary 6 Metrics Row */}

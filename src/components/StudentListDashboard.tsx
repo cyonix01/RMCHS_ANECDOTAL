@@ -275,7 +275,12 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
 
       {/* Top Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm flex items-center justify-between">
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.05 }}
+          className="bg-white p-4 rounded border border-slate-200 shadow-sm flex items-center justify-between"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
               <Users size={20} />
@@ -285,8 +290,14 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
               <h2 className="text-xl font-black text-slate-800 leading-none">{totalStudents}</h2>
             </div>
           </div>
-        </div>
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm flex flex-col justify-between gap-2">
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.1 }}
+          className="bg-white p-4 rounded border border-slate-200 shadow-sm flex flex-col justify-between gap-2"
+        >
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-green-50 text-green-600 flex items-center justify-center shrink-0">
@@ -308,8 +319,14 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
           <div>
             <h2 className="text-xl font-black text-slate-800 leading-none">{totalReportsCount}</h2>
           </div>
-        </div>
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm flex items-center justify-between">
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.15 }}
+          className="bg-white p-4 rounded border border-slate-200 shadow-sm flex items-center justify-between"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center shrink-0">
               <AlertCircle size={20} />
@@ -319,8 +336,14 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
               <h2 className="text-xl font-black text-slate-800 leading-none">{criticalCasesCount}</h2>
             </div>
           </div>
-        </div>
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm flex items-center justify-between">
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.2 }}
+          className="bg-white p-4 rounded border border-slate-200 shadow-sm flex items-center justify-between"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
               <Clock size={20} />
@@ -330,8 +353,14 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
               <h2 className="text-xl font-black text-slate-800 leading-none">{activeCases}</h2>
             </div>
           </div>
-        </div>
-        <div className="bg-white p-4 rounded border border-slate-200 shadow-sm flex items-center justify-between">
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.25 }}
+          className="bg-white p-4 rounded border border-slate-200 shadow-sm flex items-center justify-between"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
               <CheckCircle size={20} />
@@ -341,13 +370,18 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
               <h2 className="text-xl font-black text-slate-800 leading-none">{resolvedCases}</h2>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Analytics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Trend */}
-        <div className="bg-white p-5 border border-slate-200 shadow-sm flex flex-col">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="bg-white p-5 border border-slate-200 shadow-sm flex flex-col"
+        >
           <h4 className="font-bold text-slate-900 mb-4 uppercase text-[10px] tracking-widest">Section Trend (6 Mo)</h4>
           <div className="flex-1 min-h-[150px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -360,10 +394,15 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
         {/* Issue Breakdown */}
-        <div className="bg-white p-5 border border-slate-200 shadow-sm flex flex-col">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.25 }}
+          className="bg-white p-5 border border-slate-200 shadow-sm flex flex-col"
+        >
           <h4 className="font-bold text-slate-900 mb-4 uppercase text-[10px] tracking-widest">Issue Breakdown</h4>
           <div className="flex-1 flex min-h-[150px]">
             <div className="w-1/2">
@@ -388,10 +427,15 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Top Students */}
-        <div className="bg-white p-5 border border-slate-200 shadow-sm flex flex-col">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.3 }}
+          className="bg-white p-5 border border-slate-200 shadow-sm flex flex-col"
+        >
           <h4 className="font-bold text-slate-900 mb-4 uppercase text-[10px] tracking-widest">Most Reported Students</h4>
           <div className="flex-1 min-h-[150px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -403,7 +447,7 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Toast Notification */}

@@ -22,7 +22,8 @@ import {
   CheckCircle2,
   Settings,
   FolderPlus,
-  Edit3
+  Edit3,
+  Globe
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { AuditLog } from '../types';
@@ -76,6 +77,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
       (log.targetName || '').toLowerCase().includes(q) ||
       (log.targetId || '').toLowerCase().includes(q) ||
       (log.performedBy || '').toLowerCase().includes(q) ||
+      (log.ipAddress || '').toLowerCase().includes(q) ||
       (log.details || '').toLowerCase().includes(q) ||
       (log.action || '').toLowerCase().includes(q)
     );
@@ -92,7 +94,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
       return;
     }
 
-    const headers = ['ID', 'Timestamp', 'Action', 'Target Name', 'Target ID', 'Performed By', 'Details'];
+    const headers = ['ID', 'Timestamp', 'Action', 'Target Name', 'Target ID', 'Performed By', 'IP Address', 'Details'];
     const rows = filteredLogs.map(log => [
       `"${log.id}"`,
       `"${new Date(log.timestamp).toLocaleString()}"`,
@@ -100,6 +102,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
       `"${(log.targetName || '').replace(/"/g, '""')}"`,
       `"${(log.targetId || '').replace(/"/g, '""')}"`,
       `"${(log.performedBy || '').replace(/"/g, '""')}"`,
+      `"${(log.ipAddress || '').replace(/"/g, '""')}"`,
       `"${(log.details || '').replace(/"/g, '""')}"`
     ]);
 
@@ -278,19 +281,19 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
         {/* Controls Bar */}
         <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
           {/* Search Box */}
-          <div className="relative flex-1 min-w-[240px]">
+          <div className="relative flex-1 min-w-[280px]">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search target name, LRN, email, performed by, or details..."
-              className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#102604] focus:border-transparent"
+              placeholder="Search teacher name, activity description, target, LRN, or IP..."
+              className="w-full pl-9 pr-16 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#102604] focus:border-transparent shadow-sm"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
               >
                 Clear
               </button>
@@ -416,9 +419,15 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
                             {log.targetId && <div className="text-[10px] text-slate-400 font-mono">{log.targetId}</div>}
                           </td>
 
-                          {/* Performed By */}
+                          {/* Performed By & IP Address */}
                           <td className="py-3 px-4 text-slate-600 font-medium">
-                            {log.performedBy || 'System / Admin'}
+                            <div>{log.performedBy || 'System / Admin'}</div>
+                            {log.ipAddress && (
+                              <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1 mt-0.5" title={`Originating IP: ${log.ipAddress}`}>
+                                <Globe size={10} className="text-slate-400 shrink-0" />
+                                <span>{log.ipAddress}</span>
+                              </div>
+                            )}
                           </td>
 
                           {/* Details */}

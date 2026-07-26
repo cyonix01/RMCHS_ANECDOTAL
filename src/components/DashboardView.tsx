@@ -690,22 +690,45 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
         
         {/* Stats Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white p-6 border border-slate-200 shadow-sm">
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.05 }}
+            className="bg-white p-6 border border-slate-200 shadow-sm rounded-sm hover:shadow-md transition-shadow"
+          >
             <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Total Reports</h6>
             <p className="text-3xl font-bold text-[#102604]">{stats.totalGeneral + stats.totalCritical + stats.totalCICL}</p>
-          </div>
-          <div className="bg-white p-6 border border-slate-200 shadow-sm">
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="bg-white p-6 border border-slate-200 shadow-sm rounded-sm hover:shadow-md transition-shadow"
+          >
             <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">General</h6>
             <p className="text-3xl font-bold text-[#76DA0D]">{stats.totalGeneral}</p>
-          </div>
-          <div className="bg-white p-6 border border-slate-200 shadow-sm">
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.15 }}
+            className="bg-white p-6 border border-slate-200 shadow-sm rounded-sm hover:shadow-md transition-shadow"
+          >
             <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Critical</h6>
             <p className="text-3xl font-bold text-red-600">{stats.totalCritical}</p>
-          </div>
-          <div className="bg-white p-6 border border-slate-200 shadow-sm">
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="bg-white p-6 border border-slate-200 shadow-sm rounded-sm hover:shadow-md transition-shadow"
+          >
             <h6 className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">CICL</h6>
             <p className="text-3xl font-bold text-orange-600">{stats.totalCICL}</p>
-          </div>
+          </motion.div>
         </div>
         
         {/* Content Area */}
@@ -715,14 +738,24 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
           ) : user.role === 'Adviser' ? (
             <StudentListDashboard user={user} />
           ) : (
-            <div className="bg-white p-12 border border-slate-200 shadow-sm">
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.25 }}
+              className="bg-white p-12 border border-slate-200 shadow-sm rounded-sm"
+            >
               <h2 className="text-2xl font-bold text-[#102604] mb-4">Welcome, {user.firstName}</h2>
               <p className="text-slate-600">Please select an action from the menu above to manage reports or view data.</p>
-            </div>
+            </motion.div>
           )}
 
                 {/* New Search and Filterable Anecdote List */}
-                <div className="w-full bg-white border border-slate-100 p-8 shadow-sm text-left mt-8">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.3 }}
+                  className="w-full bg-white border border-slate-100 p-8 shadow-sm text-left mt-8 rounded-sm"
+                >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-[#102604] flex items-center justify-center">
@@ -873,7 +906,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Showing last 10 entries • {filteredReports.length} total results</p>
                     </div>
                   )}
-                </div>
+                </motion.div>
 
                 <div className="pt-8 flex flex-wrap justify-center gap-2">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-50 border border-slate-200 rounded-none text-[9px] font-bold uppercase tracking-wider font-sans text-slate-500">

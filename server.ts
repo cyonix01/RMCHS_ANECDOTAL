@@ -58,11 +58,30 @@ import {
   saveAuditLog,
   getAuditLogs
 } from "./server/database";
-import { UserAccount, Student, AppNotification } from "./src/types";
+import { UserAccount, Student, AppNotification, AuditLog } from "./src/types";
 
 // Hash utility
 function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
+}
+
+// IP extraction helper
+function getClientIp(req: express.Request): string {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (forwarded) {
+    const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+    const first = raw.split(",")[0].trim();
+    if (first) return first;
+  }
+  return req.socket?.remoteAddress || req.ip || "127.0.0.1";
+}
+
+// Audit log helper with automatic IP capture
+function logAudit(req: express.Request, entry: Omit<AuditLog, "id" | "timestamp">) {
+  return saveAuditLog({
+    ipAddress: getClientIp(req),
+    ...entry
+  });
 }
 
 // Helper to parse arrays from flexible formats
@@ -262,7 +281,7 @@ async function startServer() {
       const settings = req.body;
       const saved = await saveSignatorySettings(settings);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'UPDATE_SIGNATORY_SETTINGS',
         performedBy: String(req.headers['x-user-email'] || settings.updatedBy || 'Admin'),
         targetId: 'SIGNATORIES',
@@ -357,7 +376,7 @@ async function startServer() {
       // Re-initialize connections using the new Supabase config
       await initDatabase();
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'CONFIGURE_DATABASE',
         performedBy: String(req.headers['x-user-email'] || 'Admin'),
         targetId: 'SUPABASE_CONFIG',
@@ -396,7 +415,7 @@ async function startServer() {
       await updateAdvisoryAssignment(email, role, gradeLevel, section);
 
       const performedBy = req.body.adminEmail || req.headers['x-user-email'] || 'Admin';
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'ASSIGN_ADVISORY',
         performedBy: String(performedBy),
         targetId: email,
@@ -468,7 +487,7 @@ async function startServer() {
 
       await createUser(newUser);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'REGISTER_TEACHER',
         performedBy: emailTrim,
         targetId: emailTrim,
@@ -513,7 +532,7 @@ async function startServer() {
       // Do not transmit hash
       const { passwordHash: _, ...authenticatedUser } = user;
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'USER_LOGIN',
         performedBy: emailTrim,
         targetId: emailTrim,
@@ -613,7 +632,7 @@ async function startServer() {
       // Clean up code
       resetCodes.delete(emailTrim);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'RESET_PASSWORD',
         performedBy: emailTrim,
         targetId: emailTrim,
@@ -714,7 +733,7 @@ async function startServer() {
         ? `Updated fields: ${changedList.join(", ")}` 
         : "Profile saved with no field changes";
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'UPDATE_TEACHER_PROFILE',
         performedBy: email,
         targetId: email,
@@ -793,7 +812,7 @@ async function startServer() {
       const isUpdate = !!existingStudent;
       const performedBy = student.registeredBy || req.headers['x-user-email'] || 'Adviser';
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: isUpdate ? 'UPDATE_STUDENT_PROFILE' : 'REGISTER_STUDENT',
         performedBy: String(performedBy),
         targetId: student.lrn,
@@ -875,7 +894,7 @@ async function startServer() {
       const studentName = existingStudent ? `${existingStudent.firstName} ${existingStudent.lastName}` : `Student LRN ${lrn}`;
       const performedBy = updatedBy || req.headers['x-user-email'] || 'User';
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'UPDATE_STUDENT_PHOTO',
         performedBy: String(performedBy),
         targetId: lrn,
@@ -926,7 +945,7 @@ async function startServer() {
       const student = await getStudentByLrn(report.studentLrn);
       const studentName = student ? `${student.firstName} ${student.lastName}` : `Student (LRN: ${report.studentLrn})`;
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'CREATE_REPORT',
         performedBy: String(report.reportedBy || req.headers['x-user-email'] || 'User'),
         targetId: report.studentLrn,
@@ -991,7 +1010,7 @@ async function startServer() {
       const { id } = req.params;
       await deleteReport(id);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'DELETE_REPORT',
         performedBy: String(req.headers['x-user-email'] || req.query.deletedBy || 'User'),
         targetId: String(id),
@@ -1012,7 +1031,7 @@ async function startServer() {
       const { recommendation, updatedBy } = req.body;
       await updateReportRecommendation(id, recommendation, updatedBy);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'UPDATE_RECOMMENDATION',
         performedBy: String(updatedBy || req.headers['x-user-email'] || 'Guidance'),
         targetId: String(id),
@@ -1069,7 +1088,7 @@ async function startServer() {
 
       await updateReportStatus(Number(id), finalStatus, type, savedFileUrl, savedFileName, adminComment);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'UPDATE_REPORT_STATUS',
         performedBy: String(updatedBy || req.headers['x-user-email'] || 'User'),
         targetId: String(id),
@@ -1101,7 +1120,7 @@ async function startServer() {
       const student = await getStudentByLrn(report.studentLrn);
       const studentName = student ? `${student.firstName} ${student.lastName}` : `Student (LRN: ${report.studentLrn})`;
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'CREATE_CRITICAL_REPORT',
         performedBy: String(report.reportedBy || req.headers['x-user-email'] || 'User'),
         targetId: report.studentLrn,
@@ -1159,7 +1178,7 @@ async function startServer() {
       const { id } = req.params;
       await deleteCriticalReport(id);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'DELETE_CRITICAL_REPORT',
         performedBy: String(req.headers['x-user-email'] || 'User'),
         targetId: String(id),
@@ -1180,7 +1199,7 @@ async function startServer() {
       const { recommendation, updatedBy } = req.body;
       await updateCriticalReportRecommendation(id, recommendation, updatedBy);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'UPDATE_RECOMMENDATION',
         performedBy: String(updatedBy || req.headers['x-user-email'] || 'Guidance'),
         targetId: String(id),
@@ -1290,7 +1309,7 @@ async function startServer() {
       const newPasswords = req.body;
       const saved = await saveAdminPasswords(newPasswords);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'UPDATE_ADMIN_PASSWORDS',
         performedBy: String(req.headers['x-user-email'] || 'Admin'),
         targetId: 'ADMIN_PASSWORDS',
@@ -1314,7 +1333,7 @@ async function startServer() {
       }
       await clearAllReports();
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'CLEAR_ALL_REPORTS',
         performedBy: String(req.headers['x-user-email'] || 'Admin'),
         targetId: 'ALL_REPORTS',
@@ -1338,7 +1357,7 @@ async function startServer() {
       }
       await clearAllStudents();
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'CLEAR_ALL_STUDENTS',
         performedBy: String(req.headers['x-user-email'] || 'Admin'),
         targetId: 'ALL_STUDENTS',
@@ -1362,7 +1381,7 @@ async function startServer() {
       const targetUser = await getUserByEmail(email);
       await deleteUser(email);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'DELETE_TEACHER',
         performedBy: req.headers['x-user-email'] as string || 'Admin',
         targetId: email,
@@ -1396,7 +1415,7 @@ async function startServer() {
       }
       await createSection(gradeLevel, name);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'CREATE_SECTION',
         performedBy: String(req.headers['x-user-email'] || 'Admin'),
         targetId: `${gradeLevel}_${name}`,
@@ -1416,7 +1435,7 @@ async function startServer() {
       const { oldGrade, oldName, newGrade, newName } = req.body;
       await updateSection(oldGrade, oldName, newGrade, newName);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'UPDATE_SECTION',
         performedBy: String(req.headers['x-user-email'] || 'Admin'),
         targetId: `${newGrade}_${newName}`,
@@ -1439,7 +1458,7 @@ async function startServer() {
       }
       await deleteSection(gradeLevel, name);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'DELETE_SECTION',
         performedBy: String(req.headers['x-user-email'] || 'Admin'),
         targetId: `${gradeLevel}_${name}`,
@@ -1555,7 +1574,7 @@ async function startServer() {
       }
       const outcome = await createStudentsBulk(students);
 
-      await saveAuditLog({
+      await logAudit(req, {
         action: 'BULK_REGISTER_STUDENTS',
         performedBy: String(registeredBy || req.headers['x-user-email'] || 'Adviser/Admin'),
         targetId: `BULK_${Date.now()}`,

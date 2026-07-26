@@ -204,6 +204,7 @@ export interface AuditLog {
   timestamp: string;
   action: AuditActionType;
   performedBy: string;
+  ipAddress?: string;
   targetId: string;
   targetName: string;
   details: string;

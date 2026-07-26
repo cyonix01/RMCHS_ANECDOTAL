@@ -1297,6 +1297,13 @@ async function startServer() {
     // ADMIN API: Admin Passwords
   app.get("/api/admin/passwords", async (req, res) => {
     try {
+      const email = req.headers['x-user-email'] as string;
+      if (email) {
+        const user = await getUserByEmail(email);
+        if (user && user.role !== 'Admin') {
+          return res.status(403).json({ error: "Access denied: Admin role required." });
+        }
+      }
       const passwords = await getAdminPasswords();
       res.json(passwords);
     } catch (err: any) {
@@ -1306,6 +1313,13 @@ async function startServer() {
 
   app.post("/api/admin/passwords", async (req, res) => {
     try {
+      const email = req.headers['x-user-email'] as string;
+      if (email) {
+        const user = await getUserByEmail(email);
+        if (user && user.role !== 'Admin') {
+          return res.status(403).json({ error: "Access denied: Admin role required." });
+        }
+      }
       const newPasswords = req.body;
       const saved = await saveAdminPasswords(newPasswords);
 

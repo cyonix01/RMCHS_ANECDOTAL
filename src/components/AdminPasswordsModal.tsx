@@ -6,9 +6,10 @@ import { AdminPasswords } from '../types';
 
 interface Props {
   onClose: () => void;
+  userEmail?: string;
 }
 
-export const AdminPasswordsModal: React.FC<Props> = ({ onClose }) => {
+export const AdminPasswordsModal: React.FC<Props> = ({ onClose, userEmail }) => {
   const { notify } = useNotification();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -19,16 +20,21 @@ export const AdminPasswordsModal: React.FC<Props> = ({ onClose }) => {
   });
 
   useEffect(() => {
-    fetch("/api/admin/passwords")
+    const headers: Record<string, string> = {};
+    if (userEmail) headers["x-user-email"] = userEmail;
+
+    fetch("/api/admin/passwords", { headers })
       .then(res => res.json())
       .then(data => {
         if (!data.error) {
           setPasswords(data);
+        } else {
+          notify("error", data.error);
         }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [userEmail]);
 
   const handleChange = (field: keyof AdminPasswords, value: string) => {
     setPasswords(prev => ({ ...prev, [field]: value }));
@@ -37,9 +43,12 @@ export const AdminPasswordsModal: React.FC<Props> = ({ onClose }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (userEmail) headers["x-user-email"] = userEmail;
+
       const res = await fetch("/api/admin/passwords", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(passwords)
       });
       if (res.ok) {

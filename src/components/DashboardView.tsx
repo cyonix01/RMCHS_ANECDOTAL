@@ -638,16 +638,18 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
                       <UserCheck size={14} className="text-orange-500" />
                       <span>Signatories</span>
                     </button>
-                    <button
-                      onClick={() => {
-                        setShowAdminPasswordsModal(true);
-                        setShowAdminMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors border-t border-slate-100"
-                    >
-                      <Shield size={14} className="text-blue-500" />
-                      <span>Admin Passwords</span>
-                    </button>
+                    {user.role === 'Admin' && (
+                      <button
+                        onClick={() => {
+                          setShowAdminPasswordsModal(true);
+                          setShowAdminMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors border-t border-slate-100"
+                      >
+                        <Shield size={14} className="text-blue-500" />
+                        <span>Admin Passwords</span>
+                      </button>
+                    )}
                     {(user.role === 'Admin' || user.role === 'Guidance') && (
                       <button
                         onClick={() => {
@@ -1176,8 +1178,8 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
           <SignatorySettingsModal onClose={() => setShowSignatorySettingsModal(false)} />
         )}
         
-        {showAdminPasswordsModal && (
-          <AdminPasswordsModal onClose={() => setShowAdminPasswordsModal(false)} />
+        {user.role === 'Admin' && showAdminPasswordsModal && (
+          <AdminPasswordsModal onClose={() => setShowAdminPasswordsModal(false)} userEmail={user.email} />
         )}
 
         <AuditLogModal

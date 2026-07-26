@@ -1054,7 +1054,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                                 </button>
                                 )}
 
-                                {(userRole === 'Admin' || userRole === 'Department Head') && (
+                                {(userRole === 'Admin' || userRole === 'Principal' || userRole === 'Department Head') && (
                                 <button
                                   type="button"
                                   onClick={() => setStatusEdit('RESOLVED')}
@@ -1077,7 +1077,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                           )}
                         </div>
 
-                        {selectedReportForView.recordStatus === 'Pending Approval' && (userRole === 'Admin' || userRole === 'Department Head') && (
+                        {selectedReportForView.recordStatus === 'Pending Approval' && (userRole === 'Admin' || userRole === 'Principal' || userRole === 'Department Head') && (
                           <div className="space-y-1.5 pt-2">
                             <label className="block text-[9px] font-black uppercase tracking-widest text-slate-700">
                               Reviewer Comment (Optional)

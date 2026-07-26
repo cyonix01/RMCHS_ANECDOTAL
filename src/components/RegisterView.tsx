@@ -55,7 +55,7 @@ export default function RegisterView({ onRegisterSuccess, onNavigateToLogin }: R
   const [contactNumber, setContactNumber] = useState("");
   const [department, setDepartment] = useState<Department | "">("");
   const [position, setPosition] = useState<Position | "">("");
-  const [role, setRole] = useState<'Adviser' | 'Non-Adviser' | 'Guidance' | 'Admin' | 'Department Head'>('Non-Adviser');
+  const [role, setRole] = useState<'Adviser' | 'Non-Adviser' | 'Guidance' | 'Admin' | 'Department Head' | 'Principal'>('Non-Adviser');
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -352,6 +352,7 @@ export default function RegisterView({ onRegisterSuccess, onNavigateToLogin }: R
               >
                 <option value="Non-Adviser">Non-Adviser</option>
                 <option value="Guidance">Guidance</option>
+                <option value="Principal">Principal</option>
               </select>
             </div>
           </div>

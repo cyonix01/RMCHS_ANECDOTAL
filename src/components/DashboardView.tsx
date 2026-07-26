@@ -550,7 +550,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
             </button>
           )}
 
-          {(user.role === 'Admin' || user.role === 'Guidance' || user.role === 'Department Head' || user.role === 'Adviser' || user.role === 'Teacher') && (
+          {(user.role === 'Admin' || user.role === 'Principal' || user.position?.toLowerCase().includes('principal')) && (
             <button
               id="view-pending-approval-reports-btn"
               onClick={() => setShowPendingApprovalViewer(true)}

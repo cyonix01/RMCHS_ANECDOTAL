@@ -125,3 +125,31 @@ create table if not exists signatory_settings (
   updated_at text
 );
 
+-- Create admin_passwords table
+create table if not exists admin_passwords (
+  id integer primary key default 1,
+  clear_reports text default 'NoMoreReporting',
+  clear_students text default 'VacationTime',
+  delete_teacher text default 'HolidayTime',
+  updated_at text
+);
+
+-- Create audit_logs table for Admin Audit Log System
+create table if not exists audit_logs (
+  id text primary key,
+  timestamp text not null,
+  action text not null,
+  performed_by text,
+  ip_address text,
+  target_id text,
+  target_name text,
+  details text,
+  previous_values jsonb,
+  new_values jsonb
+);
+
+-- Indexes for audit_logs query optimization
+create index if not exists idx_audit_logs_timestamp on audit_logs(timestamp desc);
+create index if not exists idx_audit_logs_action on audit_logs(action);
+create index if not exists idx_audit_logs_performed_by on audit_logs(performed_by);
+

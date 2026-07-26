@@ -257,6 +257,7 @@ create table if not exists audit_logs (
   timestamp text not null,
   action text not null,
   performed_by text,
+  ip_address text,
   target_id text,
   target_name text,
   details text,

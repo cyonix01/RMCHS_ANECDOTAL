@@ -23,7 +23,8 @@ import {
   Settings,
   FolderPlus,
   Edit3,
-  Globe
+  Globe,
+  Database
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { AuditLog } from '../types';
@@ -126,6 +127,45 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
       position: 'top-end',
       showConfirmButton: false,
       timer: 3000
+    });
+  };
+
+  const showSQLEditorCode = () => {
+    const sqlScript = `-- Create audit_logs table for Admin Audit Log System
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id TEXT PRIMARY KEY,
+  timestamp TEXT NOT NULL,
+  action TEXT NOT NULL,
+  performed_by TEXT,
+  ip_address TEXT,
+  target_id TEXT,
+  target_name TEXT,
+  details TEXT,
+  previous_values JSONB,
+  new_values JSONB
+);
+
+-- Indexes for performance & query optimization
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_performed_by ON audit_logs(performed_by);`;
+
+    navigator.clipboard.writeText(sqlScript);
+
+    Swal.fire({
+      icon: 'info',
+      title: 'SQL Table DDL Code',
+      html: `
+        <p style="font-size: 12px; color: #475569; margin-bottom: 12px; text-align: left;">
+          Execute this SQL statement in your database SQL Editor (e.g. Supabase or PostgreSQL) to create the <code>audit_logs</code> table:
+        </p>
+        <pre style="background: #0f172a; color: #e2e8f0; padding: 12px; font-size: 11px; text-align: left; border-radius: 6px; overflow-x: auto; max-height: 200px; font-family: monospace;">${sqlScript}</pre>
+        <p style="font-size: 11px; color: #16a34a; font-weight: bold; margin-top: 10px;">
+          ✓ Copied SQL code to clipboard!
+        </p>
+      `,
+      confirmButtonText: 'Done',
+      confirmButtonColor: '#102604'
     });
   };
 
@@ -352,6 +392,16 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
             >
               <Download size={14} className="text-[#76DA0D]" />
               <span>Export CSV</span>
+            </button>
+
+            <button
+              id="show-audit-sql-btn"
+              onClick={showSQLEditorCode}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer shadow-sm"
+              title="Copy SQL Editor DDL script for audit_logs table"
+            >
+              <Database size={14} className="text-[#102604]" />
+              <span>SQL Code</span>
             </button>
           </div>
         </div>

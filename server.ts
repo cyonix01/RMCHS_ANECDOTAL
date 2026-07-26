@@ -1420,6 +1420,26 @@ async function startServer() {
     }
   });
 
+  // ADMIN API: Create Audit Log Entry
+  app.post("/api/admin/audit-logs", async (req, res) => {
+    try {
+      const { action, performedBy, targetId, targetName, details, previousValues, newValues } = req.body;
+      const createdLog = await logAudit(req, {
+        action: action || 'SYSTEM_EVENT',
+        performedBy: performedBy || String(req.headers['x-user-email'] || 'Admin'),
+        targetId: targetId || '',
+        targetName: targetName || '',
+        details: details || 'Manual audit entry recorded',
+        previousValues,
+        newValues
+      });
+      res.status(201).json(createdLog);
+    } catch (err: any) {
+      console.error("Failed to save audit log:", err);
+      res.status(500).json({ error: `Failed to save audit log: ${err.message}` });
+    }
+  });
+
   // ADMIN API: Add Section
   app.post("/api/admin/sections", async (req, res) => {
     try {

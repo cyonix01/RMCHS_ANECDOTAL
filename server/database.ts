@@ -1814,6 +1814,23 @@ export function saveAuditLogLocally(log: AuditLog): void {
   }
 }
 
+function safeFormatJsonb(val: any): any {
+  if (val === null || val === undefined) return null;
+  if (typeof val === 'object') return val;
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+      try {
+        return JSON.parse(trimmed);
+      } catch (e) {
+        return { text: val };
+      }
+    }
+    return { text: val };
+  }
+  return { value: val };
+}
+
 export async function saveAuditLog(logEntry: Omit<AuditLog, "id" | "timestamp">): Promise<AuditLog> {
   const fullLog: AuditLog = {
     id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
@@ -1835,17 +1852,17 @@ export async function saveAuditLog(logEntry: Omit<AuditLog, "id" | "timestamp">)
         target_id: fullLog.targetId || "",
         target_name: fullLog.targetName || "",
         details: fullLog.details || "",
-        previous_values: fullLog.previousValues ? (typeof fullLog.previousValues === 'string' ? JSON.parse(fullLog.previousValues) : fullLog.previousValues) : null,
-        new_values: fullLog.newValues ? (typeof fullLog.newValues === 'string' ? JSON.parse(fullLog.newValues) : fullLog.newValues) : null
+        previous_values: safeFormatJsonb(fullLog.previousValues),
+        new_values: safeFormatJsonb(fullLog.newValues)
       };
       const { error } = await supabase.from("audit_logs").insert([row]);
       if (error) {
-        if (error.code !== "PGRST116" && error.code !== "PGRST205" && !error.message?.includes("does not exist") && error.code !== "42P01") {
-          console.error("Supabase saveAuditLog error:", error);
-        }
+        console.error("Supabase saveAuditLog error:", error.message || error);
+      } else {
+        console.log(`[AuditLog] Successfully saved log ${fullLog.id} (${fullLog.action}) to Supabase database.`);
       }
-    } catch (err) {
-      console.error("Supabase saveAuditLog exception:", err);
+    } catch (err: any) {
+      console.error("Supabase saveAuditLog exception:", err.message || err);
     }
   }
 

@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, X, FileText, AlertTriangle, User } from "lucide-react";
+import { Search, X, FileText, AlertTriangle, User, Camera, Loader2 } from "lucide-react";
 import { Student } from "../types";
 import StudentReportModal from "./StudentReportModal";
 import CriticalReportModal from "./CriticalReportModal";
@@ -19,6 +19,64 @@ export default function StudentSearchModal({ userName, onClose, onReportFiled }:
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedCriticalStudent, setSelectedCriticalStudent] = useState<Student | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [uploadingLrn, setUploadingLrn] = useState<string | null>(null);
+  const [activeStudentForPhoto, setActiveStudentForPhoto] = useState<Student | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const triggerPhotoUpload = (student: Student) => {
+    setActiveStudentForPhoto(student);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeStudentForPhoto) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File is too large. Max size is 5MB.");
+      return;
+    }
+
+    setUploadingLrn(activeStudentForPhoto.lrn);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = (event.target?.result as string).split(',')[1];
+        const res = await fetch(`/api/students/${activeStudentForPhoto.lrn}/photo`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file: {
+              base64,
+              name: file.name,
+              mimeType: file.type
+            }
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Failed to update picture");
+        }
+
+        const data = await res.json();
+        const newUrl = data.url;
+
+        setResults(prev => prev.map(s => s.lrn === activeStudentForPhoto.lrn ? { ...s, profilePictureUrl: newUrl } : s));
+        alert(`Profile picture updated for ${activeStudentForPhoto.firstName} ${activeStudentForPhoto.lastName}!`);
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      alert(`Photo upload error: ${err.message}`);
+    } finally {
+      setUploadingLrn(null);
+      setActiveStudentForPhoto(null);
+    }
+  };
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -37,6 +95,13 @@ export default function StudentSearchModal({ userName, onClose, onReportFiled }:
 
   return (
     <>
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handlePhotoUpload} 
+        accept="image/*" 
+        className="hidden" 
+      />
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 font-sans">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -91,22 +156,40 @@ export default function StudentSearchModal({ userName, onClose, onReportFiled }:
                       <td className="px-4 py-3 font-mono text-slate-600">{s.lrn}</td>
                       <td className="px-4 py-3 font-medium text-slate-800">
                         <div className="flex items-center gap-2">
-                          {s.profilePictureUrl ? (
-                            <img 
-                              src={getDriveImageUrl(s.profilePictureUrl)} 
-                              alt={s.lastName}
-                              className="w-6 h-6 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity border border-slate-200 shrink-0"
+                          <div className="relative group/searchAvatar shrink-0">
+                            {s.profilePictureUrl ? (
+                              <img 
+                                src={getDriveImageUrl(s.profilePictureUrl)} 
+                                alt={s.lastName}
+                                className="w-7 h-7 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity border border-slate-200 shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPreviewImage(getDriveImageUrl(s.profilePictureUrl));
+                                }}
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className="w-7 h-7 bg-slate-100 flex items-center justify-center rounded-full shrink-0 border border-slate-200">
+                                <User size={12} className="text-slate-400" />
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              title={`Change photo for ${s.firstName} ${s.lastName}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setPreviewImage(getDriveImageUrl(s.profilePictureUrl));
+                                triggerPhotoUpload(s);
                               }}
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <div className="w-6 h-6 bg-slate-100 flex items-center justify-center rounded-full shrink-0">
-                              <User size={10} className="text-slate-400" />
-                            </div>
-                          )}
+                              disabled={uploadingLrn === s.lrn}
+                              className="absolute -bottom-1 -right-1 bg-[#102604] hover:bg-[#76DA0D] hover:text-[#102604] text-white p-0.5 rounded-full shadow transition-all hover:scale-110 z-10"
+                            >
+                              {uploadingLrn === s.lrn ? (
+                                <Loader2 size={8} className="animate-spin" />
+                              ) : (
+                                <Camera size={8} />
+                              )}
+                            </button>
+                          </div>
                           <span>{s.lastName}, {s.firstName} {s.middleName}</span>
                         </div>
                       </td>

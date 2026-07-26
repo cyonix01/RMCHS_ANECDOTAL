@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, FileText, AlertTriangle, ShieldAlert, User } from "lucide-react";
+import { X, FileText, AlertTriangle, ShieldAlert, User, Camera, Loader2 } from "lucide-react";
 import { Student, Report, CriticalReport } from "../types";
 import { getDriveImageUrl } from "../utils/driveUtils";
 
@@ -73,11 +73,65 @@ function getReportSortValue(report: any): number {
 interface StudentReportsViewModalProps {
   student: Student;
   onClose: () => void;
+  userRole?: string;
+  onPhotoUpdated?: (updatedLrn: string, newUrl: string) => void;
 }
 
-export default function StudentReportsViewModal({ student, onClose }: StudentReportsViewModalProps) {
+export default function StudentReportsViewModal({ student, onClose, userRole, onPhotoUpdated }: StudentReportsViewModalProps) {
   const [reports, setReports] = useState<(Report & {type: 'General' | 'Critical'})[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPhotoUrl, setCurrentPhotoUrl] = useState(student.profilePictureUrl || "");
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File is too large. Max size is 5MB.");
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = (event.target?.result as string).split(',')[1];
+        const res = await fetch(`/api/students/${student.lrn}/photo`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file: {
+              base64,
+              name: file.name,
+              mimeType: file.type
+            }
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Failed to update picture");
+        }
+
+        const data = await res.json();
+        const newUrl = data.url;
+        setCurrentPhotoUrl(newUrl);
+        if (onPhotoUpdated) {
+          onPhotoUpdated(student.lrn, newUrl);
+        }
+        alert(`Profile picture updated for ${student.firstName} ${student.lastName}!`);
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      console.error("Photo upload failed:", err);
+      alert(`Photo upload error: ${err.message}`);
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const fetchReports = React.useCallback(() => {
     Promise.all([
@@ -117,6 +171,13 @@ export default function StudentReportsViewModal({ student, onClose }: StudentRep
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 font-sans">
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handlePhotoUpload} 
+        accept="image/*" 
+        className="hidden" 
+      />
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -124,20 +185,35 @@ export default function StudentReportsViewModal({ student, onClose }: StudentRep
         className="bg-white border border-slate-200 shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
       >
         <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-          <h2 className="font-bold text-sm text-slate-800 uppercase tracking-widest flex items-center gap-2">
-            {student.profilePictureUrl ? (
-              <img 
-                src={getDriveImageUrl(student.profilePictureUrl)} 
-                alt={student.lastName}
-                className="w-6 h-6 rounded-full object-cover border border-slate-200"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="w-6 h-6 bg-slate-200 rounded-full flex items-center justify-center shrink-0">
-                <User size={12} className="text-slate-500" />
-              </div>
-            )}
-            Reports for {student.lastName}, {student.firstName}
+          <h2 className="font-bold text-sm text-slate-800 uppercase tracking-widest flex items-center gap-3">
+            <div className="relative group/modalAvatar shrink-0">
+              {currentPhotoUrl ? (
+                <img 
+                  src={getDriveImageUrl(currentPhotoUrl)} 
+                  alt={student.lastName}
+                  className="w-8 h-8 rounded-full object-cover border border-slate-200"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center shrink-0 border border-slate-300">
+                  <User size={14} className="text-slate-500" />
+                </div>
+              )}
+              <button
+                type="button"
+                title="Change student profile picture"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingPhoto}
+                className="absolute -bottom-1 -right-1 bg-[#102604] hover:bg-[#76DA0D] hover:text-[#102604] text-white p-1 rounded-full shadow transition-all hover:scale-110 shrink-0"
+              >
+                {isUploadingPhoto ? (
+                  <Loader2 size={10} className="animate-spin" />
+                ) : (
+                  <Camera size={10} />
+                )}
+              </button>
+            </div>
+            <span>Reports for {student.lastName}, {student.firstName} ({student.gradeLevel} - {student.section})</span>
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X size={18} />

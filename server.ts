@@ -48,6 +48,7 @@ import {
   markAllNotificationsAsRead,
   clearNotifications,
   getStudentByLrn,
+  updateStudentPhoto,
   uploadFileToSupabaseStorage,
   getSignatorySettings,
   getAdminPasswords,
@@ -671,6 +672,41 @@ async function startServer() {
     } catch (err: any) {
       console.error("Failed to register student:", err);
       res.status(500).json({ error: `Registration error: ${err.message}` });
+    }
+  });
+
+  // API ROUTE 6.5: Update Student Photo
+  app.put("/api/students/:lrn/photo", async (req, res) => {
+    try {
+      const { lrn } = req.params;
+      const { profilePictureUrl, file } = req.body;
+      let targetUrl = profilePictureUrl;
+
+      if (file && file.base64) {
+        try {
+          const uploaded = await uploadFileToSupabaseStorage(
+            file.base64,
+            file.name || `student_${lrn}_photo.jpg`,
+            file.mimeType || "image/jpeg",
+            "id-pictures"
+          );
+          targetUrl = uploaded.publicUrl;
+        } catch (uploadErr: any) {
+          console.warn("Upload to Supabase Storage failed, trying local file save...", uploadErr);
+          const localFile = saveFileLocally(file.base64, file.name || `student_${lrn}_photo.jpg`);
+          targetUrl = localFile.fileUrl;
+        }
+      }
+
+      if (!targetUrl) {
+        return res.status(400).json({ error: "Profile picture URL or file is required." });
+      }
+
+      await updateStudentPhoto(lrn, targetUrl);
+      res.json({ status: "ok", message: "Student photo updated successfully!", url: targetUrl });
+    } catch (err: any) {
+      console.error("Failed to update student photo:", err);
+      res.status(500).json({ error: `Failed to update student photo: ${err.message}` });
     }
   });
 

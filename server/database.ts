@@ -384,7 +384,7 @@ function saveStudentLocally(student: Student): void {
     const list = loadLocalStudents();
     const index = list.findIndex(s => s.lrn.trim() === student.lrn.trim());
     if (index >= 0) {
-       
+      list[index] = { ...list[index], ...student };
     } else {
       list.push(student);
     }
@@ -1109,6 +1109,31 @@ export async function createStudent(student: any): Promise<void> {
   } catch (err: any) {
     console.error("Supabase upsert student exception, backed up locally:", err);
     throw err;
+  }
+}
+
+/**
+ * Updates a student's profile picture URL in Supabase and local JSON storage.
+ */
+export async function updateStudentPhoto(lrn: string, profilePictureUrl: string): Promise<void> {
+  const normalizedLrn = String(lrn || "").trim();
+  const list = loadLocalStudents();
+  const index = list.findIndex(s => s.lrn.trim() === normalizedLrn);
+  if (index >= 0) {
+    list[index].profilePictureUrl = profilePictureUrl;
+    fs.writeFileSync(STUDENTS_DB_PATH, JSON.stringify(list, null, 2), "utf-8");
+  }
+
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    const { error } = await supabase
+      .from("students")
+      .update({ profile_picture_url: profilePictureUrl })
+      .eq("lrn", normalizedLrn);
+    if (error) {
+      console.error("Failed to update student photo in Supabase:", error);
+      throw error;
+    }
   }
 }
 

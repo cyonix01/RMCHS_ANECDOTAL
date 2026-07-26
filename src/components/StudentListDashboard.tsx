@@ -4,7 +4,7 @@ import StudentReportsViewModal from "./StudentReportsViewModal";
 import { exportToCSV } from "../utils/exportCSV";
 import { generateAdviserPDF } from "../utils/pdfGenerator";
 import { getDriveImageUrl } from "../utils/driveUtils";
-import { Users, AlertCircle, FileText, Activity, BookOpen, Clock, CheckCircle, Download, Printer, User, X } from "lucide-react";
+import { Users, AlertCircle, FileText, Activity, BookOpen, Clock, CheckCircle, Download, Printer, User, X, Camera, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -30,6 +30,71 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
   const [reportTypeFilter, setReportTypeFilter] = useState<'All' | 'General' | 'Critical' | 'CICL'>('All');
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [activeStudentForPhoto, setActiveStudentForPhoto] = useState<Student | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const triggerPhotoUpload = (e: React.MouseEvent, student: Student) => {
+    e.stopPropagation();
+    setActiveStudentForPhoto(student);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
+
+  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeStudentForPhoto) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File is too large. Max size is 5MB.");
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = (event.target?.result as string).split(',')[1];
+        const res = await fetch(`/api/students/${activeStudentForPhoto.lrn}/photo`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file: {
+              base64,
+              name: file.name,
+              mimeType: file.type
+            }
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || "Failed to update profile picture");
+        }
+
+        const data = await res.json();
+        const newPhotoUrl = data.url;
+
+        setStudents(prev => prev.map(s => s.lrn === activeStudentForPhoto.lrn ? { ...s, profilePictureUrl: newPhotoUrl } : s));
+        if (selectedStudent && selectedStudent.lrn === activeStudentForPhoto.lrn) {
+          setSelectedStudent(prev => prev ? { ...prev, profilePictureUrl: newPhotoUrl } : null);
+        }
+
+        setToastMessage(`Profile picture updated for ${activeStudentForPhoto.firstName} ${activeStudentForPhoto.lastName}!`);
+        setTimeout(() => setToastMessage(null), 4000);
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      console.error("Photo upload error:", err);
+      alert(`Photo upload failed: ${err.message}`);
+    } finally {
+      setIsUploadingPhoto(false);
+      setActiveStudentForPhoto(null);
+    }
+  };
 
   const fetchData = React.useCallback(() => {
     Promise.all([
@@ -341,6 +406,29 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
         </div>
       </div>
 
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed bottom-6 right-6 bg-[#102604] text-white px-4 py-3 rounded shadow-xl flex items-center gap-3 z-50 text-xs font-bold border border-[#76DA0D]/30"
+          >
+            <CheckCircle size={16} className="text-[#76DA0D]" />
+            <span>{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handlePhotoFileChange} 
+        accept="image/*" 
+        className="hidden" 
+      />
+
       {/* Roster */}
       <div className="grid md:grid-cols-2 gap-6">
         {['Male', 'Female'].map(gender => (
@@ -354,36 +442,61 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
               }).map(student => {
                 const counts = getReportCounts(student.lrn);
                 return (
-                  <button 
+                  <div 
                     key={student.lrn}
-                    onClick={() => setSelectedStudent(student)}
-                    className="w-full flex justify-between items-center p-3 hover:bg-slate-50 border border-slate-100 transition-colors text-left group"
+                    className="w-full flex justify-between items-center p-3 hover:bg-slate-50 border border-slate-100 transition-colors text-left group rounded"
                   >
                     <div className="flex items-center gap-3">
-                      {student.profilePictureUrl ? (
-                        <img 
-                          src={getDriveImageUrl(student.profilePictureUrl)} 
-                          alt={student.lastName}
-                          className="w-8 h-8 rounded-full object-cover border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPreviewImage(getDriveImageUrl(student.profilePictureUrl));
-                          }}
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                          <User size={14} className="text-slate-400" />
-                        </div>
-                      )}
-                      <span className="text-sm text-slate-800 font-medium group-hover:text-[#76DA0D] transition-colors">{student.lastName}, {student.firstName}</span>
+                      <div className="relative group/avatar shrink-0">
+                        {student.profilePictureUrl ? (
+                          <img 
+                            src={getDriveImageUrl(student.profilePictureUrl)} 
+                            alt={student.lastName}
+                            className="w-9 h-9 rounded-full object-cover border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewImage(getDriveImageUrl(student.profilePictureUrl));
+                            }}
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                            <User size={16} className="text-slate-400" />
+                          </div>
+                        )}
+
+                        {/* Camera upload photo button for Advisers and authorized staff */}
+                        {(user.role === 'Adviser' || user.role === 'Admin' || user.role === 'Principal' || user.role === 'Department Head' || user.role === 'Guidance') && (
+                          <button
+                            type="button"
+                            title={`Change photo for ${student.firstName} ${student.lastName}`}
+                            onClick={(e) => triggerPhotoUpload(e, student)}
+                            disabled={isUploadingPhoto && activeStudentForPhoto?.lrn === student.lrn}
+                            className="absolute -bottom-1 -right-1 bg-[#102604] hover:bg-[#76DA0D] hover:text-[#102604] text-white p-1 rounded-full shadow transition-all hover:scale-110 z-10"
+                          >
+                            {isUploadingPhoto && activeStudentForPhoto?.lrn === student.lrn ? (
+                              <Loader2 size={10} className="animate-spin" />
+                            ) : (
+                              <Camera size={10} />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      
+                      <button 
+                        onClick={() => setSelectedStudent(student)}
+                        className="text-sm text-slate-800 font-medium group-hover:text-[#76DA0D] transition-colors text-left"
+                      >
+                        {student.lastName}, {student.firstName}
+                      </button>
                     </div>
-                    <div className="flex gap-2">
+
+                    <div className="flex gap-2 items-center">
                       <span className="text-[10px] font-bold bg-green-100 text-green-800 px-2 py-1 rounded" title="General Reports">{counts.general}</span>
                       <span className="text-[10px] font-bold bg-red-100 text-red-800 px-2 py-1 rounded" title="Critical Reports">{counts.critical}</span>
                       <span className="text-[10px] font-bold bg-orange-100 text-orange-800 px-2 py-1 rounded" title="CICL Reports">{counts.cicl}</span>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -392,7 +505,15 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
       </div>
 
       {selectedStudent && (
-        <StudentReportsViewModal student={selectedStudent} onClose={() => setSelectedStudent(null)} />
+        <StudentReportsViewModal 
+          student={selectedStudent} 
+          userRole={user.role}
+          onPhotoUpdated={(updatedLrn, newUrl) => {
+            setStudents(prev => prev.map(s => s.lrn === updatedLrn ? { ...s, profilePictureUrl: newUrl } : s));
+            setSelectedStudent(prev => prev ? { ...prev, profilePictureUrl: newUrl } : null);
+          }}
+          onClose={() => setSelectedStudent(null)} 
+        />
       )}
 
       {/* Printable Report View (Visible only during printing via CSS) */}

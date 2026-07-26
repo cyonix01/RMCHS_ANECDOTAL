@@ -145,6 +145,25 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   new_values JSONB
 );
 
+-- Ensure ip_address column exists if table was created previously without it
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS ip_address TEXT;
+
+-- Disable Row Level Security or create permissive RLS policies
+ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow all read on audit_logs" ON audit_logs;
+DROP POLICY IF EXISTS "Allow all insert on audit_logs" ON audit_logs;
+DROP POLICY IF EXISTS "Allow all update on audit_logs" ON audit_logs;
+DROP POLICY IF EXISTS "Allow all delete on audit_logs" ON audit_logs;
+
+CREATE POLICY "Allow all read on audit_logs" ON audit_logs FOR SELECT USING (true);
+CREATE POLICY "Allow all insert on audit_logs" ON audit_logs FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow all update on audit_logs" ON audit_logs FOR UPDATE USING (true);
+CREATE POLICY "Allow all delete on audit_logs" ON audit_logs FOR DELETE USING (true);
+
+-- Grant permissions to anon, authenticated, and service roles
+GRANT ALL ON TABLE audit_logs TO anon, authenticated, service_role;
+
 -- Indexes for performance & query optimization
 CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);

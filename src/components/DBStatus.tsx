@@ -265,6 +265,21 @@ create table if not exists audit_logs (
   new_values jsonb
 );
 
+alter table audit_logs add column if not exists ip_address text;
+alter table audit_logs disable row level security;
+
+drop policy if exists "Allow all read on audit_logs" on audit_logs;
+drop policy if exists "Allow all insert on audit_logs" on audit_logs;
+drop policy if exists "Allow all update on audit_logs" on audit_logs;
+drop policy if exists "Allow all delete on audit_logs" on audit_logs;
+
+create policy "Allow all read on audit_logs" on audit_logs for select using (true);
+create policy "Allow all insert on audit_logs" on audit_logs for insert with check (true);
+create policy "Allow all update on audit_logs" on audit_logs for update using (true);
+create policy "Allow all delete on audit_logs" on audit_logs for delete using (true);
+
+grant all on table audit_logs to anon, authenticated, service_role;
+
 create index if not exists idx_audit_logs_timestamp on audit_logs(timestamp desc);
 create index if not exists idx_audit_logs_action on audit_logs(action);
 create index if not exists idx_audit_logs_performed_by on audit_logs(performed_by);`;

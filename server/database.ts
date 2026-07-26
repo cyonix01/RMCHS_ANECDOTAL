@@ -206,6 +206,7 @@ export async function initDatabase() {
     } else {
       console.log("✅ Supabase connection successful! 'users' table online.");
       supabaseError = null;
+      syncAuditLogsToSupabase().catch((e) => console.error("Async audit logs sync failed:", e));
     }
   } catch (err: any) {
     supabaseError = `Connection failed: ${err.message}`;
@@ -1855,7 +1856,12 @@ export async function saveAuditLog(logEntry: Omit<AuditLog, "id" | "timestamp">)
         previous_values: safeFormatJsonb(fullLog.previousValues),
         new_values: safeFormatJsonb(fullLog.newValues)
       };
-      const { error } = await supabase.from("audit_logs").insert([row]);
+      let { error } = await supabase.from("audit_logs").insert([row]);
+      if (error && error.code === "PGRST204") {
+        delete (row as any).ip_address;
+        const retry = await supabase.from("audit_logs").insert([row]);
+        error = retry.error;
+      }
       if (error) {
         console.error("Supabase saveAuditLog error:", error.message || error);
       } else {
@@ -1867,6 +1873,43 @@ export async function saveAuditLog(logEntry: Omit<AuditLog, "id" | "timestamp">)
   }
 
   return fullLog;
+}
+
+export async function syncAuditLogsToSupabase(): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const localLogs = getAuditLogsLocally();
+  if (localLogs.length === 0) return;
+
+  try {
+    for (const log of localLogs) {
+      const row: any = {
+        id: log.id,
+        timestamp: log.timestamp,
+        action: log.action,
+        performed_by: log.performedBy || "",
+        ip_address: log.ipAddress || "",
+        target_id: log.targetId || "",
+        target_name: log.targetName || "",
+        details: log.details || "",
+        previous_values: safeFormatJsonb(log.previousValues),
+        new_values: safeFormatJsonb(log.newValues)
+      };
+      let { error } = await supabase.from("audit_logs").upsert([row], { onConflict: "id" });
+      if (error && error.code === "PGRST204") {
+        delete row.ip_address;
+        const retry = await supabase.from("audit_logs").upsert([row], { onConflict: "id" });
+        error = retry.error;
+      }
+      if (error) {
+        console.error(`[AuditLog Sync] Error syncing log ${log.id}:`, error.message || error);
+      }
+    }
+    console.log(`[AuditLog Sync] Audit logs sync check completed for ${localLogs.length} local entries.`);
+  } catch (err: any) {
+    console.error("[AuditLog Sync] Exception during sync:", err.message || err);
+  }
 }
 
 export async function getAuditLogs(): Promise<AuditLog[]> {

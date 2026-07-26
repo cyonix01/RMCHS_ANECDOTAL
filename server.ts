@@ -76,11 +76,30 @@ function getClientIp(req: express.Request): string {
   return req.socket?.remoteAddress || req.ip || "127.0.0.1";
 }
 
-// Audit log helper with automatic IP capture
+// Audit log helper with automatic IP capture and email detection
 function logAudit(req: express.Request, entry: Omit<AuditLog, "id" | "timestamp">) {
+  let performedBy = entry.performedBy;
+  const isGeneric = !performedBy || ["user", "admin", "guidance", "adviser", "adviser/admin", "system"].includes(String(performedBy).toLowerCase().trim());
+
+  if (isGeneric) {
+    const extractedEmail = 
+      (req.headers['x-user-email'] as string) ||
+      req.body?.updatedBy ||
+      req.body?.reportedBy ||
+      req.body?.registeredBy ||
+      req.body?.adminEmail ||
+      req.body?.userEmail ||
+      req.body?.email;
+
+    if (extractedEmail && typeof extractedEmail === 'string' && extractedEmail.includes('@')) {
+      performedBy = extractedEmail.trim();
+    }
+  }
+
   return saveAuditLog({
     ipAddress: getClientIp(req),
-    ...entry
+    ...entry,
+    performedBy: performedBy || 'User'
   });
 }
 

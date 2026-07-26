@@ -45,10 +45,15 @@ export default function StudentSearchModal({ userName, onClose, onReportFiled }:
       const reader = new FileReader();
       reader.onload = async (event) => {
         const base64 = (event.target?.result as string).split(',')[1];
+        const userEmail = JSON.parse(localStorage.getItem("teacher_portal_user") || "{}")?.email || "";
         const res = await fetch(`/api/students/${activeStudentForPhoto.lrn}/photo`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-email': userEmail
+          },
           body: JSON.stringify({
+            updatedBy: userEmail,
             file: {
               base64,
               name: file.name,

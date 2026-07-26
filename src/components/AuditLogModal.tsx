@@ -319,7 +319,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_performed_by ON audit_logs(performed_b
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="relative w-full max-w-5xl max-h-[90vh] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden border border-slate-200"
+        className="relative w-full max-w-6xl max-h-[90vh] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden border border-slate-200"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-[#102604] text-white">
@@ -445,16 +445,16 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_performed_by ON audit_logs(performed_b
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-              <table className="w-full text-left border-collapse">
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-x-auto">
+              <table className="w-full min-w-[850px] text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-                    <th className="py-3 px-4">Date & Time</th>
-                    <th className="py-3 px-4">Event Type</th>
-                    <th className="py-3 px-4">Target Name & ID</th>
-                    <th className="py-3 px-4">Performed By</th>
-                    <th className="py-3 px-4">Details</th>
-                    <th className="py-3 px-3 text-center">View Diff</th>
+                    <th className="py-3 px-4 min-w-[150px]">Date & Time</th>
+                    <th className="py-3 px-4 min-w-[140px]">Event Type</th>
+                    <th className="py-3 px-4 min-w-[160px]">Target Name & ID</th>
+                    <th className="py-3 px-4 min-w-[170px]">Performed By</th>
+                    <th className="py-3 px-4 min-w-[280px]">Details</th>
+                    <th className="py-3 px-3 text-center min-w-[70px]">View Diff</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
@@ -504,7 +504,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_performed_by ON audit_logs(performed_b
                           </td>
 
                           {/* Details */}
-                          <td className="py-3 px-4 text-slate-600 max-w-xs truncate" title={log.details}>
+                          <td className="py-3 px-4 text-slate-600 whitespace-normal break-words leading-relaxed min-w-[280px]">
                             {log.details}
                           </td>
 

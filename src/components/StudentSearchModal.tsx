@@ -4,6 +4,7 @@ import { Search, X, FileText, AlertTriangle, User, Camera, Loader2 } from "lucid
 import { Student } from "../types";
 import StudentReportModal from "./StudentReportModal";
 import CriticalReportModal from "./CriticalReportModal";
+import StudentReportsViewModal from "./StudentReportsViewModal";
 import { getDriveImageUrl } from "../utils/driveUtils";
 
 interface StudentSearchModalProps {
@@ -18,6 +19,7 @@ export default function StudentSearchModal({ userName, onClose, onReportFiled }:
   const [loading, setLoading] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedCriticalStudent, setSelectedCriticalStudent] = useState<Student | null>(null);
+  const [viewProfileStudent, setViewProfileStudent] = useState<Student | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [uploadingLrn, setUploadingLrn] = useState<string | null>(null);
   const [activeStudentForPhoto, setActiveStudentForPhoto] = useState<Student | null>(null);
@@ -202,15 +204,23 @@ export default function StudentSearchModal({ userName, onClose, onReportFiled }:
                       <td className="px-4 py-3">{s.section}</td>
                       <td className="px-4 py-3 text-right flex justify-end gap-2">
                         <button 
+                          onClick={() => setViewProfileStudent(s)}
+                          className="flex items-center gap-1.5 bg-[#102604] text-white px-3 py-1.5 hover:bg-[#102604]/90 transition-colors rounded-sm font-bold text-[10px] uppercase tracking-wider"
+                          title="View Profile & Print Records"
+                        >
+                          <User size={12} className="text-[#76DA0D]" />
+                          Profile
+                        </button>
+                        <button 
                           onClick={() => setSelectedStudent(s)}
-                          className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 hover:bg-slate-50 hover:border-[#76DA0D] transition-colors rounded-sm"
+                          className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 hover:bg-slate-50 hover:border-[#76DA0D] transition-colors rounded-sm text-[10px] font-bold"
                         >
                           <FileText size={12} className="text-slate-600" />
                           Report
                         </button>
                         <button 
                           onClick={() => setSelectedCriticalStudent(s)}
-                          className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-3 py-1.5 text-amber-800 hover:bg-amber-100 transition-colors rounded-sm"
+                          className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-3 py-1.5 text-amber-800 hover:bg-amber-100 transition-colors rounded-sm text-[10px] font-bold"
                         >
                           <AlertTriangle size={12} className="text-amber-600" />
                           Critical
@@ -226,6 +236,15 @@ export default function StudentSearchModal({ userName, onClose, onReportFiled }:
       </div>
 
       <AnimatePresence>
+        {viewProfileStudent && (
+          <StudentReportsViewModal
+            student={viewProfileStudent}
+            onClose={() => setViewProfileStudent(null)}
+            onPhotoUpdated={(updatedLrn, newUrl) => {
+              setResults(prev => prev.map(s => s.lrn === updatedLrn ? { ...s, profilePictureUrl: newUrl } : s));
+            }}
+          />
+        )}
         {selectedStudent && (
           <StudentReportModal 
             student={selectedStudent} 

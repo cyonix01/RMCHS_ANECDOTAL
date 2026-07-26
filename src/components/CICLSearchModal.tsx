@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, X, FileText } from "lucide-react";
+import { Search, X, FileText, User } from "lucide-react";
 import { Student } from "../types";
 import CICLReportFormModal from "./CICLReportFormModal";
+import StudentReportsViewModal from "./StudentReportsViewModal";
 
 interface CICLSearchModalProps {
   userName: string;
@@ -15,6 +16,7 @@ export default function CICLSearchModal({ userName, onClose, onReportFiled }: CI
   const [results, setResults] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [viewProfileStudent, setViewProfileStudent] = useState<Student | null>(null);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -90,8 +92,16 @@ export default function CICLSearchModal({ userName, onClose, onReportFiled }: CI
                       <td className="px-4 py-3">{s.section}</td>
                       <td className="px-4 py-3 text-right flex justify-end gap-2">
                         <button 
+                          onClick={() => setViewProfileStudent(s)}
+                          className="flex items-center gap-1.5 bg-[#102604] text-white px-3 py-1.5 hover:bg-[#102604]/90 transition-colors rounded-sm text-[10px] font-bold uppercase tracking-wider"
+                          title="View Profile & Print Records"
+                        >
+                          <User size={12} className="text-[#76DA0D]" />
+                          Profile
+                        </button>
+                        <button 
                           onClick={() => setSelectedStudent(s)}
-                          className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 hover:bg-slate-50 hover:border-red-500 transition-colors rounded-sm text-red-700"
+                          className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 hover:bg-slate-50 hover:border-red-500 transition-colors rounded-sm text-red-700 text-[10px] font-bold"
                         >
                           <FileText size={12} />
                           Report CICL
@@ -107,6 +117,15 @@ export default function CICLSearchModal({ userName, onClose, onReportFiled }: CI
       </div>
 
       <AnimatePresence>
+        {viewProfileStudent && (
+          <StudentReportsViewModal
+            student={viewProfileStudent}
+            onClose={() => setViewProfileStudent(null)}
+            onPhotoUpdated={(updatedLrn, newUrl) => {
+              setResults(prev => prev.map(s => s.lrn === updatedLrn ? { ...s, profilePictureUrl: newUrl } : s));
+            }}
+          />
+        )}
         {selectedStudent && (
           <CICLReportFormModal 
             student={selectedStudent} 

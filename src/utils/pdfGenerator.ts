@@ -1827,3 +1827,202 @@ export async function generateAnalyticsPDF(
   // Save the PDF document
   doc.save(`School_Analytics_Report_${studentGradeFilter}.pdf`);
 }
+
+// 3. INDIVIDUAL STUDENT PROFILE & ANECDOTAL RECORD PDF
+export async function generateStudentProfilePDF(
+  student: Student,
+  reports: Report[],
+  criticalReports: CriticalReport[],
+  user?: any
+) {
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  const title = "INDIVIDUAL ANECDOTAL & INVESTIGATION RECORD";
+  const subtitle = `Student: ${student.lastName}, ${student.firstName} ${student.middleName || ''} • LRN: ${student.lrn}`;
+  const personnelName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Guidance / Adviser Staff' : 'Guidance / Adviser Staff';
+  const personnelRole = user?.role || 'Class Adviser / Staff';
+
+  // Pre-load DepEd logo
+  const depEdLogoImg = await loadDepEdLogo();
+
+  // Load signatories
+  let signatories: any = null;
+  try {
+    const res = await fetch("/api/signatories");
+    if (res.ok) {
+      signatories = await res.json();
+    }
+  } catch (err) {
+    console.error("Failed to load signatories for Student Profile PDF:", err);
+  }
+
+  // Draw DepEd Header & Info
+  drawDepEdHeader(doc, title, subtitle, personnelName, personnelRole, depEdLogoImg);
+
+  let y = 84;
+
+  // Student Profile Info Box
+  doc.setFillColor(248, 250, 252); // slate-50
+  doc.setDrawColor(203, 213, 225); // slate-300
+  doc.rect(14, y, pageWidth - 28, 42, 'FD');
+
+  doc.setTextColor(16, 38, 4);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.text("STUDENT DEMOGRAPHIC PROFILE", 18, y + 7);
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(51, 65, 85);
+
+  // Column 1
+  doc.text("Full Name:", 18, y + 14);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${student.lastName}, ${student.firstName} ${student.middleName || ''}`, 42, y + 14);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("LRN:", 18, y + 20);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${student.lrn}`, 42, y + 20);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("Grade & Section:", 18, y + 26);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${student.gradeLevel} - ${student.section}`, 42, y + 26);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("Gender / DOB:", 18, y + 32);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${student.gender || 'N/A'} • ${student.dateOfBirth || 'N/A'}`, 42, y + 32);
+
+  // Column 2
+  const col2X = 108;
+  doc.setFont('helvetica', 'bold');
+  doc.text("Guardian:", col2X, y + 14);
+  doc.setFont('helvetica', 'normal');
+  const gName = student.guardianName || student.fatherName || student.motherName || 'N/A';
+  doc.text(gName.length > 30 ? gName.substring(0, 30) + '...' : gName, col2X + 22, y + 14);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("Contact #:", col2X, y + 20);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${student.guardianContact || student.fatherContact || student.motherContact || 'N/A'}`, col2X + 22, y + 20);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("Address:", col2X, y + 26);
+  doc.setFont('helvetica', 'normal');
+  const addr = `${student.houseNumber || ''} ${student.street || ''} ${student.barangay || ''} ${student.city || ''}`.trim() || 'N/A';
+  doc.text(addr.length > 32 ? addr.substring(0, 32) + '...' : addr, col2X + 22, y + 26);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("Modality / 4Ps:", col2X, y + 32);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${student.learningModality || 'Face-to-Face'} • 4Ps: ${student.is4ps || 'No'}`, col2X + 22, y + 32);
+
+  y += 48;
+
+  // SECTION I: ANECDOTAL RECORDS (GENERAL INCIDENTS)
+  doc.setTextColor(16, 38, 4);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.text("I. ANECDOTAL RECORDS & GENERAL INCIDENT LOGS", 14, y);
+  y += 3;
+
+  const generalRows = reports.map((r, i) => [
+    `#${r.id || i + 1}`,
+    r.dateOfIncident || r.dateReported || 'N/A',
+    r.issue || 'N/A',
+    r.description || 'N/A',
+    r.actionTaken || 'N/A',
+    r.recordStatus || 'Pending'
+  ]);
+
+  if (generalRows.length === 0) {
+    generalRows.push(['-', '-', 'No general anecdotal records logged', '-', '-', '-']);
+  }
+
+  // @ts-ignore
+  autoTable(doc, {
+    startY: y,
+    head: [['ID', 'Date', 'Offense / Issue', 'Behavior / Description', 'Action Taken', 'Status']],
+    body: generalRows,
+    theme: 'striped',
+    headStyles: { fillColor: [16, 38, 4], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+    bodyStyles: { fontSize: 7.5, textColor: [51, 65, 85] },
+    columnStyles: {
+      0: { cellWidth: 12 },
+      1: { cellWidth: 22 },
+      2: { fontStyle: 'bold', cellWidth: 32 },
+      3: { cellWidth: 48 },
+      4: { cellWidth: 'auto' },
+      5: { halign: 'center', fontStyle: 'bold', cellWidth: 20 }
+    },
+    margin: { left: 14, right: 14 }
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 10;
+
+  if (y > 210) {
+    doc.addPage();
+    y = 20;
+  }
+
+  // SECTION II: INVESTIGATION HISTORY (CRITICAL INCIDENTS)
+  doc.setTextColor(185, 28, 28);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.text("II. INVESTIGATION HISTORY & CRITICAL INCIDENT CASES", 14, y);
+  y += 3;
+
+  const criticalRows = criticalReports.map((r, i) => [
+    `CR-${r.id || i + 1}`,
+    r.dateOfIncident || r.dateReported || 'N/A',
+    r.issue || 'N/A',
+    r.description || 'N/A',
+    r.recommendation || r.actionTaken || 'N/A',
+    r.recordStatus || 'Pending'
+  ]);
+
+  if (criticalRows.length === 0) {
+    criticalRows.push(['-', '-', 'No critical investigation cases recorded', '-', '-', '-']);
+  }
+
+  // @ts-ignore
+  autoTable(doc, {
+    startY: y,
+    head: [['Case ID', 'Date', 'Critical Offense', 'Investigation Details', 'Guidance Recommendation', 'Status']],
+    body: criticalRows,
+    theme: 'striped',
+    headStyles: { fillColor: [185, 28, 28], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5 },
+    bodyStyles: { fontSize: 7.5, textColor: [51, 65, 85] },
+    columnStyles: {
+      0: { cellWidth: 15 },
+      1: { cellWidth: 22 },
+      2: { fontStyle: 'bold', textColor: [185, 28, 28], cellWidth: 32 },
+      3: { cellWidth: 48 },
+      4: { cellWidth: 'auto' },
+      5: { halign: 'center', fontStyle: 'bold', cellWidth: 20 }
+    },
+    margin: { left: 14, right: 14 }
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 12;
+
+  if (y > 220) {
+    doc.addPage();
+    y = 20;
+  }
+
+  drawSignaturesBlock(
+    doc,
+    Math.max(y, 40),
+    personnelName,
+    "Class Adviser / Guidance Advocate",
+    "Guidance Counselor / School Principal",
+    signatories
+  );
+
+  doc.save(`Student_Profile_${student.lastName}_${student.lrn}.pdf`);
+}
+

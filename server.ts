@@ -50,6 +50,7 @@ import {
   getStudentByLrn,
   updateStudentPhoto,
   uploadFileToSupabaseStorage,
+  uploadFileToGoogleDrive,
   getSignatorySettings,
   getAdminPasswords,
   saveAdminPasswords,
@@ -208,30 +209,42 @@ async function startServer() {
     }
   });
 
-  // API ROUTE: Save Signatory Settings
-  // API ROUTE: Generic Upload (Supabase with Local Fallback)
+  // API ROUTE: Generic Upload (Google Drive / Supabase / Local Fallback)
   app.post("/api/upload", async (req, res) => {
     try {
-      const { file } = req.body;
+      const { file, folderId } = req.body;
       if (!file || !file.base64) {
         return res.status(400).json({ error: "File data is required." });
       }
 
       let savedFileUrl: string | undefined = undefined;
       let uploadWarning: string | null = null;
+      const targetFolderId = folderId || "1Z4yhxeX8q1as5cInrQByxnszhSJp5t5Y";
 
       try {
-        console.log(`[UPLOAD] Attempting to upload '${file.name}' to Supabase Storage.`);
-        const uploaded = await uploadFileToSupabaseStorage(file.base64, file.name, file.mimeType, 'id-pictures');
-        savedFileUrl = uploaded.publicUrl || "";
-      } catch (uploadErr: any) {
-        console.warn(`[UPLOAD] Google Drive upload failed: ${uploadErr.message}. Falling back to local storage.`);
+        console.log(`[UPLOAD] Attempting Google Drive upload for '${file.name}' to folder '${targetFolderId}'...`);
+        const driveUpload = await uploadFileToGoogleDrive(
+          file.base64,
+          file.name,
+          file.mimeType || "image/jpeg",
+          targetFolderId
+        );
+        savedFileUrl = driveUpload.publicUrl;
+      } catch (driveErr: any) {
+        console.warn(`[UPLOAD] Google Drive upload failed: ${driveErr.message}. Falling back to Supabase Storage / Local...`);
         try {
-          const localFile = saveFileLocally(file.base64, file.name);
-          savedFileUrl = localFile.fileUrl;
-          uploadWarning = `Google Drive upload failed, but file was saved locally.`;
-        } catch (localErr: any) {
-          throw new Error(`Upload failed: Both Google Drive and Local storage failed.`);
+          const uploaded = await uploadFileToSupabaseStorage(file.base64, file.name, file.mimeType, 'id-pictures');
+          savedFileUrl = uploaded.publicUrl || "";
+          uploadWarning = `Saved to Supabase storage. Google Drive upload message: ${driveErr.message}`;
+        } catch (supaErr: any) {
+          console.warn(`[UPLOAD] Supabase Storage upload failed, using local storage fallback...`);
+          try {
+            const localFile = saveFileLocally(file.base64, file.name);
+            savedFileUrl = localFile.fileUrl;
+            uploadWarning = `Saved locally. Google Drive and Supabase storage uploads were unavailable.`;
+          } catch (localErr: any) {
+            throw new Error(`Upload failed on all targets (Google Drive, Supabase, Local).`);
+          }
         }
       }
 
@@ -683,18 +696,34 @@ async function startServer() {
       let targetUrl = profilePictureUrl;
 
       if (file && file.base64) {
+        const fileName = file.name || `student_${lrn}_photo.jpg`;
+        const mimeType = file.mimeType || "image/jpeg";
+        const folderId = "1Z4yhxeX8q1as5cInrQByxnszhSJp5t5Y";
+
         try {
-          const uploaded = await uploadFileToSupabaseStorage(
+          console.log(`[STUDENT PHOTO] Attempting Google Drive upload to folder ${folderId} for student LRN ${lrn}...`);
+          const driveUpload = await uploadFileToGoogleDrive(
             file.base64,
-            file.name || `student_${lrn}_photo.jpg`,
-            file.mimeType || "image/jpeg",
-            "id-pictures"
+            fileName,
+            mimeType,
+            folderId
           );
-          targetUrl = uploaded.publicUrl;
-        } catch (uploadErr: any) {
-          console.warn("Upload to Supabase Storage failed, trying local file save...", uploadErr);
-          const localFile = saveFileLocally(file.base64, file.name || `student_${lrn}_photo.jpg`);
-          targetUrl = localFile.fileUrl;
+          targetUrl = driveUpload.publicUrl;
+        } catch (driveErr: any) {
+          console.warn(`[STUDENT PHOTO] Google Drive upload failed (${driveErr.message}), trying Supabase Storage...`);
+          try {
+            const uploaded = await uploadFileToSupabaseStorage(
+              file.base64,
+              fileName,
+              mimeType,
+              "id-pictures"
+            );
+            targetUrl = uploaded.publicUrl;
+          } catch (supaErr: any) {
+            console.warn("[STUDENT PHOTO] Supabase Storage failed, saving locally...", supaErr);
+            const localFile = saveFileLocally(file.base64, fileName);
+            targetUrl = localFile.fileUrl;
+          }
         }
       }
 
@@ -703,7 +732,8 @@ async function startServer() {
       }
 
       await updateStudentPhoto(lrn, targetUrl);
-      res.json({ status: "ok", message: "Student photo updated successfully!", url: targetUrl });
+      console.log(`[STUDENT PHOTO] Updated student ${lrn} photo link permanently in database: ${targetUrl}`);
+      res.json({ status: "ok", message: "Student photo updated permanently in database!", url: targetUrl });
     } catch (err: any) {
       console.error("Failed to update student photo:", err);
       res.status(500).json({ error: `Failed to update student photo: ${err.message}` });

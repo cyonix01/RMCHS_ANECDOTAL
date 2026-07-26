@@ -7,6 +7,8 @@ import { createClient } from "@supabase/supabase-js";
 import * as fs from "fs";
 import * as path from "path";
 import dotenv from "dotenv";
+import { google } from "googleapis";
+import { Readable } from "stream";
 
 dotenv.config({ override: true });
 import { UserAccount, Student, Report, CriticalReport, AppNotification } from "../src/types";
@@ -1414,7 +1416,7 @@ export async function uploadFileToSupabaseStorage(
   base64Data: string,
   fileName: string,
   mimeType: string,
-  bucket: string = "uploads"
+  bucket: string = "id-pictures"
 ): Promise<{ fileName: string; publicUrl: string }> {
   const supabase = getSupabaseClient();
   if (!supabase) {
@@ -1424,24 +1426,53 @@ export async function uploadFileToSupabaseStorage(
   const timestamp = Date.now();
   const cleanFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
   const uniqueFileName = `${timestamp}_${cleanFileName}`;
-
   const buffer = Buffer.from(base64Data, "base64");
 
-  const { data, error } = await supabase.storage
-    .from(bucket)
+  let targetBucket = bucket;
+  try {
+    const { data: buckets } = await supabase.storage.listBuckets();
+    if (buckets && buckets.length > 0) {
+      const match = buckets.find(b => b.name === bucket) || buckets.find(b => b.name === "id-picture") || buckets.find(b => b.name === "id-pictures") || buckets.find(b => b.name === "uploads") || buckets[0];
+      if (match) {
+        targetBucket = match.name;
+      }
+    }
+  } catch (e) {
+    console.warn("Could not list Supabase storage buckets:", e);
+  }
+
+  let { data, error } = await supabase.storage
+    .from(targetBucket)
     .upload(uniqueFileName, buffer, {
       contentType: mimeType,
       upsert: true,
     });
 
+  if (error && (error.message?.includes("Bucket not found") || (error as any).error === "Bucket not found")) {
+    console.log(`[SUPABASE STORAGE] Bucket '${targetBucket}' not found. Attempting auto-creation...`);
+    try {
+      await supabase.storage.createBucket(targetBucket, { public: true });
+      const retry = await supabase.storage
+        .from(targetBucket)
+        .upload(uniqueFileName, buffer, {
+          contentType: mimeType,
+          upsert: true,
+        });
+      data = retry.data;
+      error = retry.error;
+    } catch (createErr: any) {
+      console.warn(`[SUPABASE STORAGE] Could not auto-create bucket '${targetBucket}':`, createErr.message || createErr);
+    }
+  }
+
   if (error) {
-    console.error(`Supabase Storage upload error details (${bucket}):`, error);
+    console.error(`Supabase Storage upload error details (${targetBucket}):`, error.message || error);
     throw error;
   }
 
   // Get public URL
   const { data: publicUrlData } = supabase.storage
-    .from(bucket)
+    .from(targetBucket)
     .getPublicUrl(uniqueFileName);
 
   if (!publicUrlData || !publicUrlData.publicUrl) {
@@ -1451,6 +1482,81 @@ export async function uploadFileToSupabaseStorage(
   return {
     fileName: uniqueFileName,
     publicUrl: publicUrlData.publicUrl,
+  };
+}
+
+/**
+ * Uploads a base64 encoded file to Google Drive folder.
+ * Default target Google Drive folder ID: "1Z4yhxeX8q1as5cInrQByxnszhSJp5t5Y"
+ */
+export async function uploadFileToGoogleDrive(
+  base64Data: string,
+  fileName: string,
+  mimeType: string,
+  folderId: string = "1Z4yhxeX8q1as5cInrQByxnszhSJp5t5Y"
+): Promise<{ fileName: string; publicUrl: string; driveFileId?: string }> {
+  const authEmail = (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "").trim();
+  let rawKey = (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || "").trim();
+
+  if (rawKey.startsWith('"') && rawKey.endsWith('"')) {
+    rawKey = rawKey.substring(1, rawKey.length - 1);
+  } else if (rawKey.startsWith("'") && rawKey.endsWith("'")) {
+    rawKey = rawKey.substring(1, rawKey.length - 1);
+  }
+  const privateKey = rawKey.replace(/\\n/g, "\n").trim();
+
+  if (!authEmail || !privateKey || !privateKey.includes("BEGIN PRIVATE KEY")) {
+    throw new Error("Google Service Account credentials missing or invalid. Check GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY environment variables.");
+  }
+
+  const auth = new google.auth.JWT({
+    email: authEmail,
+    key: privateKey,
+    scopes: ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"],
+  });
+
+  const drive = google.drive({ version: "v3", auth });
+  const timestamp = Date.now();
+  const cleanFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const uniqueFileName = `${timestamp}_${cleanFileName}`;
+  const buffer = Buffer.from(base64Data, "base64");
+
+  const media = {
+    mimeType,
+    body: Readable.from(buffer),
+  };
+
+  const fileMetadata = {
+    name: uniqueFileName,
+    parents: [folderId],
+  };
+
+  const response = await drive.files.create({
+    requestBody: fileMetadata,
+    media,
+    fields: "id, webViewLink",
+  });
+
+  const fileId = response.data.id;
+  if (!fileId) throw new Error("Google Drive upload failed to return file ID.");
+
+  try {
+    await drive.permissions.create({
+      fileId,
+      requestBody: {
+        role: "reader",
+        type: "anyone",
+      },
+    });
+  } catch (permErr) {
+    console.warn("Could not set public permission on Drive file:", permErr);
+  }
+
+  const publicUrl = `https://drive.google.com/file/d/${fileId}/view`;
+  return {
+    fileName: uniqueFileName,
+    publicUrl,
+    driveFileId: fileId,
   };
 }
 

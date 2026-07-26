@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Search, Calendar, FileText, Download, Filter, User, ChevronRight, AlertCircle, ShieldAlert, Clock, Trash2, CheckSquare, Square, Paperclip, ExternalLink } from "lucide-react";
+import Swal from "sweetalert2";
 import { Report, CriticalReport } from "../types";
 import { useNotification } from "./NotificationProvider";
 import { getDriveImageUrl } from "../utils/driveUtils";
@@ -138,6 +139,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   const [adminComment, setAdminComment] = useState("");
   const [selectedReportIds, setSelectedReportIds] = useState<Set<string | number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSavingRec, setIsSavingRec] = useState(false);
 
   const fetchAllData = React.useCallback(async () => {
     try {
@@ -251,70 +253,15 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
     });
   };
 
-  const handleUpdateArchive = async () => {
+  const handleSaveRecommendation = async () => {
     if (!selectedReportForView) return;
-
-    setIsUpdating(true);
-    let driveUploadWarning: string | null = null;
-    let driveFileResult: any = null;
-    let statusUpdateSuccess = true;
-
+    setIsSavingRec(true);
     try {
-      // 1. If status has changed, a new file is uploaded, or adminComment is added
-      const statusChanged = statusEdit !== selectedReportForView.recordStatus;
-      if (statusChanged || movFile || adminComment.trim()) {
-        let filePayload = null;
-        if ((statusEdit === 'RESOLVED' || statusEdit === 'Pending Approval') && movFile) {
-          try {
-            const base64Data = await fileToBase64(movFile);
-            const originalName = movFile.name;
-            const extension = originalName.substring(originalName.lastIndexOf('.') + 1) || 'bin';
-            const formattedFileName = `Rerport ${selectedReportForView.id}_${selectedReportForView.grade}_${selectedReportForView.section}.${extension}`;
-
-            filePayload = {
-              name: formattedFileName,
-              base64: base64Data,
-              mimeType: movFile.type || "application/octet-stream"
-            };
-          } catch (err) {
-            notify("error", "Failed to process the MOV file.");
-            setIsUpdating(false);
-            return;
-          }
-        }
-
-        const resStatus = await fetch(`/api/reports/${selectedReportForView.id}/status`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            status: statusEdit,
-            type: selectedReportForView.type,
-            file: filePayload,
-            adminComment: adminComment.trim() || undefined
-          })
-        });
-
-        const dataStatus = await resStatus.json();
-        if (!resStatus.ok) {
-          notify("error", dataStatus.error || "Failed to update record status.");
-          statusUpdateSuccess = false;
-        } else {
-          driveUploadWarning = dataStatus.warning || null;
-          driveFileResult = dataStatus.driveFile || null;
-        }
-      }
-
-      if (!statusUpdateSuccess) {
-        setIsUpdating(false);
-        return;
-      }
-
-      // 2. Always update the recommendation/updatedBy
       const endpoint = selectedReportForView.type === 'General' 
         ? `/api/reports/${selectedReportForView.id}/recommendation`
         : `/api/critical-reports/${selectedReportForView.id}/recommendation`;
       
-      const resRec = await fetch(endpoint, {
+      const res = await fetch(endpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -323,41 +270,168 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
         })
       });
 
-      let dataRec: any = {};
-      try {
-        dataRec = await resRec.json();
-      } catch (jsonErr) {}
-
-      if (resRec.ok) {
-        // Construct detailed success message
-        if (driveUploadWarning) {
-          notify("warning", `Archive updated! ${driveUploadWarning}`);
-        } else {
-          const successMsg = (statusEdit === 'RESOLVED' || statusEdit === 'Pending Approval') && selectedReportForView.recordStatus !== statusEdit
-            ? `Report status updated to ${statusEdit} and MOV saved!${driveFileResult?.webViewLink ? " File Link: " + driveFileResult.webViewLink : ""}`
-            : "Archive successfully updated and saved.";
-          notify("success", successMsg);
-        }
-
-        // Update local states
+      if (res.ok) {
         setReports(prev => prev.map(r => 
           (r.id === selectedReportForView.id && r.type === selectedReportForView.type)
-            ? { ...r, recommendation: recommendationEdit, recordStatus: statusEdit, lastUpdatedBy: userEmail }
+            ? { ...r, recommendation: recommendationEdit, lastUpdatedBy: userEmail }
             : r
         ));
         setSelectedReportForView(prev => prev ? { 
           ...prev, 
           recommendation: recommendationEdit, 
-          recordStatus: statusEdit, 
           lastUpdatedBy: userEmail 
         } : null);
-        setMovFile(null); // Clear selected file
-        setAdminComment(""); // Clear admin comment
+
+        await Swal.fire({
+          title: "Saved!",
+          text: "Guidance Recommendations saved successfully.",
+          icon: "success",
+          confirmButtonColor: "#102604"
+        });
       } else {
-        notify("error", dataRec.error || "Failed to commit recommendation update to registry.");
+        const errData = await res.json().catch(() => ({}));
+        await Swal.fire({
+          title: "Error",
+          text: errData.error || "Failed to save Guidance Recommendations.",
+          icon: "error",
+          confirmButtonColor: "#102604"
+        });
       }
     } catch (err) {
-      notify("error", "Failed to update archive. Connection error.");
+      await Swal.fire({
+        title: "Error",
+        text: "Network error while saving recommendations.",
+        icon: "error",
+        confirmButtonColor: "#102604"
+      });
+    } finally {
+      setIsSavingRec(false);
+    }
+  };
+
+  const handleSetOngoing = async () => {
+    if (!selectedReportForView) return;
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/reports/${selectedReportForView.id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "On Going",
+          type: selectedReportForView.type
+        })
+      });
+
+      if (res.ok) {
+        setStatusEdit("On Going");
+        setReports(prev => prev.map(r => 
+          (r.id === selectedReportForView.id && r.type === selectedReportForView.type)
+            ? { ...r, recordStatus: "On Going" }
+            : r
+        ));
+        setSelectedReportForView(prev => prev ? { ...prev, recordStatus: "On Going" } : null);
+
+        await Swal.fire({
+          title: "Status Updated",
+          text: "Report status set to On Going.",
+          icon: "success",
+          confirmButtonColor: "#102604"
+        });
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        await Swal.fire({
+          title: "Error",
+          text: errData.error || "Failed to set status to On Going.",
+          icon: "error",
+          confirmButtonColor: "#102604"
+        });
+      }
+    } catch (err) {
+      await Swal.fire({
+        title: "Error",
+        text: "Network error while updating status.",
+        icon: "error",
+        confirmButtonColor: "#102604"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleSubmitForApproval = async () => {
+    if (!selectedReportForView) return;
+    setIsUpdating(true);
+    try {
+      let filePayload = null;
+      if (movFile) {
+        try {
+          const base64Data = await fileToBase64(movFile);
+          const originalName = movFile.name;
+          const extension = originalName.substring(originalName.lastIndexOf('.') + 1) || 'bin';
+          const formattedFileName = `Report_${selectedReportForView.id}_${selectedReportForView.grade}_${selectedReportForView.section}.${extension}`;
+
+          filePayload = {
+            name: formattedFileName,
+            base64: base64Data,
+            mimeType: movFile.type || "application/octet-stream"
+          };
+        } catch (err) {
+          await Swal.fire({
+            title: "Error",
+            text: "Failed to process MOV file.",
+            icon: "error",
+            confirmButtonColor: "#102604"
+          });
+          setIsUpdating(false);
+          return;
+        }
+      }
+
+      const resStatus = await fetch(`/api/reports/${selectedReportForView.id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "Pending Approval",
+          type: selectedReportForView.type,
+          file: filePayload,
+          adminComment: adminComment.trim() || undefined
+        })
+      });
+
+      const dataStatus = await resStatus.json().catch(() => ({}));
+
+      if (resStatus.ok) {
+        setStatusEdit("Pending Approval");
+        setReports(prev => prev.map(r => 
+          (r.id === selectedReportForView.id && r.type === selectedReportForView.type)
+            ? { ...r, recordStatus: "Pending Approval" }
+            : r
+        ));
+        setSelectedReportForView(prev => prev ? { ...prev, recordStatus: "Pending Approval" } : null);
+        setMovFile(null);
+        setAdminComment("");
+
+        await Swal.fire({
+          title: "Submitted for Approval",
+          text: "Report status changed to Pending Approval and sent to the Pending Approval tab.",
+          icon: "success",
+          confirmButtonColor: "#102604"
+        });
+      } else {
+        await Swal.fire({
+          title: "Error",
+          text: dataStatus.error || "Failed to submit report for approval.",
+          icon: "error",
+          confirmButtonColor: "#102604"
+        });
+      }
+    } catch (err) {
+      await Swal.fire({
+        title: "Error",
+        text: "Network error while submitting for approval.",
+        icon: "error",
+        confirmButtonColor: "#102604"
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -1030,7 +1104,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                                   type="button"
                                   onClick={() => setStatusEdit('On Going')}
                                   disabled={isUpdating}
-                                  className={`flex-1 py-1.5 px-2 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 ${
+                                  className={`flex-1 py-1.5 px-2 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 cursor-pointer ${
                                     statusEdit === 'On Going'
                                       ? 'bg-white text-orange-600 shadow-sm border border-slate-200/50 font-bold'
                                       : 'text-slate-500 hover:text-slate-700'
@@ -1044,28 +1118,13 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                                   type="button"
                                   onClick={() => setStatusEdit('Pending Approval')}
                                   disabled={isUpdating}
-                                  className={`flex-1 py-1.5 px-2 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 ${
+                                  className={`flex-1 py-1.5 px-2 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 cursor-pointer ${
                                     statusEdit === 'Pending Approval'
                                       ? 'bg-blue-600 text-white shadow-sm font-bold'
                                       : 'text-slate-500 hover:text-blue-600'
                                   }`}
                                 >
                                   SUBMIT FOR APPROVAL
-                                </button>
-                                )}
-
-                                {(userRole === 'Admin' || userRole === 'Principal' || userRole === 'Department Head') && (
-                                <button
-                                  type="button"
-                                  onClick={() => setStatusEdit('RESOLVED')}
-                                    disabled={isUpdating}
-                                    className={`flex-1 py-1.5 px-2 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 ${
-                                      statusEdit === 'RESOLVED'
-                                        ? 'bg-[#102604] text-white shadow-sm font-bold'
-                                        : 'text-slate-500 hover:text-[#102604]'
-                                    }`}
-                                  >
-                                    RESOLVED (Approve)
                                 </button>
                                 )}
                               </div>
@@ -1091,14 +1150,14 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                           </div>
                         )}
 
-                        {(statusEdit === 'RESOLVED' || statusEdit === 'Pending Approval') && selectedReportForView.recordStatus !== statusEdit && (userRole === 'Admin' || userRole === 'Guidance' || userRole === 'Adviser' || userRole === 'Department Head') && (
+                        {(userRole === 'Admin' || userRole === 'Guidance' || userRole === 'Adviser' || userRole === 'Department Head') && (
                           <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded space-y-3">
                             <div className="space-y-1">
                               <label className="block text-[9px] font-black uppercase tracking-widest text-slate-700">
                                 Upload Mean of Verification (MOV) (Optional)
                               </label>
                               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
-                                File will be uploaded to Supabase Storage as: <span className="font-mono text-[#102604] lowercase select-all">Rerport {selectedReportForView.id}_{selectedReportForView.grade}_{selectedReportForView.section}.[ext]</span>
+                                File will be uploaded to Supabase Storage as: <span className="font-mono text-[#102604] lowercase select-all">Report_{selectedReportForView.id}_{selectedReportForView.grade}_{selectedReportForView.section}.[ext]</span>
                               </p>
                             </div>
                             <div className="flex items-center gap-3">
@@ -1132,17 +1191,31 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                       </label>
                       <textarea
                         value={recommendationEdit}
-                        disabled={isUpdating}
+                        disabled={isUpdating || isSavingRec}
                         onChange={(e) => setRecommendationEdit(e.target.value)}
                         placeholder="Provide guidance or follow-up recommendations..."
                         className="w-full p-4 bg-white border-2 border-slate-100 text-[11px] text-slate-800 leading-relaxed focus:outline-none focus:border-[#76DA0D] min-h-[120px] transition-colors disabled:opacity-50"
                       />
-                      {selectedReportForView.lastUpdatedBy && (
-                        <p className="mt-2 text-[9px] font-bold italic text-slate-400 flex items-center gap-1">
-                          <Clock size={10} />
-                          Last revision signed by: {selectedReportForView.lastUpdatedBy}
-                        </p>
-                      )}
+                      <div className="flex items-center justify-between mt-2 min-h-[32px]">
+                        <div>
+                          {selectedReportForView.lastUpdatedBy && (
+                            <p className="text-[9px] font-bold italic text-slate-400 flex items-center gap-1">
+                              <Clock size={10} />
+                              Last revision signed by: {selectedReportForView.lastUpdatedBy}
+                            </p>
+                          )}
+                        </div>
+                        {recommendationEdit !== (selectedReportForView.recommendation || "") && (
+                          <button
+                            type="button"
+                            onClick={handleSaveRecommendation}
+                            disabled={isSavingRec}
+                            className="px-4 py-2 bg-[#76DA0D] text-[#102604] font-black text-[10px] uppercase tracking-widest hover:bg-[#68C00B] transition-all rounded shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            {isSavingRec ? "Saving..." : "Save Guidance Recommendations"}
+                          </button>
+                        )}
+                      </div>
                     </section>
                   </div>
                 </div>
@@ -1160,22 +1233,31 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setShowDetail(false)}
-                      className="px-6 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+                      className="px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                     >
-                      Discard Changes
+                      Close
                     </button>
+                    
                     <button
-                      onClick={handleUpdateArchive}
+                      onClick={handleSetOngoing}
                       disabled={isUpdating}
-                      className="px-8 py-2.5 bg-[#102604] text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center gap-2 min-w-[140px] justify-center"
+                      className="px-6 py-2.5 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
+                    >
+                      On Going
+                    </button>
+
+                    <button
+                      onClick={handleSubmitForApproval}
+                      disabled={isUpdating}
+                      className="px-6 py-2.5 bg-[#102604] text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
                     >
                       {isUpdating ? (
                         <>
                           <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Signing...
+                          Submitting...
                         </>
                       ) : (
-                        "Update Archive"
+                        "Submit for Approval"
                       )}
                     </button>
                   </div>

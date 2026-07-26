@@ -54,7 +54,9 @@ import {
   getSignatorySettings,
   getAdminPasswords,
   saveAdminPasswords,
-  saveSignatorySettings
+  saveSignatorySettings,
+  saveAuditLog,
+  getAuditLogs
 } from "./server/database";
 import { UserAccount, Student, AppNotification } from "./src/types";
 
@@ -369,7 +371,24 @@ async function startServer() {
     try {
       const { email } = req.params;
       const { role, gradeLevel, section } = req.body;
+      const targetUser = await getUserByEmail(email);
+      const oldRole = targetUser?.role || 'Unknown';
+      const oldGrade = targetUser?.gradeLevel || 'None';
+      const oldSection = targetUser?.section || 'None';
+
       await updateAdvisoryAssignment(email, role, gradeLevel, section);
+
+      const performedBy = req.body.adminEmail || req.headers['x-user-email'] || 'Admin';
+      await saveAuditLog({
+        action: 'ASSIGN_ADVISORY',
+        performedBy: String(performedBy),
+        targetId: email,
+        targetName: targetUser ? `${targetUser.firstName} ${targetUser.lastName}` : email,
+        details: `Updated advisory role to ${role}${role === 'Adviser' ? ` (${gradeLevel} - ${section})` : ''}`,
+        previousValues: { role: oldRole, gradeLevel: oldGrade, section: oldSection },
+        newValues: { role, gradeLevel, section }
+      });
+
       res.json({ message: "Advisory assignment updated successfully" });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -431,6 +450,15 @@ async function startServer() {
       };
 
       await createUser(newUser);
+
+      await saveAuditLog({
+        action: 'REGISTER_TEACHER',
+        performedBy: emailTrim,
+        targetId: emailTrim,
+        targetName: `${firstName.trim()} ${lastName.trim()}`,
+        details: `Registered new teacher account as ${role} (${department} - ${position})`,
+        newValues: { firstName: firstName.trim(), lastName: lastName.trim(), email: emailTrim, role, department, position }
+      });
 
       // Return user context without actual passwordHash leak
       const { passwordHash: _, ...authenticatedUser } = newUser;
@@ -636,6 +664,50 @@ async function startServer() {
 
       const freshProfile = await updateUser(email, updatedFields);
       
+      // Calculate changed fields for audit log
+      const changedList: string[] = [];
+      if (user.firstName !== updatedFields.firstName) changedList.push(`First Name: "${user.firstName}" → "${updatedFields.firstName}"`);
+      if (user.lastName !== updatedFields.lastName) changedList.push(`Last Name: "${user.lastName}" → "${updatedFields.lastName}"`);
+      if (user.contactNumber !== updatedFields.contactNumber) changedList.push(`Contact: "${user.contactNumber}" → "${updatedFields.contactNumber}"`);
+      if (user.department !== updatedFields.department) changedList.push(`Department: "${user.department}" → "${updatedFields.department}"`);
+      if (user.position !== updatedFields.position) changedList.push(`Position: "${user.position}" → "${updatedFields.position}"`);
+      if (user.role !== updatedFields.role) changedList.push(`Role: "${user.role}" → "${updatedFields.role}"`);
+      if (user.gradeLevel !== updatedFields.gradeLevel) changedList.push(`Grade Level: "${user.gradeLevel || 'None'}" → "${updatedFields.gradeLevel || 'None'}"`);
+      if (user.section !== updatedFields.section) changedList.push(`Section: "${user.section || 'None'}" → "${updatedFields.section || 'None'}"`);
+      if (newPassword && newPassword.trim() !== "") changedList.push("Password updated");
+
+      const auditDetails = changedList.length > 0 
+        ? `Updated fields: ${changedList.join(", ")}` 
+        : "Profile saved with no field changes";
+
+      await saveAuditLog({
+        action: 'UPDATE_TEACHER_PROFILE',
+        performedBy: email,
+        targetId: email,
+        targetName: `${freshProfile.firstName} ${freshProfile.lastName}`,
+        details: auditDetails,
+        previousValues: {
+          firstName: user.firstName,
+          lastName: user.lastName,
+          contactNumber: user.contactNumber,
+          department: user.department,
+          position: user.position,
+          role: user.role,
+          gradeLevel: user.gradeLevel,
+          section: user.section
+        },
+        newValues: {
+          firstName: freshProfile.firstName,
+          lastName: freshProfile.lastName,
+          contactNumber: freshProfile.contactNumber,
+          department: freshProfile.department,
+          position: freshProfile.position,
+          role: freshProfile.role,
+          gradeLevel: freshProfile.gradeLevel,
+          section: freshProfile.section
+        }
+      });
+
       const { passwordHash: _, ...userSafeDetails } = freshProfile;
       res.json({
         message: "Profile updated successfully!",
@@ -680,8 +752,40 @@ async function startServer() {
       if (!student.lrn || !student.firstName || !student.lastName) {
         return res.status(400).json({ error: "LRN, First Name and Last Name are required." });
       }
+      
+      const existingStudent = await getStudentByLrn(student.lrn);
       await createStudent(student);
-      res.status(201).json({ status: "ok", message: "Student registered successfully!" });
+
+      const isUpdate = !!existingStudent;
+      const performedBy = student.registeredBy || req.headers['x-user-email'] || 'Adviser';
+
+      await saveAuditLog({
+        action: isUpdate ? 'UPDATE_STUDENT_PROFILE' : 'REGISTER_STUDENT',
+        performedBy: String(performedBy),
+        targetId: student.lrn,
+        targetName: `${student.firstName} ${student.lastName}`,
+        details: isUpdate 
+          ? `Updated student profile for ${student.firstName} ${student.lastName} (LRN: ${student.lrn}, ${student.gradeLevel} - ${student.section})`
+          : `Registered student profile for ${student.firstName} ${student.lastName} (LRN: ${student.lrn}, ${student.gradeLevel} - ${student.section})`,
+        previousValues: existingStudent ? {
+          firstName: existingStudent.firstName,
+          lastName: existingStudent.lastName,
+          gradeLevel: existingStudent.gradeLevel,
+          section: existingStudent.section,
+          guardianName: existingStudent.guardianName,
+          guardianContact: existingStudent.guardianContact
+        } : undefined,
+        newValues: {
+          firstName: student.firstName,
+          lastName: student.lastName,
+          gradeLevel: student.gradeLevel,
+          section: student.section,
+          guardianName: student.guardianName,
+          guardianContact: student.guardianContact
+        }
+      });
+
+      res.status(201).json({ status: "ok", message: isUpdate ? "Student profile updated successfully!" : "Student registered successfully!" });
     } catch (err: any) {
       console.error("Failed to register student:", err);
       res.status(500).json({ error: `Registration error: ${err.message}` });
@@ -692,7 +796,7 @@ async function startServer() {
   app.put("/api/students/:lrn/photo", async (req, res) => {
     try {
       const { lrn } = req.params;
-      const { profilePictureUrl, file } = req.body;
+      const { profilePictureUrl, file, updatedBy } = req.body;
       let targetUrl = profilePictureUrl;
 
       if (file && file.base64) {
@@ -732,6 +836,19 @@ async function startServer() {
       }
 
       await updateStudentPhoto(lrn, targetUrl);
+
+      const existingStudent = await getStudentByLrn(lrn);
+      const studentName = existingStudent ? `${existingStudent.firstName} ${existingStudent.lastName}` : `Student LRN ${lrn}`;
+      const performedBy = updatedBy || req.headers['x-user-email'] || 'User';
+
+      await saveAuditLog({
+        action: 'UPDATE_STUDENT_PHOTO',
+        performedBy: String(performedBy),
+        targetId: lrn,
+        targetName: studentName,
+        details: `Updated ID profile picture link for student ${studentName} (LRN: ${lrn})`
+      });
+
       console.log(`[STUDENT PHOTO] Updated student ${lrn} photo link permanently in database: ${targetUrl}`);
       res.json({ status: "ok", message: "Student photo updated permanently in database!", url: targetUrl });
     } catch (err: any) {
@@ -1123,10 +1240,31 @@ async function startServer() {
       if (!email || typeof email !== "string") {
         return res.status(400).json({ error: "Email is required." });
       }
+      const targetUser = await getUserByEmail(email);
       await deleteUser(email);
+
+      await saveAuditLog({
+        action: 'DELETE_TEACHER',
+        performedBy: req.headers['x-user-email'] as string || 'Admin',
+        targetId: email,
+        targetName: targetUser ? `${targetUser.firstName} ${targetUser.lastName}` : email,
+        details: `Deleted teacher account (${email}, Role: ${targetUser?.role || 'Unknown'}, Dept: ${targetUser?.department || 'Unknown'})`
+      });
+
       res.json({ message: `User ${email} deleted.` });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ADMIN API: Get System Audit Logs
+  app.get("/api/admin/audit-logs", async (req, res) => {
+    try {
+      const logs = await getAuditLogs();
+      res.json(logs);
+    } catch (err: any) {
+      console.error("Failed to fetch audit logs:", err);
+      res.status(500).json({ error: `Failed to fetch audit logs: ${err.message}` });
     }
   });
 
@@ -1265,11 +1403,20 @@ async function startServer() {
   // API ROUTE 7: Bulk Register Students
   app.post("/api/students/bulk-register", async (req, res) => {
     try {
-      const { students } = req.body;
+      const { students, registeredBy } = req.body;
       if (!Array.isArray(students) || students.length === 0) {
         return res.status(400).json({ error: "A non-empty list of students is required." });
       }
       const outcome = await createStudentsBulk(students);
+
+      await saveAuditLog({
+        action: 'BULK_REGISTER_STUDENTS',
+        performedBy: String(registeredBy || req.headers['x-user-email'] || 'Adviser/Admin'),
+        targetId: `BULK_${Date.now()}`,
+        targetName: `Bulk Import (${students.length} Records)`,
+        details: `Imported roster batch: ${outcome.successCount} of ${students.length} student records registered successfully.`
+      });
+
       res.json({
         status: "ok",
         message: `Processed bulk registration! Successfully registered ${outcome.successCount} of ${students.length} students.`,

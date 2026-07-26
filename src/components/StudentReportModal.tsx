@@ -60,10 +60,15 @@ const RECOMMENDATION_OPTIONS = [
 export default function StudentReportModal({ student, userName, onClose, onSuccess }: StudentReportModalProps) {
   const { notify } = useNotification();
   const [isSaving, setIsSaving] = useState(false);
+  
+  const now = new Date();
+  const defaultDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const defaultTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
   const [form, setForm] = useState<Report>({
     studentLrn: student.lrn,
-    dateOfIncident: "",
-    timeOfIncident: "",
+    dateOfIncident: defaultDate,
+    timeOfIncident: defaultTime,
     issue: ISSUE_OPTIONS[0],
     description: "",
     actionTaken: ACTION_OPTIONS[0],

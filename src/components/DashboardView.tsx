@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { LogOut, Shield, Settings2, ShieldCheck, Sun, Clock, Calendar, Compass, Clipboard, UserPlus, FileText, Table, BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight, ShieldAlert, Database, Layers, Trash2, Plus, Edit, Download, CheckSquare, Square, UserCheck } from "lucide-react";
+import { LogOut, Shield, Settings2, ShieldCheck, Sun, Clock, Calendar, Compass, Clipboard, UserPlus, FileText, Table, BarChart3, TrendingUp, ArrowUpRight, ArrowDownRight, ShieldAlert, Database, Layers, Trash2, Plus, Edit, Download, CheckSquare, Square, UserCheck, History } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { UserAccount, Report, CriticalReport } from "../types";
 import AccountSettingsView from "./AccountSettingsView";
@@ -18,6 +18,7 @@ import ReportsViewerModal from "./ReportsViewerModal";
 import AdviserAssignmentModal from "./AdviserAssignmentModal";
 import SignatorySettingsModal from "./SignatorySettingsModal";
 import { AdminPasswordsModal } from "./AdminPasswordsModal";
+import { AuditLogModal } from "./AuditLogModal";
 import NotificationBell from "./NotificationBell";
 import { useNotification } from "./NotificationProvider";
 import StudentListDashboard from "./StudentListDashboard";
@@ -151,6 +152,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
   const [showAdviserAssignment, setShowAdviserAssignment] = useState(false);
   const [showSignatorySettingsModal, setShowSignatorySettingsModal] = useState(false);
   const [showAdminPasswordsModal, setShowAdminPasswordsModal] = useState(false);
+  const [showAuditLogs, setShowAuditLogs] = useState(false);
   const [adminAction, setAdminAction] = useState<{ type: string, email?: string } | null>(null);
   const [adminActionPassword, setAdminActionPassword] = useState("");
   const [chartData, setChartData] = useState<{ category: string; count: number }[]>([]);
@@ -523,7 +525,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
             <span>Profile</span>
           </button>
 
-          {(user.role === 'Admin' || user.role === 'Guidance' || user.role === 'Department Head' || user.role === 'Adviser' || user.role === 'Teacher') && (
+          {(user.role === 'Admin' || user.role === 'Guidance' || user.role === 'Department Head') && (
             <button
               id="view-reports-btn"
               onClick={() => setShowReportsViewer(true)}
@@ -646,6 +648,18 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
                       <Shield size={14} className="text-blue-500" />
                       <span>Admin Passwords</span>
                     </button>
+                    {(user.role === 'Admin' || user.role === 'Guidance') && (
+                      <button
+                        onClick={() => {
+                          setShowAuditLogs(true);
+                          setShowAdminMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left text-[11px] font-bold text-[#102604] uppercase tracking-wider transition-colors border-t border-slate-100"
+                      >
+                        <History size={14} className="text-[#76DA0D]" />
+                        <span>Audit Logs</span>
+                      </button>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1132,6 +1146,11 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
         {showAdminPasswordsModal && (
           <AdminPasswordsModal onClose={() => setShowAdminPasswordsModal(false)} />
         )}
+
+        <AuditLogModal
+          isOpen={showAuditLogs}
+          onClose={() => setShowAuditLogs(false)}
+        />
 
         {showRegisterStudent && (
           <RegisterStudentModal

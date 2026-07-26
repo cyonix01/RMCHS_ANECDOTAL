@@ -171,3 +171,16 @@ export interface AdminPasswords {
   clearStudents: string;
   deleteTeacher: string;
 }
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  action: 'UPDATE_TEACHER_PROFILE' | 'UPDATE_STUDENT_PROFILE' | 'REGISTER_STUDENT' | 'REGISTER_TEACHER' | 'ASSIGN_ADVISORY' | 'DELETE_TEACHER' | 'UPDATE_STUDENT_PHOTO' | 'BULK_REGISTER_STUDENTS';
+  performedBy: string;
+  targetId: string;
+  targetName: string;
+  details: string;
+  previousValues?: Record<string, any>;
+  newValues?: Record<string, any>;
+}
+

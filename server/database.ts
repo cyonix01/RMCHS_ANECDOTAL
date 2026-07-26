@@ -1780,3 +1780,119 @@ export async function saveAdminPasswords(settings: AdminPasswords): Promise<Admi
   }
   return settings;
 }
+
+// ==========================================
+// AUDIT LOG OPERATIONS
+// ==========================================
+
+import { AuditLog } from "../src/types";
+
+const AUDIT_LOGS_DB_PATH = path.join(LOCAL_DB_DIR, "audit_logs.json");
+
+export function getAuditLogsLocally(): AuditLog[] {
+  try {
+    if (fs.existsSync(AUDIT_LOGS_DB_PATH)) {
+      const data = fs.readFileSync(AUDIT_LOGS_DB_PATH, "utf-8");
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error("Failed to load local audit logs:", err);
+  }
+  return [];
+}
+
+export function saveAuditLogLocally(log: AuditLog): void {
+  try {
+    const logs = getAuditLogsLocally();
+    logs.unshift(log); // newest first
+    if (logs.length > 1000) {
+      logs.length = 1000;
+    }
+    fs.writeFileSync(AUDIT_LOGS_DB_PATH, JSON.stringify(logs, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to save local audit log:", err);
+  }
+}
+
+export async function saveAuditLog(logEntry: Omit<AuditLog, "id" | "timestamp">): Promise<AuditLog> {
+  const fullLog: AuditLog = {
+    id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+    timestamp: new Date().toISOString(),
+    ...logEntry
+  };
+
+  saveAuditLogLocally(fullLog);
+
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    try {
+      const row = {
+        id: fullLog.id,
+        timestamp: fullLog.timestamp,
+        action: fullLog.action,
+        performed_by: fullLog.performedBy,
+        target_id: fullLog.targetId,
+        target_name: fullLog.targetName,
+        details: fullLog.details,
+        previous_values: fullLog.previousValues ? JSON.stringify(fullLog.previousValues) : null,
+        new_values: fullLog.newValues ? JSON.stringify(fullLog.newValues) : null
+      };
+      const { error } = await supabase.from("audit_logs").insert([row]);
+      if (error) {
+        if (error.code !== "PGRST116" && error.code !== "PGRST205" && !error.message?.includes("does not exist") && error.code !== "42P01") {
+          console.error("Supabase saveAuditLog error:", error);
+        }
+      }
+    } catch (err) {
+      console.error("Supabase saveAuditLog exception:", err);
+    }
+  }
+
+  return fullLog;
+}
+
+export async function getAuditLogs(): Promise<AuditLog[]> {
+  const localLogs = getAuditLogsLocally();
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return localLogs;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("audit_logs")
+      .select("*")
+      .order("timestamp", { ascending: false })
+      .limit(500);
+
+    if (error) {
+      if (error.code !== "PGRST116" && error.code !== "PGRST205" && !error.message?.includes("does not exist") && error.code !== "42P01") {
+        console.error("Supabase getAuditLogs error:", error);
+      }
+      return localLogs;
+    }
+
+    if (data && data.length > 0) {
+      const supabaseLogs: AuditLog[] = data.map((row: any) => ({
+        id: row.id,
+        timestamp: row.timestamp,
+        action: row.action,
+        performedBy: row.performed_by || "",
+        targetId: row.target_id || "",
+        targetName: row.target_name || "",
+        details: row.details || "",
+        previousValues: row.previous_values ? (typeof row.previous_values === 'string' ? JSON.parse(row.previous_values) : row.previous_values) : undefined,
+        newValues: row.new_values ? (typeof row.new_values === 'string' ? JSON.parse(row.new_values) : row.new_values) : undefined
+      }));
+      const map = new Map<string, AuditLog>();
+      [...supabaseLogs, ...localLogs].forEach(l => map.set(l.id, l));
+      const merged = Array.from(map.values()).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      return merged;
+    }
+    return localLogs;
+  } catch (err) {
+    console.error("Supabase getAuditLogs exception:", err);
+    return localLogs;
+  }
+}
+

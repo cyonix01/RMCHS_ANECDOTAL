@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Search, Calendar, FileText, Download, Filter, User, ChevronRight, AlertCircle, ShieldAlert, Clock, Trash2, CheckSquare, Square, Paperclip, ExternalLink } from "lucide-react";
+import { X, Search, Calendar, FileText, Download, Filter, User, ChevronRight, AlertCircle, ShieldAlert, Clock, Trash2, CheckSquare, Square, Paperclip, ExternalLink, CheckCircle, XCircle } from "lucide-react";
 import Swal from "sweetalert2";
 import { Report, CriticalReport } from "../types";
 import { useNotification } from "./NotificationProvider";
@@ -360,31 +360,40 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
 
   const handleSubmitForApproval = async () => {
     if (!selectedReportForView) return;
+
+    if (!movFile) {
+      await Swal.fire({
+        title: "MOV File Required",
+        text: "Please attach/upload a Means of Verification (MOV) file before submitting for approval.",
+        icon: "warning",
+        confirmButtonColor: "#102604"
+      });
+      return;
+    }
+
     setIsUpdating(true);
     try {
       let filePayload = null;
-      if (movFile) {
-        try {
-          const base64Data = await fileToBase64(movFile);
-          const originalName = movFile.name;
-          const extension = originalName.substring(originalName.lastIndexOf('.') + 1) || 'bin';
-          const formattedFileName = `Report_${selectedReportForView.id}_${selectedReportForView.grade}_${selectedReportForView.section}.${extension}`;
+      try {
+        const base64Data = await fileToBase64(movFile);
+        const originalName = movFile.name;
+        const extension = originalName.substring(originalName.lastIndexOf('.') + 1) || 'bin';
+        const formattedFileName = `Report_${selectedReportForView.id}_${selectedReportForView.grade}_${selectedReportForView.section}.${extension}`;
 
-          filePayload = {
-            name: formattedFileName,
-            base64: base64Data,
-            mimeType: movFile.type || "application/octet-stream"
-          };
-        } catch (err) {
-          await Swal.fire({
-            title: "Error",
-            text: "Failed to process MOV file.",
-            icon: "error",
-            confirmButtonColor: "#102604"
-          });
-          setIsUpdating(false);
-          return;
-        }
+        filePayload = {
+          name: formattedFileName,
+          base64: base64Data,
+          mimeType: movFile.type || "application/octet-stream"
+        };
+      } catch (err) {
+        await Swal.fire({
+          title: "Error",
+          text: "Failed to process MOV file.",
+          icon: "error",
+          confirmButtonColor: "#102604"
+        });
+        setIsUpdating(false);
+        return;
       }
 
       const resStatus = await fetch(`/api/reports/${selectedReportForView.id}/status`, {
@@ -429,6 +438,191 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
       await Swal.fire({
         title: "Error",
         text: "Network error while submitting for approval.",
+        icon: "error",
+        confirmButtonColor: "#102604"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleApproveReport = async () => {
+    if (!selectedReportForView) return;
+
+    const result = await Swal.fire({
+      title: "Approve Report?",
+      text: "This will approve the report and mark its status as RESOLVED.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#102604",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, Approve",
+      cancelButtonText: "Cancel"
+    });
+
+    if (!result.isConfirmed) return;
+
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/reports/${selectedReportForView.id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "RESOLVED",
+          type: selectedReportForView.type
+        })
+      });
+
+      if (res.ok) {
+        setStatusEdit("RESOLVED");
+        setReports(prev => prev.map(r => 
+          (r.id === selectedReportForView.id && r.type === selectedReportForView.type)
+            ? { ...r, recordStatus: "RESOLVED" }
+            : r
+        ));
+        setSelectedReportForView(prev => prev ? { ...prev, recordStatus: "RESOLVED" } : null);
+
+        await Swal.fire({
+          title: "Report Approved!",
+          text: "The report has been approved and moved to Resolved Reports Archive.",
+          icon: "success",
+          confirmButtonColor: "#102604"
+        });
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        await Swal.fire({
+          title: "Error",
+          text: errData.error || "Failed to approve report.",
+          icon: "error",
+          confirmButtonColor: "#102604"
+        });
+      }
+    } catch (err) {
+      await Swal.fire({
+        title: "Error",
+        text: "Network error while approving report.",
+        icon: "error",
+        confirmButtonColor: "#102604"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDisapproveReport = async () => {
+    if (!selectedReportForView) return;
+
+    const currentRec = recommendationEdit || selectedReportForView.recommendation || "";
+
+    const { value: formValues } = await Swal.fire({
+      title: "Disapprove Report",
+      html: `
+        <div style="text-align: left; font-size: 12px; color: #334155;">
+          <p style="margin-bottom: 12px; font-weight: 600; color: #b91c1c;">
+            Please explain why this report was disapproved and edit or provide recommended actions for the reporting officer.
+          </p>
+
+          <label style="display: block; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; margin-bottom: 4px;">
+            Reason for Disapproval <span style="color: #ef4444;">*</span>
+          </label>
+          <textarea id="swal-disapproval-reason" class="swal2-textarea" style="width: 100%; height: 80px; margin: 0 0 14px 0; padding: 8px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px;" placeholder="State why the report was disapproved..."></textarea>
+
+          <label style="display: block; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; margin-bottom: 4px;">
+            Recommended Action / Revised Guidance Recommendations <span style="color: #ef4444;">*</span>
+          </label>
+          <textarea id="swal-recommended-action" class="swal2-textarea" style="width: 100%; height: 100px; margin: 0; padding: 8px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px;" placeholder="Specify recommended corrective actions or updated recommendations...">${currentRec}</textarea>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Disapprove & Return",
+      confirmButtonColor: "#dc2626",
+      cancelButtonText: "Cancel",
+      cancelButtonColor: "#64748b",
+      preConfirm: () => {
+        const reasonEl = document.getElementById('swal-disapproval-reason') as HTMLTextAreaElement;
+        const recEl = document.getElementById('swal-recommended-action') as HTMLTextAreaElement;
+        const reason = reasonEl ? reasonEl.value.trim() : "";
+        const rec = recEl ? recEl.value.trim() : "";
+
+        if (!reason) {
+          Swal.showValidationMessage("Reason for disapproval is required.");
+          return false;
+        }
+        if (!rec) {
+          Swal.showValidationMessage("Recommended action / guidance recommendation is required.");
+          return false;
+        }
+
+        return { disapprovalReason: reason, recommendedAction: rec };
+      }
+    });
+
+    if (!formValues) return;
+
+    setIsUpdating(true);
+    try {
+      // 1. Update recommendation field with recommendedAction
+      await fetch(`/api/reports/${selectedReportForView.id}/recommendation`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recommendation: formValues.recommendedAction,
+          userEmail
+        })
+      });
+
+      // 2. Update status back to 'On Going' with adminComment containing disapproval reason & recommended action
+      const adminNote = `[DISAPPROVED BY APPROVER] Reason: ${formValues.disapprovalReason}\nRecommended Action: ${formValues.recommendedAction}`;
+      const res = await fetch(`/api/reports/${selectedReportForView.id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "On Going",
+          type: selectedReportForView.type,
+          adminComment: adminNote
+        })
+      });
+
+      if (res.ok) {
+        setStatusEdit("On Going");
+        setRecommendationEdit(formValues.recommendedAction);
+        setReports(prev => prev.map(r => 
+          (r.id === selectedReportForView.id && r.type === selectedReportForView.type)
+            ? { 
+                ...r, 
+                recordStatus: "On Going", 
+                recommendation: formValues.recommendedAction,
+                lastUpdatedBy: userEmail
+              }
+            : r
+        ));
+        setSelectedReportForView(prev => prev ? { 
+          ...prev, 
+          recordStatus: "On Going", 
+          recommendation: formValues.recommendedAction,
+          lastUpdatedBy: userEmail 
+        } : null);
+
+        await Swal.fire({
+          title: "Report Disapproved",
+          text: "The report status was returned to 'On Going'. The revised recommendation and disapproval feedback were saved.",
+          icon: "info",
+          confirmButtonColor: "#102604"
+        });
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        await Swal.fire({
+          title: "Error",
+          text: errData.error || "Failed to disapprove report.",
+          icon: "error",
+          confirmButtonColor: "#102604"
+        });
+      }
+    } catch (err) {
+      await Swal.fire({
+        title: "Error",
+        text: "Network error while disapproving report.",
         icon: "error",
         confirmButtonColor: "#102604"
       });
@@ -1092,69 +1286,14 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                               {selectedReportForView.recordStatus || 'On Going'}
                             </span>
                           </div>
-                          
-                          
-                          {(userRole === 'Admin' || userRole === 'Guidance' || userRole === 'Adviser' || userRole === 'Department Head') ? (
-                            <div className="space-y-1.5">
-                              <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                Target Status for Submission
-                              </label>
-                              <div className="flex bg-slate-100 p-1 rounded-sm flex-wrap gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => setStatusEdit('On Going')}
-                                  disabled={isUpdating}
-                                  className={`flex-1 py-1.5 px-2 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 cursor-pointer ${
-                                    statusEdit === 'On Going'
-                                      ? 'bg-white text-orange-600 shadow-sm border border-slate-200/50 font-bold'
-                                      : 'text-slate-500 hover:text-slate-700'
-                                  }`}
-                                >
-                                  On Going
-                                </button>
-                                
-                                {selectedReportForView.recordStatus !== 'Pending Approval' && selectedReportForView.recordStatus !== 'RESOLVED' && (
-                                <button
-                                  type="button"
-                                  onClick={() => setStatusEdit('Pending Approval')}
-                                  disabled={isUpdating}
-                                  className={`flex-1 py-1.5 px-2 text-[10px] font-black uppercase tracking-wider transition-all rounded-sm disabled:opacity-50 cursor-pointer ${
-                                    statusEdit === 'Pending Approval'
-                                      ? 'bg-blue-600 text-white shadow-sm font-bold'
-                                      : 'text-slate-500 hover:text-blue-600'
-                                  }`}
-                                >
-                                  SUBMIT FOR APPROVAL
-                                </button>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <p className="text-[10px] text-slate-500 italic">
-                              * Only Administrators, Guidance counselors or Advisers can update status.
-                            </p>
-                          )}
                         </div>
-
-                        {selectedReportForView.recordStatus === 'Pending Approval' && (userRole === 'Admin' || userRole === 'Principal' || userRole === 'Department Head') && (
-                          <div className="space-y-1.5 pt-2">
-                            <label className="block text-[9px] font-black uppercase tracking-widest text-slate-700">
-                              Reviewer Comment (Optional)
-                            </label>
-                            <textarea
-                              value={adminComment}
-                              onChange={(e) => setAdminComment(e.target.value)}
-                              placeholder="Leave a comment regarding your decision to approve or deny this pending report..."
-                              className="w-full h-20 p-3 bg-slate-50 border border-slate-200 rounded text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#76DA0D] focus:ring-1 focus:ring-[#76DA0D] transition-all resize-none"
-                            />
-                          </div>
-                        )}
-
-                        {(userRole === 'Admin' || userRole === 'Guidance' || userRole === 'Adviser' || userRole === 'Department Head') && (
+                          
+                          
+                        {!(showOnlyPendingApproval || selectedReportForView.recordStatus === 'Pending Approval') && (userRole === 'Admin' || userRole === 'Guidance' || userRole === 'Adviser' || userRole === 'Department Head') && (
                           <div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded space-y-3">
                             <div className="space-y-1">
                               <label className="block text-[9px] font-black uppercase tracking-widest text-slate-700">
-                                Upload Mean of Verification (MOV) (Optional)
+                                Upload Means of Verification (MOV) <span className="text-amber-600 font-bold">(Required for Submit for Approval)</span>
                               </label>
                               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
                                 File will be uploaded to Supabase Storage as: <span className="font-mono text-[#102604] lowercase select-all">Report_{selectedReportForView.id}_{selectedReportForView.grade}_{selectedReportForView.section}.[ext]</span>
@@ -1238,28 +1377,52 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                       Close
                     </button>
                     
-                    <button
-                      onClick={handleSetOngoing}
-                      disabled={isUpdating}
-                      className="px-6 py-2.5 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
-                    >
-                      On Going
-                    </button>
+                    {(showOnlyPendingApproval || selectedReportForView.recordStatus === 'Pending Approval') ? (
+                      <>
+                        <button
+                          onClick={handleDisapproveReport}
+                          disabled={isUpdating}
+                          className="px-6 py-2.5 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
+                        >
+                          <XCircle size={14} />
+                          {isUpdating ? "Processing..." : "Disapproved"}
+                        </button>
 
-                    <button
-                      onClick={handleSubmitForApproval}
-                      disabled={isUpdating}
-                      className="px-6 py-2.5 bg-[#102604] text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
-                    >
-                      {isUpdating ? (
-                        <>
-                          <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        "Submit for Approval"
-                      )}
-                    </button>
+                        <button
+                          onClick={handleApproveReport}
+                          disabled={isUpdating}
+                          className="px-6 py-2.5 bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-800 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
+                        >
+                          <CheckCircle size={14} />
+                          {isUpdating ? "Processing..." : "Approved"}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleSetOngoing}
+                          disabled={isUpdating}
+                          className="px-6 py-2.5 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
+                        >
+                          On Going
+                        </button>
+
+                        <button
+                          onClick={handleSubmitForApproval}
+                          disabled={isUpdating}
+                          className="px-6 py-2.5 bg-[#102604] text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
+                        >
+                          {isUpdating ? (
+                            <>
+                              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            "Submit for Approval"
+                          )}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </motion.div>

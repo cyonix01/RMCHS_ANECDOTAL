@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { User, Mail, Phone, Building, Star, Lock, Eye, EyeOff, UserPlus, ArrowLeft } from "lucide-react";
+import { User, Mail, Phone, Building, Star, Lock, Eye, EyeOff, UserPlus, ArrowLeft, Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { Department, Position, UserAccount } from "../types";
 
@@ -449,10 +449,13 @@ export default function RegisterView({ onRegisterSuccess, onNavigateToLogin }: R
             id="register-submit-btn"
             type="submit"
             disabled={isLoading}
-            className="btn-editorial-primary w-full sm:w-auto flex items-center justify-center gap-3 cursor-pointer"
+            className="btn-editorial-primary w-full sm:w-auto flex items-center justify-center gap-3 cursor-pointer min-w-[200px] disabled:opacity-75 disabled:cursor-not-allowed"
           >
             {isLoading ? (
-              <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin" />
+              <>
+                <Loader2 size={16} className="animate-spin text-[#76DA0D]" />
+                <span>Creating Account...</span>
+              </>
             ) : (
               <>
                 <span>Register Account</span>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LogIn, UserCircle, Key, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { LogIn, UserCircle, Key, AlertCircle, Eye, EyeOff, ShieldAlert, Loader2 } from "lucide-react";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 
 import { UserAccount } from "../types";
@@ -7,10 +7,16 @@ import { UserAccount } from "../types";
 interface LoginViewProps {
   onLoginSuccess: (user: Partial<UserAccount>) => void;
   onNavigateToRegister: () => void;
+  sessionNotice?: string | null;
 }
 
-export default function LoginView({ onLoginSuccess, onNavigateToRegister }: LoginViewProps) {
-  const [email, setEmail] = useState("");
+export default function LoginView({ onLoginSuccess, onNavigateToRegister, sessionNotice }: LoginViewProps) {
+  const [rememberMe, setRememberMe] = useState(() => {
+    return !!localStorage.getItem("teacher_portal_remember_email");
+  });
+  const [email, setEmail] = useState(() => {
+    return localStorage.getItem("teacher_portal_remember_email") || "";
+  });
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   
@@ -24,6 +30,12 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
     if (!email || !password) {
       setError("Please fill in both email and password fields.");
       return;
+    }
+
+    if (rememberMe) {
+      localStorage.setItem("teacher_portal_remember_email", email);
+    } else {
+      localStorage.removeItem("teacher_portal_remember_email");
     }
 
     setError(null);
@@ -64,6 +76,13 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
           Access your Counseling & Academic Records Engagement dashboard.
         </p>
       </div>
+
+      {sessionNotice && (
+        <div className="mb-6 bg-amber-50 text-amber-800 p-4 flex items-start gap-3 border border-amber-200 text-xs shadow-sm">
+          <ShieldAlert size={16} className="mt-0.5 shrink-0 text-amber-600" />
+          <p className="font-medium leading-relaxed">{sessionNotice}</p>
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 bg-red-50 text-red-700 p-4 flex items-start gap-3 border border-red-100 text-xs shadow-sm">
@@ -122,7 +141,25 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
               {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
-          <div className="flex justify-end mt-2">
+          <div className="flex items-center justify-between mt-3">
+            <label id="login-remember-me-container" className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                id="login-remember-me-checkbox"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setRememberMe(checked);
+                  if (!checked) {
+                    localStorage.removeItem("teacher_portal_remember_email");
+                  }
+                }}
+                className="w-3.5 h-3.5 accent-[#102604] border-slate-300 rounded-none cursor-pointer"
+              />
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                Remember Me
+              </span>
+            </label>
             <button
               id="login-forgot-password"
               type="button"
@@ -140,10 +177,13 @@ export default function LoginView({ onLoginSuccess, onNavigateToRegister }: Logi
             id="login-submit-btn"
             type="submit"
             disabled={isLoading}
-            className="btn-editorial-primary flex items-center justify-center gap-3 cursor-pointer min-w-[200px]"
+            className="btn-editorial-primary flex items-center justify-center gap-3 cursor-pointer min-w-[200px] disabled:opacity-75 disabled:cursor-not-allowed"
           >
             {isLoading ? (
-              <div className="w-4 h-4 border-2 border-white/35 border-t-white rounded-full animate-spin" />
+              <>
+                <Loader2 size={16} className="animate-spin text-[#76DA0D]" />
+                <span>Signing In...</span>
+              </>
             ) : (
               <>
                 <span>Sign In</span>

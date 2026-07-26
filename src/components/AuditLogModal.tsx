@@ -106,14 +106,17 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
       `"${(log.details || '').replace(/"/g, '""')}"`
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.setAttribute('href', url);
     link.setAttribute('download', `Audit_Log_Export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
     Swal.fire({
       icon: 'success',
@@ -342,6 +345,7 @@ export const AuditLogModal: React.FC<AuditLogModalProps> = ({ isOpen, onClose })
             </button>
 
             <button
+              id="export-audit-csv-btn"
               onClick={exportToCSV}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-[#102604] hover:bg-[#1a3a06] rounded-lg transition-colors cursor-pointer shadow-sm"
               title="Export filtered log trail to CSV"

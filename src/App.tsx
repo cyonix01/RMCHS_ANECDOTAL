@@ -3,27 +3,63 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { UserAccount } from "./types";
 import LoginView from "./components/LoginView";
 import RegisterView from "./components/RegisterView";
 import DashboardView from "./components/DashboardView";
 import { NotificationProvider } from "./components/NotificationProvider";
+import { SessionTimeoutHandler } from "./components/SessionTimeoutHandler";
 import { GraduationCap } from "lucide-react";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<Partial<UserAccount> | null>(null);
   const [viewState, setViewState] = useState<"login" | "register" | "dashboard">("login");
   const [isInitializing, setIsInitializing] = useState(true);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
+  const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState<number>(() => {
+    const saved = localStorage.getItem("teacher_portal_session_timeout");
+    return saved !== null ? parseInt(saved, 10) : 15;
+  });
+
+  // Sync session timeout settings if updated in localStorage
+  useEffect(() => {
+    const updateTimeoutConfig = () => {
+      const saved = localStorage.getItem("teacher_portal_session_timeout");
+      const parsed = saved !== null ? parseInt(saved, 10) : 15;
+      if (!isNaN(parsed)) {
+        setSessionTimeoutMinutes(parsed);
+      }
+    };
+
+    window.addEventListener("storage", updateTimeoutConfig);
+    return () => window.removeEventListener("storage", updateTimeoutConfig);
+  }, []);
 
   // Initialize auth state from local storage on browser render
   useEffect(() => {
     try {
       const cached = localStorage.getItem("teacher_portal_user");
+      const lastActivity = localStorage.getItem("teacher_portal_last_activity");
+      const savedTimeout = localStorage.getItem("teacher_portal_session_timeout");
+      const timeoutMins = savedTimeout !== null ? parseInt(savedTimeout, 10) : 15;
+
       if (cached) {
-        const parsed = JSON.parse(cached);
-        setCurrentUser(parsed);
+        const parsedUser = JSON.parse(cached);
+        // Check if existing session already expired before app loaded
+        if (timeoutMins > 0 && lastActivity) {
+          const lastActivityTime = parseInt(lastActivity, 10);
+          const elapsed = Date.now() - lastActivityTime;
+          if (elapsed > timeoutMins * 60 * 1000) {
+            localStorage.removeItem("teacher_portal_user");
+            setCurrentUser(null);
+            setViewState("login");
+            setSessionNotice("Your previous session expired due to inactivity. Please log in again.");
+            return;
+          }
+        }
+        setCurrentUser(parsedUser);
         setViewState("dashboard");
       }
     } catch (err) {
@@ -35,22 +71,30 @@ export default function App() {
 
   const handleLoginSuccess = (user: Partial<UserAccount>) => {
     setCurrentUser(user);
+    setSessionNotice(null);
     localStorage.setItem("teacher_portal_user", JSON.stringify(user));
+    localStorage.setItem("teacher_portal_last_activity", Date.now().toString());
     setViewState("dashboard");
   };
 
   const handleRegisterSuccess = (user: Partial<UserAccount>) => {
     // When registration completes, automatically log them in for flawless user journey
     setCurrentUser(user);
+    setSessionNotice(null);
     localStorage.setItem("teacher_portal_user", JSON.stringify(user));
+    localStorage.setItem("teacher_portal_last_activity", Date.now().toString());
     setViewState("dashboard");
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback((reason?: string) => {
     setCurrentUser(null);
     localStorage.removeItem("teacher_portal_user");
+    localStorage.removeItem("teacher_portal_last_activity");
     setViewState("login");
-  };
+    if (reason) {
+      setSessionNotice(reason);
+    }
+  }, []);
 
   const handleUpdateUser = (freshUser: Partial<UserAccount>) => {
     // Merge new attributes
@@ -75,6 +119,11 @@ export default function App() {
   if (viewState === "dashboard" && currentUser) {
     return (
       <NotificationProvider>
+        <SessionTimeoutHandler
+          user={currentUser}
+          onLogout={handleLogout}
+          timeoutMinutes={sessionTimeoutMinutes}
+        />
         <DashboardView
           user={currentUser}
           onLogout={handleLogout}
@@ -186,6 +235,7 @@ export default function App() {
                 <LoginView
                   onLoginSuccess={handleLoginSuccess}
                   onNavigateToRegister={() => setViewState("register")}
+                  sessionNotice={sessionNotice}
                 />
               </motion.div>
             )}

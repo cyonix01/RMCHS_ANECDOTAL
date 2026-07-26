@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { User, Phone, Building, Star, Lock, Eye, EyeOff, Save, X, Settings } from "lucide-react";
+import { User, Phone, Building, Star, Lock, Eye, EyeOff, Save, X, Settings, Clock, ShieldAlert } from "lucide-react";
 import { motion } from "motion/react";
 import { Department, Position, UserAccount } from "../types";
 import { useNotification } from "./NotificationProvider";
@@ -73,6 +73,7 @@ export default function AccountSettingsView({ user, onClose, onUpdateSuccess }: 
   }, [gradeLevel]);
 
   // Verification Credentials
+  const [sessionTimeout, setSessionTimeout] = useState(() => localStorage.getItem("teacher_portal_session_timeout") || "15");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -151,6 +152,11 @@ export default function AccountSettingsView({ user, onClose, onUpdateSuccess }: 
 
       setSuccess("Profile settings successfully updated in the database!");
       notify("success", "Institutional profile synchronized successfully.");
+      
+      // Save session timeout preference
+      localStorage.setItem("teacher_portal_session_timeout", sessionTimeout);
+      window.dispatchEvent(new Event("storage"));
+
       onUpdateSuccess(data.user);
       
       // Wipe fields for безопасности
@@ -368,6 +374,38 @@ export default function AccountSettingsView({ user, onClose, onUpdateSuccess }: 
                     disabled={isLoading}
                     className="editorial-input w-full"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Session Security & Timeout Settings */}
+            <div className="space-y-4 pt-4 border-t border-slate-100">
+              <h4 className="text-[10px] font-bold uppercase text-slate-400 tracking-wider pb-1 border-b border-slate-100 flex items-center gap-1.5">
+                <Clock size={12} className="text-[#76DA0D]" />
+                <span>Session Security & Inactivity Timeout</span>
+              </h4>
+
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-slate-50 p-4 border border-slate-200">
+                <div>
+                  <label className="text-xs font-bold text-slate-800 block mb-0.5">Auto-Logout Inactivity Duration</label>
+                  <p className="text-[11px] text-slate-500 max-w-sm leading-relaxed">
+                    Automatically logs out your account after period of inactivity to protect sensitive institutional records.
+                  </p>
+                </div>
+                <div className="w-full md:w-auto shrink-0">
+                  <select
+                    value={sessionTimeout}
+                    onChange={(e) => setSessionTimeout(e.target.value)}
+                    disabled={isLoading}
+                    className="editorial-input text-xs font-semibold py-2 px-3 bg-white border border-slate-300 w-full md:w-48 cursor-pointer focus:ring-2 focus:ring-[#102604]"
+                  >
+                    <option value="5">5 Minutes (Strict)</option>
+                    <option value="15">15 Minutes (Recommended)</option>
+                    <option value="30">30 Minutes</option>
+                    <option value="60">1 Hour</option>
+                    <option value="120">2 Hours</option>
+                    <option value="0">Disabled / Never</option>
+                  </select>
                 </div>
               </div>
             </div>

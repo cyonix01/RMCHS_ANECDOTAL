@@ -1274,16 +1274,16 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
         {/* Report Detail Overlay */}
         <AnimatePresence>
           {showDetail && selectedReportForView && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center p-8 bg-[#102604]/40 backdrop-blur-md">
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-0 sm:p-4 md:p-8 bg-[#102604]/40 backdrop-blur-md">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-200"
+                className="bg-white w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 rounded-none sm:rounded-xl"
               >
-                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
                   <div>
-                    <h4 className="serif font-serif text-xl text-slate-900">Case Investigation Trace</h4>
+                    <h4 className="serif font-serif text-lg sm:text-xl text-slate-900">Case Investigation Trace</h4>
                     <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mt-0.5">Registry ID: {selectedReportForView.id}</p>
                   </div>
                   <button onClick={() => setShowDetail(false)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
@@ -1291,8 +1291,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-8 space-y-8">
-                  <div className="grid grid-cols-2 gap-8">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 sm:space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                     <div className="space-y-4">
                       <div>
                         <label className="block text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Subject Student</label>
@@ -1388,7 +1388,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                                 File will be uploaded to Supabase Storage as: <span className="font-mono text-[#102604] lowercase select-all">Report_{selectedReportForView.id}_{selectedReportForView.grade}_{selectedReportForView.section}.[ext]</span>
                               </p>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                               <input 
                                 type="file" 
                                 id="mov-file-input"
@@ -1398,7 +1398,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                                     setMovFile(e.target.files[0]);
                                   }
                                 }}
-                                className="text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:border file:border-slate-300 file:rounded-sm file:font-sans file:font-bold file:text-[9px] file:uppercase file:tracking-wider file:bg-white file:text-slate-700 hover:file:bg-slate-50 cursor-pointer disabled:opacity-50"
+                                className="w-full text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:border file:border-slate-300 file:rounded-sm file:font-sans file:font-bold file:text-[9px] file:uppercase file:tracking-wider file:bg-white file:text-slate-700 hover:file:bg-slate-50 cursor-pointer disabled:opacity-50"
                               />
                               {movFile && (
                                 <span className="text-[8px] font-black uppercase tracking-widest text-[#102604] bg-[#76DA0D]/10 border border-[#76DA0D]/20 px-2 py-1">
@@ -1424,7 +1424,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                         placeholder="Provide guidance or follow-up recommendations..."
                         className="w-full p-4 bg-white border-2 border-slate-100 text-[11px] text-slate-800 leading-relaxed focus:outline-none focus:border-[#76DA0D] min-h-[120px] transition-colors disabled:opacity-50"
                       />
-                      <div className="flex items-center justify-between mt-2 min-h-[32px]">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mt-2 min-h-[32px]">
                         <div>
                           {selectedReportForView.lastUpdatedBy && (
                             <p className="text-[9px] font-bold italic text-slate-400 flex items-center gap-1">
@@ -1438,7 +1438,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                             type="button"
                             onClick={handleSaveRecommendation}
                             disabled={isSavingRec}
-                            className="px-4 py-2 bg-[#76DA0D] text-[#102604] font-black text-[10px] uppercase tracking-widest hover:bg-[#68C00B] transition-all rounded shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            className="w-full sm:w-auto px-4 py-2 bg-[#76DA0D] text-[#102604] font-black text-[10px] uppercase tracking-widest hover:bg-[#68C00B] transition-all rounded shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                           >
                             {isSavingRec ? "Saving..." : "Save Guidance Recommendations"}
                           </button>
@@ -1448,8 +1448,8 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                   </div>
                 </div>
 
-                <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-3">
+                <div className="p-4 sm:p-6 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
                     <div className="w-8 h-8 bg-white border border-slate-200 flex items-center justify-center rounded-full shrink-0">
                       <User size={14} className="text-slate-400" />
                     </div>
@@ -1458,10 +1458,10 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                       <p className="text-[10px] font-bold text-slate-700">{selectedReportForView.reportedBy}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 w-full sm:w-auto">
                     <button
                       onClick={() => setShowDetail(false)}
-                      className="px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                      className="px-4 sm:px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                     >
                       Close
                     </button>
@@ -1471,7 +1471,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                         <button
                           onClick={handleDisapproveReport}
                           disabled={isUpdating}
-                          className="px-6 py-2.5 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
+                          className="px-4 sm:px-6 py-2.5 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
                         >
                           <XCircle size={14} />
                           {isUpdating ? "Processing..." : "Disapproved"}
@@ -1480,7 +1480,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                         <button
                           onClick={handleApproveReport}
                           disabled={isUpdating}
-                          className="px-6 py-2.5 bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-800 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
+                          className="px-4 sm:px-6 py-2.5 bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-800 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
                         >
                           <CheckCircle size={14} />
                           {isUpdating ? "Processing..." : "Approved"}
@@ -1491,7 +1491,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                         <button
                           onClick={handleSetOngoing}
                           disabled={isUpdating}
-                          className="px-6 py-2.5 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
+                          className="px-4 sm:px-6 py-2.5 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
                         >
                           On Going
                         </button>
@@ -1499,7 +1499,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                         <button
                           onClick={handleSubmitForApproval}
                           disabled={isUpdating}
-                          className="px-6 py-2.5 bg-[#102604] text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
+                          className="px-4 sm:px-6 py-2.5 bg-[#102604] text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center gap-2 justify-center rounded-sm cursor-pointer shadow-xs"
                         >
                           {isUpdating ? (
                             <>

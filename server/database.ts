@@ -113,7 +113,16 @@ export function getSupabaseClient() {
     return null;
   }
   try {
-    cachedSupabaseClient = createClient(url, key);
+    // Check the URL for our custom Android flag
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+    const isAndroid = urlParams.get('source') === 'android_app';
+
+    // Initialize Supabase with the dynamic header
+    cachedSupabaseClient = createClient(url, key, {
+      global: {
+        headers: { 'x-app-platform': isAndroid ? 'android' : 'web' }
+      }
+    });
     console.log("getSupabaseClient: Client created successfully");
     return cachedSupabaseClient;
   } catch (err: any) {

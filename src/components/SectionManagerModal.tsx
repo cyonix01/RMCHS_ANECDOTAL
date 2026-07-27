@@ -320,7 +320,7 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
                   </div>
                   {sections.map((section, idx) => (
                     <div
-                      key={idx}
+                      key={`section-item-${section.gradeLevel}-${section.name}-${idx}`}
                       className="flex items-center justify-between p-3 bg-white border border-slate-100 hover:border-slate-300 transition-colors group"
                     >
                       <div className="flex items-center gap-3">

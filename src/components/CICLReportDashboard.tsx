@@ -56,7 +56,7 @@ export default function CICLReportDashboard() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filteredReports.map((r, i) => (
-              <tr key={i} className="hover:bg-slate-50">
+              <tr key={`cicl-${r.id || i}-${i}`} className="hover:bg-slate-50">
                 <td className="px-4 py-3">{r.studentLrn}</td>
                 <td className="px-4 py-3">{r.dateOfIncident}</td>
                 <td className="px-4 py-3">{r.issue}</td>

@@ -1401,7 +1401,7 @@ export default function RegisterStudentModal({ onClose, registeredByEmail }: Reg
                           </thead>
                           <tbody className="font-mono text-[10px]">
                             {csvPreview.slice(0, 10).map((student, index) => (
-                              <tr key={index} className="border-b border-slate-100 hover:bg-slate-50">
+                              <tr key={`csv-preview-${student.lrn || index}-${index}`} className="border-b border-slate-100 hover:bg-slate-50">
                                 <td className="p-2 border-r border-slate-100 text-slate-700 font-bold">{student.lrn}</td>
                                 <td className="p-2 border-r border-slate-100 text-[#102604]">{student.lastName}, {student.firstName} {student.middleName || ""}</td>
                                 <td className="p-2 border-r border-slate-100 text-slate-600">{student.gradeLevel}</td>

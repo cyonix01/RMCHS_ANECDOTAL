@@ -848,7 +848,7 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
                             const category = mapToCategory(report.issue);
                             return (
                               <motion.tr 
-                                key={idx}
+                                key={`dash-${report.type}-${report.id}-${idx}`}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: idx * 0.05 }}

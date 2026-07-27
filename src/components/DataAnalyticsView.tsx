@@ -823,7 +823,7 @@ const [loading, setLoading] = useState(true);
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={caseStatusData} innerRadius={20} outerRadius={60} paddingAngle={0} dataKey="value">
-                    {caseStatusData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    {caseStatusData.map((entry, index) => <Cell key={`status-cell-${index}-${entry.name}`} fill={entry.color} />)}
                   </Pie>
                   <Tooltip />
                 </PieChart>
@@ -831,7 +831,7 @@ const [loading, setLoading] = useState(true);
             </div>
             <div className="w-1/2 flex flex-col gap-1">
               {caseStatusData.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-[10px]">
+                <div key={`status-item-${idx}-${item.name}`} className="flex items-center justify-between text-[10px]">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.color}}></div>
                     <span className="text-slate-600 font-medium truncate w-16">{item.name}</span>
@@ -867,7 +867,7 @@ const [loading, setLoading] = useState(true);
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={generalIssueBreakdown} innerRadius={28} outerRadius={48} paddingAngle={0} dataKey="value">
-                      {generalIssueBreakdown.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                      {generalIssueBreakdown.map((entry, index) => <Cell key={`gen-cell-${index}-${entry.name}`} fill={entry.color} />)}
                     </Pie>
                     <Tooltip formatter={(value) => `${value}%`} />
                   </PieChart>
@@ -906,7 +906,7 @@ const [loading, setLoading] = useState(true);
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={criticalIssueBreakdown} innerRadius={28} outerRadius={48} paddingAngle={0} dataKey="value">
-                      {criticalIssueBreakdown.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                      {criticalIssueBreakdown.map((entry, index) => <Cell key={`crit-cell-${index}-${entry.name}`} fill={entry.color} />)}
                     </Pie>
                     <Tooltip formatter={(value) => `${value}%`} />
                   </PieChart>
@@ -945,7 +945,7 @@ const [loading, setLoading] = useState(true);
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={ciclIssueBreakdown} innerRadius={28} outerRadius={48} paddingAngle={0} dataKey="value">
-                      {ciclIssueBreakdown.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                      {ciclIssueBreakdown.map((entry, index) => <Cell key={`cicl-cell-${index}-${entry.name}`} fill={entry.color} />)}
                     </Pie>
                     <Tooltip formatter={(value) => `${value}%`} />
                   </PieChart>
@@ -980,7 +980,7 @@ const [loading, setLoading] = useState(true);
                 <Tooltip />
                 <Bar dataKey="value" fill="#16a34a" barSize={10} radius={[0, 4, 4, 0]}>
                   {topIssuesData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill="#16a34a" />
+                    <Cell key={`top-cell-${index}-${entry.name}`} fill="#16a34a" />
                   ))}
                 </Bar>
               </BarChart>

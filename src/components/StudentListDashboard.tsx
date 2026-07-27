@@ -414,7 +414,7 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={issueBreakdownData} innerRadius={25} outerRadius={50} paddingAngle={2} dataKey="value">
-                    {issueBreakdownData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    {issueBreakdownData.map((entry, index) => <Cell key={`student-issue-cell-${index}-${entry.name}`} fill={entry.color} />)}
                   </Pie>
                   <Tooltip />
                 </PieChart>
@@ -422,7 +422,7 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
             </div>
             <div className="w-1/2 flex flex-col justify-center gap-1.5">
               {issueBreakdownData.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-[9px]">
+                <div key={`student-issue-item-${idx}-${item.name}`} className="flex items-center justify-between text-[9px]">
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.color}}></div>
                     <span className="text-slate-600 font-medium truncate w-16" title={item.name}>{item.name}</span>

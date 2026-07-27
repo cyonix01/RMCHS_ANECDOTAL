@@ -422,8 +422,8 @@ export default function StudentReportsViewModal({ student, onClose, userRole, on
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {generalReports.map((report) => (
-                        <div key={report.id || Math.random()} className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-2">
+                      {generalReports.map((report, idx) => (
+                        <div key={`gen-${report.id}-${idx}`} className="bg-white border border-slate-200 rounded-lg p-4 shadow-xs space-y-2">
                           <div className="flex flex-wrap justify-between items-start gap-2 border-b border-slate-100 pb-2">
                             <div>
                               <div className="flex items-center gap-2">
@@ -485,8 +485,8 @@ export default function StudentReportsViewModal({ student, onClose, userRole, on
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {criticalReports.map((crit) => (
-                        <div key={crit.id || Math.random()} className="bg-white border border-red-200 rounded-lg p-4 shadow-xs space-y-2 border-l-4 border-l-red-600">
+                      {criticalReports.map((crit, idx) => (
+                        <div key={`crit-${crit.id}-${idx}`} className="bg-white border border-red-200 rounded-lg p-4 shadow-xs space-y-2 border-l-4 border-l-red-600">
                           <div className="flex flex-wrap justify-between items-start gap-2 border-b border-slate-100 pb-2">
                             <div>
                               <div className="flex items-center gap-2">
@@ -625,8 +625,8 @@ export default function StudentReportsViewModal({ student, onClose, userRole, on
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {generalReports.map((r) => (
-                  <tr key={r.id || Math.random()}>
+                {generalReports.map((r, idx) => (
+                  <tr key={`gen-tbl-${r.id}-${idx}`}>
                     <td className="p-2 border-r border-slate-200 font-mono text-[10px]">
                       #{r.id}<br/>
                       <span className="text-slate-500 font-sans">{r.dateOfIncident || r.dateReported || 'N/A'}</span>
@@ -667,8 +667,8 @@ export default function StudentReportsViewModal({ student, onClose, userRole, on
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {criticalReports.map((r) => (
-                  <tr key={r.id || Math.random()}>
+                {criticalReports.map((r, idx) => (
+                  <tr key={`crit-tbl-${r.id}-${idx}`}>
                     <td className="p-2 border-r border-slate-200 font-mono text-[10px]">
                       CR-{r.id}<br/>
                       <span className="text-slate-500 font-sans">{r.dateOfIncident || r.dateReported || 'N/A'}</span>

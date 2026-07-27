@@ -917,35 +917,35 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#102604]/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-[#102604]/60 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="bg-white w-full max-w-6xl shadow-2xl overflow-hidden flex flex-col h-[90vh]"
+        className="bg-white w-full max-w-6xl shadow-2xl overflow-hidden flex flex-col h-[95vh] sm:h-[90vh] rounded-none sm:rounded-xl"
       >
-        <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#76DA0D]/10 flex items-center justify-center rounded-full">
-              <FileText size={24} className="text-[#102604]" />
+        <div className="p-4 sm:p-8 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#76DA0D]/10 flex items-center justify-center rounded-full shrink-0">
+              <FileText size={22} className="text-[#102604]" />
             </div>
             <div>
-              <h3 className="serif font-serif text-2xl text-slate-900 leading-tight">
+              <h3 className="serif font-serif text-lg sm:text-2xl text-slate-900 leading-tight">
                 {showOnlyResolved ? "Resolved Reports Archive" : showOnlyPendingApproval ? "Pending Approval Reports" : "Institutional Record Archive"}
               </h3>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mt-1">
-                {showOnlyResolved ? "Registry of all resolved student reports and critical incidents" : showOnlyPendingApproval ? "Registry of reports pending final approval" : "Registry of all student reports and critical incidents"}
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em] text-slate-400 mt-0.5">
+                {showOnlyResolved ? "Registry of resolved student reports & incidents" : showOnlyPendingApproval ? "Registry of reports pending approval" : "Registry of student reports and critical incidents"}
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-[#102604] hover:bg-slate-50 transition-all rounded-full">
-            <X size={24} />
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-[#102604] hover:bg-slate-50 transition-all rounded-full shrink-0">
+            <X size={22} />
           </button>
         </div>
 
-        <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-end gap-6 shrink-0">
-          <div className="flex-1 min-w-[240px]">
-            <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Student Identity / LRN</label>
+        <div className="p-4 sm:p-8 border-b border-slate-100 bg-slate-50/50 grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap items-end gap-3 sm:gap-6 shrink-0">
+          <div className="w-full lg:flex-1 lg:min-w-[240px]">
+            <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1.5 sm:mb-2">Student Identity / LRN</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input
@@ -953,17 +953,17 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                 placeholder="Search by name or LRN..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:border-[#76DA0D] transition-colors"
+                className="w-full pl-10 pr-4 py-2 sm:py-2.5 bg-white border border-slate-200 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:border-[#76DA0D] transition-colors"
               />
             </div>
           </div>
 
-          <div className="w-44">
-            <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Report Category</label>
+          <div className="w-full sm:w-auto lg:w-44">
+            <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1.5 sm:mb-2">Report Category</label>
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as any)}
-              className="w-full px-4 py-2.5 bg-white border border-slate-200 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:border-[#76DA0D] appearance-none"
+              className="w-full px-4 py-2 sm:py-2.5 bg-white border border-slate-200 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:border-[#76DA0D] appearance-none"
             >
               <option value="All">All Categories</option>
               <option value="General">General Reports</option>
@@ -971,30 +971,30 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="w-40">
-              <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">From Date</label>
+          <div className="w-full sm:w-auto flex items-center gap-2">
+            <div className="flex-1 sm:w-40">
+              <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1.5 sm:mb-2">From Date</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:border-[#76DA0D]"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-white border border-slate-200 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:border-[#76DA0D]"
               />
             </div>
-            <div className="w-40">
-              <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">To Date</label>
+            <div className="flex-1 sm:w-40">
+              <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1.5 sm:mb-2">To Date</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:border-[#76DA0D]"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-white border border-slate-200 text-[11px] font-bold uppercase tracking-wider focus:outline-none focus:border-[#76DA0D]"
               />
             </div>
           </div>
 
           <button
             onClick={handleExport}
-            className="px-6 py-2.5 bg-[#102604] text-white text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2 h-[42px]"
+            className="w-full sm:w-auto px-6 py-2.5 bg-[#102604] text-white text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center justify-center gap-2 h-[42px]"
           >
             <Download size={14} />
             <span>Export CSV</span>
@@ -1004,133 +1004,184 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
             <button
               onClick={handleBulkDelete}
               disabled={isDeleting}
-              className="px-6 py-2.5 bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-red-700 transition-all flex items-center gap-2 h-[42px] animate-in fade-in slide-in-from-right-2"
+              className="w-full sm:w-auto px-6 py-2.5 bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-red-700 transition-all flex items-center justify-center gap-2 h-[42px]"
             >
               <Trash2 size={14} />
-              <span>Delete {selectedReportIds.size}</span>
+              <span>Delete ({selectedReportIds.size})</span>
             </button>
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 bg-white">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-white">
           {loading ? (
             <div className="h-full flex flex-col items-center justify-center gap-4 py-20">
               <div className="w-12 h-[1px] bg-[#76DA0D] animate-pulse" />
               <p className="serif italic text-slate-400 text-lg">Synchronizing Archive...</p>
             </div>
           ) : filteredReports.length > 0 ? (
-            <div className="border border-slate-100 overflow-hidden">
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
-                    {userRole === 'Admin' && (
-                      <th className="px-6 py-4 w-10">
-                        <button 
-                          onClick={toggleSelectAll}
-                          className="text-slate-400 hover:text-[#102604] transition-colors"
-                        >
-                          {selectedReportIds.size === filteredReports.length && filteredReports.length > 0 ? (
-                            <CheckSquare size={16} className="text-[#102604]" />
-                          ) : (
-                            <Square size={16} />
-                          )}
-                        </button>
-                      </th>
-                    )}
-                    <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Date</th>
-                    <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Student Identity</th>
-                    <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Issue / Incident</th>
-                    <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500 text-center">Type</th>
-                    <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500 text-center">Status</th>
-                    <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Reported By</th>
-                    <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500 w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {filteredReports.map((report, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+            <>
+              {/* Mobile Portrait Card View */}
+              <div className="block sm:hidden space-y-3">
+                {filteredReports.map((report, idx) => (
+                  <div key={idx} className="bg-slate-50 border border-slate-200 p-4 rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
+                        report.type === 'Critical' ? 'border-red-100 text-red-600 bg-red-50' : 'border-blue-100 text-blue-600 bg-blue-50'
+                      }`}>
+                        {report.type}
+                      </span>
+                      <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
+                        report.recordStatus === 'RESOLVED' ? 'border-[#76DA0D]/20 text-[#102604] bg-[#76DA0D]/10' : report?.recordStatus === 'Pending Approval' ? 'border-blue-200 text-blue-700 bg-blue-50' : 'border-orange-100 text-orange-600 bg-orange-50'
+                      }`}>
+                        {report.recordStatus || 'On Going'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {report.profilePictureUrl ? (
+                        <img 
+                          src={getDriveImageUrl(report.profilePictureUrl)} 
+                          alt={report.studentName}
+                          className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-slate-200 flex items-center justify-center rounded-full shrink-0">
+                          <User size={16} className="text-slate-500" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs font-bold text-[#102604] uppercase tracking-wider">{report.studentName}</p>
+                        <p className="text-[10px] text-slate-500">LRN: {report.studentLrn} • Grade {report.grade}-{report.section}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">Issue / Incident:</p>
+                      <button
+                        onClick={() => {
+                          setSelectedReportForView(report);
+                          setRecommendationEdit(report.recommendation);
+                          setStatusEdit(report.recordStatus || 'On Going');
+                          setMovFile(null);
+                          setAdminComment("");
+                          setShowDetail(true);
+                        }}
+                        className="text-xs font-bold text-[#102604] underline text-left mt-0.5 leading-snug"
+                      >
+                        {report.issue}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 text-[10px] text-slate-500">
+                      <span>Date: {new Date(report.dateReported).toLocaleDateString()}</span>
+                      <span>By: {report.reportedBy}</span>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        onClick={() => {
+                          setSelectedReportForView(report);
+                          setRecommendationEdit(report.recommendation);
+                          setStatusEdit(report.recordStatus || 'On Going');
+                          setMovFile(null);
+                          setAdminComment("");
+                          setShowDetail(true);
+                        }}
+                        className="px-3 py-1.5 bg-[#102604] text-white text-[10px] font-bold uppercase tracking-wider rounded"
+                      >
+                        View Details
+                      </button>
                       {userRole === 'Admin' && (
-                        <td className="px-6 py-5">
+                        <button
+                          onClick={() => handleDeleteReport(report)}
+                          disabled={isDeleting}
+                          className="px-3 py-1.5 bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider rounded"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Tablet / Laptop / Desktop Table View */}
+              <div className="hidden sm:block border border-slate-100 overflow-x-auto">
+                <table className="w-full border-collapse text-left min-w-[700px]">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100">
+                      {userRole === 'Admin' && (
+                        <th className="px-4 sm:px-6 py-4 w-10">
                           <button 
-                            onClick={() => toggleSelectReport(report)}
+                            onClick={toggleSelectAll}
                             className="text-slate-400 hover:text-[#102604] transition-colors"
                           >
-                            {selectedReportIds.has(`${report.type}-${report.id}`) ? (
+                            {selectedReportIds.size === filteredReports.length && filteredReports.length > 0 ? (
                               <CheckSquare size={16} className="text-[#102604]" />
                             ) : (
                               <Square size={16} />
                             )}
                           </button>
-                        </td>
+                        </th>
                       )}
-                      <td className="px-6 py-5 whitespace-nowrap">
-                        <p className="text-[11px] font-bold text-slate-900 tabular-nums">
-                          {new Date(report.dateReported).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </p>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          {report.profilePictureUrl ? (
-                            <img 
-                              src={getDriveImageUrl(report.profilePictureUrl)} 
-                              alt={report.studentName}
-                              className="w-8 h-8 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity border border-slate-200"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPreviewImage(getDriveImageUrl(report.profilePictureUrl));
-                              }}
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 bg-slate-100 flex items-center justify-center rounded-full shrink-0">
-                              <User size={14} className="text-slate-400" />
+                      <th className="px-4 sm:px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Date</th>
+                      <th className="px-4 sm:px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Student Identity</th>
+                      <th className="px-4 sm:px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Issue / Incident</th>
+                      <th className="px-4 sm:px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500 text-center">Type</th>
+                      <th className="px-4 sm:px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500 text-center">Status</th>
+                      <th className="px-4 sm:px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Reported By</th>
+                      <th className="px-4 sm:px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {filteredReports.map((report, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                        {userRole === 'Admin' && (
+                          <td className="px-4 sm:px-6 py-4">
+                            <button 
+                              onClick={() => toggleSelectReport(report)}
+                              className="text-slate-400 hover:text-[#102604] transition-colors"
+                            >
+                              {selectedReportIds.has(`${report.type}-${report.id}`) ? (
+                                <CheckSquare size={16} className="text-[#102604]" />
+                              ) : (
+                                <Square size={16} />
+                              )}
+                            </button>
+                          </td>
+                        )}
+                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                          <p className="text-[11px] font-bold text-slate-900 tabular-nums">
+                            {new Date(report.dateReported).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            {report.profilePictureUrl ? (
+                              <img 
+                                src={getDriveImageUrl(report.profilePictureUrl)} 
+                                alt={report.studentName}
+                                className="w-8 h-8 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity border border-slate-200"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPreviewImage(getDriveImageUrl(report.profilePictureUrl));
+                                }}
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 bg-slate-100 flex items-center justify-center rounded-full shrink-0">
+                                <User size={14} className="text-slate-400" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-[11px] font-bold text-[#102604] uppercase tracking-wider">{report.studentName}</p>
+                              <p className="text-[9px] font-medium text-slate-400 tabular-nums">LRN: {report.studentLrn}</p>
                             </div>
-                          )}
-                          <div>
-                            <p className="text-[11px] font-bold text-[#102604] uppercase tracking-wider">{report.studentName}</p>
-                            <p className="text-[9px] font-medium text-slate-400 tabular-nums">LRN: {report.studentLrn}</p>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <button
-                          onClick={() => {
-                            setSelectedReportForView(report);
-                            setRecommendationEdit(report.recommendation);
-                            setStatusEdit(report.recordStatus || 'On Going');
-                            setMovFile(null);
-                            setAdminComment("");
-                            setShowDetail(true);
-                          }}
-                          className="text-[11px] font-bold text-left text-[#102604] hover:text-[#76DA0D] transition-colors leading-snug underline underline-offset-4 decoration-slate-200"
-                        >
-                          {report.issue}
-                        </button>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
-                          report.type === 'Critical' 
-                            ? 'border-red-100 text-red-600 bg-red-50' 
-                            : 'border-blue-100 text-blue-600 bg-blue-50'
-                        }`}>
-                          {report.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
-                          report.recordStatus === 'RESOLVED' 
-                            ? 'border-[#76DA0D]/20 text-[#102604] bg-[#76DA0D]/10' 
-                            : report?.recordStatus === 'Pending Approval' ? 'border-blue-200 text-blue-700 bg-blue-50' : 'border-orange-100 text-orange-600 bg-orange-50'
-                        }`}>
-                          {report.recordStatus || 'On Going'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{report.reportedBy}</p>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button 
+                        </td>
+                        <td className="px-4 sm:px-6 py-4">
+                          <button
                             onClick={() => {
                               setSelectedReportForView(report);
                               setRecommendationEdit(report.recommendation);
@@ -1139,28 +1190,66 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                               setAdminComment("");
                               setShowDetail(true);
                             }}
-                            className="p-1 text-slate-400 hover:text-[#102604]"
-                            title="View Details"
+                            className="text-[11px] font-bold text-left text-[#102604] hover:text-[#76DA0D] transition-colors leading-snug underline underline-offset-4 decoration-slate-200"
                           >
-                            <ChevronRight size={18} />
+                            {report.issue}
                           </button>
-                          {userRole === 'Admin' && (
+                        </td>
+                        <td className="px-4 sm:px-6 py-4 text-center">
+                          <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
+                            report.type === 'Critical' 
+                              ? 'border-red-100 text-red-600 bg-red-50' 
+                              : 'border-blue-100 text-blue-600 bg-blue-50'
+                          }`}>
+                            {report.type}
+                          </span>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4 text-center">
+                          <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
+                            report.recordStatus === 'RESOLVED' 
+                              ? 'border-[#76DA0D]/20 text-[#102604] bg-[#76DA0D]/10' 
+                              : report?.recordStatus === 'Pending Approval' ? 'border-blue-200 text-blue-700 bg-blue-50' : 'border-orange-100 text-orange-600 bg-orange-50'
+                          }`}>
+                            {report.recordStatus || 'On Going'}
+                          </span>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4">
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{report.reportedBy}</p>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4">
+                          <div className="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             <button 
-                              onClick={() => handleDeleteReport(report)}
-                              disabled={isDeleting}
-                              className="p-1 text-slate-400 hover:text-red-600 transition-colors"
-                              title="Delete Report"
+                              onClick={() => {
+                                setSelectedReportForView(report);
+                                setRecommendationEdit(report.recommendation);
+                                setStatusEdit(report.recordStatus || 'On Going');
+                                setMovFile(null);
+                                setAdminComment("");
+                                setShowDetail(true);
+                              }}
+                              className="p-1 text-slate-400 hover:text-[#102604]"
+                              title="View Details"
                             >
-                              <Trash2 size={16} />
+                              <ChevronRight size={18} />
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                            {userRole === 'Admin' && (
+                              <button 
+                                onClick={() => handleDeleteReport(report)}
+                                disabled={isDeleting}
+                                className="p-1 text-slate-400 hover:text-red-600 transition-colors"
+                                title="Delete Report"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center py-20">
               <AlertCircle size={32} className="text-slate-200 mb-4" />
@@ -1170,13 +1259,13 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
           )}
         </div>
 
-        <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+        <div className="p-4 sm:p-8 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+          <p className="text-[9px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-slate-400 text-center sm:text-left">
             Archive synchronized in real-time with server registry
           </p>
           <button
             onClick={onClose}
-            className="px-8 py-3 text-[10px] font-black uppercase tracking-[0.3em] text-[#102604] border border-[#102604] hover:bg-[#102604] hover:text-white transition-all"
+            className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-[#102604] border border-[#102604] hover:bg-[#102604] hover:text-white transition-all"
           >
             Close Archive
           </button>

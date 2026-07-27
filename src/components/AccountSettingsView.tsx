@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { User, Phone, Building, Star, Lock, Eye, EyeOff, Save, X, Settings, Clock, ShieldAlert } from "lucide-react";
+import { User, Phone, Building, Star, Lock, Eye, EyeOff, Save, X, Settings, Clock, ShieldAlert, Bell } from "lucide-react";
 import { motion } from "motion/react";
 import { Department, Position, UserAccount } from "../types";
 import { useNotification } from "./NotificationProvider";
@@ -82,6 +82,107 @@ export default function AccountSettingsView({ user, onClose, onUpdateSuccess }: 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // PWA Push & Sync state
+  const [pushStatus, setPushStatus] = useState<string>("Checking...");
+  const [syncStatus, setSyncStatus] = useState<string>("Not Triggered");
+  const [periodicSyncStatus, setPeriodicSyncStatus] = useState<string>("Checking...");
+
+  React.useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then(async (reg) => {
+        setPushStatus(Notification.permission === "granted" ? "Subscribed & Enabled" : Notification.permission === "denied" ? "Permission Denied" : "Permission Not Requested");
+        
+        if ('periodicSync' in reg) {
+          try {
+            const tags = await (reg.periodicSync as any).getTags();
+            setPeriodicSyncStatus(tags.includes("periodic-care-update") ? "Active (Registered)" : "Supported (Not Registered)");
+          } catch (e) {
+            setPeriodicSyncStatus("Supported");
+          }
+        } else {
+          setPeriodicSyncStatus("Not Supported in Browser");
+        }
+      });
+    } else {
+      setPushStatus("Service Worker Unsupported");
+      setPeriodicSyncStatus("Unsupported");
+    }
+  }, []);
+
+  const handleRequestPush = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        setPushStatus("Subscribed & Enabled");
+        notify("success", "Push notification permission granted successfully!");
+        const reg = await navigator.serviceWorker.ready;
+        reg.showNotification("Project C.A.R.E. Push Enabled", {
+          body: "Push notifications are now active for Ramon Magsaysay High School Counseling alerts.",
+          icon: "/icon-192.png",
+          badge: "/icon-192.png"
+        });
+      } else {
+        setPushStatus("Permission Denied");
+        notify("warning", "Notification permission was denied.");
+      }
+    } catch (err) {
+      console.error(err);
+      notify("error", "Failed to request push notification permission.");
+    }
+  };
+
+  const handleTestNotification = async () => {
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      reg.active?.postMessage({
+        type: "TEST_NOTIFICATION",
+        title: "Project C.A.R.E. Test Alert",
+        body: "Test push notification delivered successfully via Service Worker!"
+      });
+      notify("info", "Test push notification dispatched to service worker.");
+    } else {
+      notify("error", "Service worker not available.");
+    }
+  };
+
+  const handleRegisterBackgroundSync = async () => {
+    if ("serviceWorker" in navigator && "SyncManager" in window) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        await (reg as any).sync.register("sync-care-reports");
+        setSyncStatus("Background Sync Registered");
+        notify("success", "Background sync 'sync-care-reports' registered successfully!");
+      } catch (err) {
+        console.error(err);
+        setSyncStatus("Registration Failed");
+        notify("error", "Background sync registration failed.");
+      }
+    } else {
+      setSyncStatus("Not Supported");
+      notify("warning", "Background Sync is not supported by this browser.");
+    }
+  };
+
+  const handleRegisterPeriodicSync = async () => {
+    if ("serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if ('periodicSync' in reg) {
+          await (reg.periodicSync as any).register("periodic-care-update", {
+            minInterval: 24 * 60 * 60 * 1000, // 1 day
+          });
+          setPeriodicSyncStatus("Active (Registered)");
+          notify("success", "Periodic Background Sync registered successfully!");
+        } else {
+          notify("warning", "Periodic Background Sync API not supported in this browser environment.");
+        }
+      } catch (err) {
+        console.error(err);
+        notify("error", "Failed to register periodic background sync.");
+      }
+    }
+  };
 
   const handleContactChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -374,6 +475,76 @@ export default function AccountSettingsView({ user, onClose, onUpdateSuccess }: 
                     disabled={isLoading}
                     className="editorial-input w-full"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* PWA Push Notifications, Background Sync & Periodic Sync Settings */}
+            <div className="space-y-4 pt-4 border-t border-slate-100">
+              <h4 className="text-[10px] font-bold uppercase text-slate-400 tracking-wider pb-1 border-b border-slate-100 flex items-center gap-1.5">
+                <Bell size={12} className="text-[#76DA0D]" />
+                <span>PWA Push Notifications & Background Sync</span>
+              </h4>
+
+              <div className="bg-slate-50 p-4 border border-slate-200 space-y-4">
+                {/* Push Notifications */}
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b border-slate-200/60">
+                  <div>
+                    <label className="text-xs font-bold text-slate-800 block mb-0.5">Push Notifications</label>
+                    <p className="text-[11px] text-slate-500 max-w-sm leading-relaxed">
+                      Status: <span className="font-semibold text-emerald-700">{pushStatus}</span>. Receive alerts for counseling records and student guidance updates.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 w-full md:w-auto">
+                    <button
+                      type="button"
+                      onClick={handleRequestPush}
+                      className="text-xs px-3 py-1.5 bg-[#102604] text-white font-medium hover:bg-[#102604]/90 transition-colors cursor-pointer"
+                    >
+                      Enable Push
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleTestNotification}
+                      className="text-xs px-3 py-1.5 bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition-colors cursor-pointer"
+                    >
+                      Test Push
+                    </button>
+                  </div>
+                </div>
+
+                {/* Background Sync */}
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b border-slate-200/60">
+                  <div>
+                    <label className="text-xs font-bold text-slate-800 block mb-0.5">Background Sync (SyncManager)</label>
+                    <p className="text-[11px] text-slate-500 max-w-sm leading-relaxed">
+                      Status: <span className="font-semibold text-emerald-700">{syncStatus}</span>. Automatically synchronize offline reports and logs when network connectivity is restored.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRegisterBackgroundSync}
+                    className="text-xs px-3 py-1.5 bg-[#76DA0D] text-[#102604] font-bold hover:bg-[#76DA0D]/90 transition-colors cursor-pointer w-full md:w-auto"
+                  >
+                    Register Sync
+                  </button>
+                </div>
+
+                {/* Periodic Background Sync */}
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-800 block mb-0.5">Periodic Background Sync</label>
+                    <p className="text-[11px] text-slate-500 max-w-sm leading-relaxed">
+                      Status: <span className="font-semibold text-emerald-700">{periodicSyncStatus}</span>. Periodically check for RMHS updates and sync guidance bulletins in the background.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRegisterPeriodicSync}
+                    className="text-xs px-3 py-1.5 bg-slate-800 text-white font-medium hover:bg-slate-900 transition-colors cursor-pointer w-full md:w-auto"
+                  >
+                    Register Periodic Sync
+                  </button>
                 </div>
               </div>
             </div>

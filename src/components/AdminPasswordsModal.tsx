@@ -66,21 +66,21 @@ export const AdminPasswordsModal: React.FC<Props> = ({ onClose, userEmail }) => 
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-[#102604]/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 bg-[#102604]/60 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-white w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
+        className="bg-white w-full max-w-md shadow-2xl flex flex-col max-h-[92vh] overflow-hidden rounded-none sm:rounded-xl"
       >
-        <div className="flex justify-between items-center p-6 border-b border-slate-100 shrink-0">
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-100 flex items-center justify-center rounded-full">
+            <div className="w-10 h-10 bg-slate-100 flex items-center justify-center rounded-full shrink-0">
               <Shield size={20} className="text-[#102604]" />
             </div>
             <div>
-              <h2 className="text-xl font-serif text-slate-900 leading-none">Admin Passwords</h2>
-              <p className="text-[11px] text-slate-500 mt-1 uppercase tracking-widest font-bold">Security Settings</p>
+              <h2 className="text-base sm:text-xl font-serif text-slate-900 leading-none">Admin Passwords</h2>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 uppercase tracking-widest font-bold">Security Settings</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
@@ -129,17 +129,17 @@ export const AdminPasswordsModal: React.FC<Props> = ({ onClose, userEmail }) => 
           )}
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0 flex justify-end gap-3">
+        <div className="p-4 sm:p-6 border-t border-slate-100 bg-slate-50 shrink-0 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 transition-colors"
+            className="w-full sm:w-auto px-6 py-2.5 text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving || loading}
-            className="flex items-center gap-2 px-6 py-2.5 bg-[#102604] hover:bg-[#1a3d06] text-white text-[11px] font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-[#102604] hover:bg-[#1a3d06] text-white text-[11px] font-bold uppercase tracking-widest transition-colors disabled:opacity-50"
           >
             <Save size={16} />
             <span>{saving ? 'Saving...' : 'Save Settings'}</span>

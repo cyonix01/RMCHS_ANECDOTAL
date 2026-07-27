@@ -111,18 +111,25 @@ const AdviserAssignmentModal: React.FC<AdviserAssignmentModalProps> = ({ onClose
   const availableSections = sections.filter(s => s.grade_level.trim().toLowerCase() === assignedGrade.trim().toLowerCase());
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#102604]/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-[#102604]/60 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white w-full max-w-5xl h-[80vh] shadow-2xl flex overflow-hidden border border-slate-200"
+        className="bg-white w-full max-w-5xl h-[92vh] md:h-[80vh] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-slate-200 rounded-none sm:rounded-xl"
       >
         {/* Left Panel: Personnel List */}
-        <div className="w-1/3 border-r border-slate-100 flex flex-col bg-slate-50/30">
-          <div className="p-6 border-b border-slate-100 bg-white">
-            <h3 className="serif text-xl text-slate-900">Personnel Registry</h3>
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">Select staff member to assign</p>
+        <div className={`w-full md:w-1/3 border-r border-slate-100 flex flex-col bg-slate-50/30 ${selectedUser ? 'hidden md:flex' : 'flex'}`}>
+          <div className="p-4 sm:p-6 border-b border-slate-100 bg-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="serif text-lg sm:text-xl text-slate-900">Personnel Registry</h3>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">Select staff member to assign</p>
+              </div>
+              <button onClick={onClose} className="md:hidden p-2 text-slate-400 hover:text-red-500 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
             
             <div className="relative mt-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
@@ -148,7 +155,7 @@ const AdviserAssignmentModal: React.FC<AdviserAssignmentModalProps> = ({ onClose
                   <button
                     key={u.email}
                     onClick={() => handleSelectUser(u)}
-                    className={`w-full text-left p-4 hover:bg-white transition-all group flex items-center gap-3 ${selectedUser?.email === u.email ? 'bg-white border-l-4 border-[#76DA0D]' : 'border-l-4 border-transparent'}`}
+                    className={`w-full text-left p-3 sm:p-4 hover:bg-white transition-all group flex items-center gap-3 ${selectedUser?.email === u.email ? 'bg-white border-l-4 border-[#76DA0D]' : 'border-l-4 border-transparent'}`}
                   >
                     <div className="w-10 h-10 bg-slate-100 flex items-center justify-center rounded-full shrink-0 group-hover:bg-[#76DA0D]/10 transition-colors">
                       <User size={18} className="text-slate-400 group-hover:text-[#102604]" />
@@ -182,23 +189,31 @@ const AdviserAssignmentModal: React.FC<AdviserAssignmentModalProps> = ({ onClose
         </div>
 
         {/* Right Panel: Assignment Form */}
-        <div className="flex-1 flex flex-col bg-white">
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+        <div className={`flex-1 flex flex-col bg-white overflow-y-auto ${!selectedUser ? 'hidden md:flex' : 'flex'}`}>
+          <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#76DA0D]/10 flex items-center justify-center rounded-full">
+              {selectedUser && (
+                <button
+                  onClick={() => setSelectedUser(null)}
+                  className="md:hidden mr-1 p-1.5 text-[#102604] bg-slate-100 hover:bg-slate-200 rounded text-[10px] font-bold uppercase tracking-wider"
+                >
+                  ← Back
+                </button>
+              )}
+              <div className="w-10 h-10 bg-[#76DA0D]/10 flex items-center justify-center rounded-full shrink-0">
                 <ShieldCheck size={20} className="text-[#102604]" />
               </div>
               <div>
-                <h3 className="serif text-xl text-slate-900">Assignment Control</h3>
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">Manage institutional roles and advisory units</p>
+                <h3 className="serif text-base sm:text-xl text-slate-900">Assignment Control</h3>
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-0.5">Manage roles & advisory units</p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+            <button onClick={onClose} className="hidden md:block p-2 text-slate-300 hover:text-red-500 transition-colors">
               <X size={24} />
             </button>
           </div>
 
-          <div className="flex-1 p-10 overflow-y-auto">
+          <div className="flex-1 p-4 sm:p-10 overflow-y-auto">
             {selectedUser ? (
               <div className="max-w-md space-y-10">
                 <div className="flex items-center gap-6">

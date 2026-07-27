@@ -88,22 +88,22 @@ export default function SignatorySettingsModal({ onClose }: SignatorySettingsMod
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/40 backdrop-blur-xs">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-xl bg-white border border-slate-200 shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-xl bg-white border border-slate-200 shadow-2xl relative overflow-hidden flex flex-col max-h-[92vh] rounded-none sm:rounded-xl"
       >
         {/* Top Accent Lines */}
-        <div className="h-1.5 w-full bg-[#102604] flex">
+        <div className="h-1.5 w-full bg-[#102604] flex shrink-0">
           <div className="w-1/3 bg-[#102604]" />
           <div className="w-1/3 bg-[#76DA0D]" />
           <div className="w-1/3 bg-[#102604]" />
         </div>
 
         {/* Modal Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-slate-200/50 text-[#102604]">
               <UserCheck size={18} />

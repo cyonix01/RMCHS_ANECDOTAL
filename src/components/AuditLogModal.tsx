@@ -314,42 +314,42 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_performed_by ON audit_logs(performed_b
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="relative w-full max-w-6xl max-h-[90vh] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden border border-slate-200"
+        className="relative w-full max-w-6xl max-h-[92vh] bg-white rounded-none sm:rounded-xl shadow-2xl flex flex-col overflow-hidden border border-slate-200"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#102604] text-white">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#76DA0D]/20 text-[#76DA0D] rounded-lg border border-[#76DA0D]/30">
-              <ShieldCheck size={22} />
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-[#102604] text-white shrink-0">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="p-2 bg-[#76DA0D]/20 text-[#76DA0D] rounded-lg border border-[#76DA0D]/30 shrink-0">
+              <ShieldCheck size={20} />
             </div>
-            <div>
-              <h2 className="text-base font-bold tracking-wide uppercase">Admin Audit Log System</h2>
-              <p className="text-xs text-slate-300">Comprehensive data integrity audit trail for all portal activities & user actions</p>
+            <div className="overflow-hidden">
+              <h2 className="text-xs sm:text-base font-bold tracking-wide uppercase truncate">Admin Audit Log System</h2>
+              <p className="text-[10px] sm:text-xs text-slate-300 truncate">Comprehensive data integrity audit trail for portal activities</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer shrink-0"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Controls Bar */}
-        <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div className="p-3 sm:p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
           {/* Search Box */}
-          <div className="relative flex-1 min-w-[280px]">
+          <div className="relative w-full sm:flex-1 sm:min-w-[280px]">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search teacher name, activity description, target, LRN, or IP..."
+              placeholder="Search teacher, activity, LRN, IP..."
               className="w-full pl-9 pr-16 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#102604] focus:border-transparent shadow-sm"
             />
             {searchQuery && (
@@ -363,12 +363,12 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_performed_by ON audit_logs(performed_b
           </div>
 
           {/* Action Filter */}
-          <div className="flex items-center gap-2">
-            <Filter size={14} className="text-slate-500" />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Filter size={14} className="text-slate-500 shrink-0" />
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="text-xs py-2 px-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#102604] cursor-pointer font-medium text-slate-700 max-w-[220px]"
+              className="text-xs py-2 px-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#102604] cursor-pointer font-medium text-slate-700 w-full sm:max-w-[220px]"
             >
               <option value="ALL">All Event Types ({logs.length})</option>
               <option value="USER_LOGIN">User Logins</option>
@@ -392,7 +392,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_performed_by ON audit_logs(performed_b
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               onClick={fetchLogs}
               disabled={loading}

@@ -183,30 +183,47 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#102604]/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-[#102604]/60 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-white w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] rounded-none sm:rounded-xl"
       >
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white">
+        <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
           <div className="flex items-center gap-3">
             <Layers size={20} className="text-blue-500" />
-            <h3 className="serif font-serif text-xl text-slate-900">Section Management</h3>
+            <h3 className="serif font-serif text-base sm:text-xl text-slate-900">Section Management</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+          <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar - Grade Levels */}
-          <div className="w-48 bg-slate-50 border-r border-slate-100 p-4 space-y-1">
+        {/* Mobile Grade Level Selector Strip */}
+        <div className="flex md:hidden overflow-x-auto gap-2 p-3 bg-slate-50 border-b border-slate-100 shrink-0 no-scrollbar">
+          {GRADE_LEVELS.map(grade => (
+            <button
+              key={`m-grade-${grade}`}
+              onClick={() => setSelectedGrade(grade)}
+              className={`px-3 py-1.5 whitespace-nowrap text-[10px] font-bold uppercase tracking-wider transition-all ${
+                selectedGrade === grade 
+                ? 'bg-blue-500 text-white shadow-sm' 
+                : 'bg-white text-slate-600 border border-slate-200'
+              }`}
+            >
+              {grade}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
+          {/* Desktop Sidebar - Grade Levels */}
+          <div className="hidden md:block w-48 bg-slate-50 border-r border-slate-100 p-4 space-y-1 shrink-0 overflow-y-auto">
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 px-2">Grade Levels</p>
             {GRADE_LEVELS.map(grade => (
               <button
-                key={grade}
+                key={`d-grade-${grade}`}
                 onClick={() => setSelectedGrade(grade)}
                 className={`w-full text-left px-3 py-2 text-[11px] font-bold uppercase tracking-wider transition-all ${
                   selectedGrade === grade 
@@ -220,8 +237,8 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
           </div>
 
           {/* Main Content - Section List */}
-          <div className="flex-1 p-6 overflow-y-auto bg-white flex flex-col">
-            <div className="flex items-center justify-between mb-6">
+          <div className="flex-1 p-4 sm:p-6 overflow-y-auto bg-white flex flex-col">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4 sm:mb-6">
               <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">
                 {selectedGrade} Sections
               </h4>
@@ -229,10 +246,10 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
                 {selectedSections.length > 0 && (
                   <button
                     onClick={handleDeleteSelected}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-red-600 transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-red-600 transition-colors"
                   >
-                    <Trash2 size={14} />
-                    <span>Delete {selectedSections.length} Selected</span>
+                    <Trash2 size={13} />
+                    <span>Delete ({selectedSections.length})</span>
                   </button>
                 )}
                 <button
@@ -242,7 +259,7 @@ const SectionManagerModal: React.FC<SectionManagerModalProps> = ({ onClose }) =>
                     setNewName("");
                     setError(null);
                   }}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-[#102604] text-white text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#102604] text-white text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-colors"
                 >
                   <Plus size={14} />
                   <span>Add Section</span>

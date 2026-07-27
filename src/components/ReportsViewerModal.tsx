@@ -1023,7 +1023,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
               {/* Mobile Portrait Card View */}
               <div className="block sm:hidden space-y-3">
                 {filteredReports.map((report, idx) => (
-                  <div key={idx} className="bg-slate-50 border border-slate-200 p-4 rounded-lg space-y-3">
+                  <div key={`mob-${report.type}-${report.id}-${idx}`} className="bg-slate-50 border border-slate-200 p-4 rounded-lg space-y-3">
                     <div className="flex items-center justify-between">
                       <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border ${
                         report.type === 'Critical' ? 'border-red-100 text-red-600 bg-red-50' : 'border-blue-100 text-blue-600 bg-blue-50'
@@ -1136,7 +1136,7 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {filteredReports.map((report, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                      <tr key={`tbl-${report.type}-${report.id}-${idx}`} className="hover:bg-slate-50/50 transition-colors group">
                         {userRole === 'Admin' && (
                           <td className="px-4 sm:px-6 py-4">
                             <button 

@@ -152,19 +152,16 @@ export default function App() {
 
   return (
     <NotificationProvider>
-      <motion.div 
+      <div 
         id="landing-layout" 
         className="min-h-screen bg-[#FFFFFF] text-[#102604] font-sans flex flex-col md:flex-row relative overflow-x-hidden selection:bg-[#76DA0D]/20"
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
       >
       
       {/* LEFT COLUMN: Deep Editorial Slate Header Area ({1/3} Width on modern layout) */}
-      <motion.div variants={itemVariants} className="w-full md:w-1/3 bg-[#102604] p-8 md:p-12 lg:p-16 flex flex-col justify-between text-white relative shrink-0">
+      <div className="w-full md:w-1/3 bg-[#102604] p-8 md:p-12 lg:p-16 flex flex-col justify-between text-white relative shrink-0">
         <div className="space-y-8 mt-4 md:mt-12">
           {/* Logo element for RMCHS */}
-          <motion.div variants={itemVariants} className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
             <img 
               src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Ramon_Magsaysay_%28Cubao%29_High_School.svg/500px-Ramon_Magsaysay_%28Cubao%29_High_School.svg.png" 
               alt="RMCHS logo" 
@@ -175,12 +172,12 @@ export default function App() {
               <p className="font-serif text-lg leading-tight font-bold text-white">RMCHS</p>
               <p className="text-[9px] uppercase tracking-widest text-[#76DA0D] font-mono font-bold">Project C.A.R.E.</p>
             </div>
-          </motion.div>
+          </div>
           
           {/* Decorative hairline */}
-          <motion.div variants={itemVariants} className="w-12 h-[1px] bg-white opacity-20"></motion.div>
+          <div className="w-12 h-[1px] bg-white opacity-20"></div>
           
-          <motion.div variants={itemVariants} className="space-y-4">
+          <div className="space-y-4">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 border border-white/20 rounded-full text-white font-semibold text-[10px] tracking-wider uppercase font-sans">
               <GraduationCap size={13} className="text-[#76DA0D]" />
               <span>Institutional Core v2.0</span>
@@ -189,16 +186,16 @@ export default function App() {
               Project<br />
               <span className="italic block mt-1 font-bold">C.A.R.E.</span>
             </h1>
-          </motion.div>
+          </div>
           
-          <motion.div variants={itemVariants}>
+          <div>
             <p className="text-white/80 text-xs md:text-sm leading-relaxed max-w-[240px] font-sans font-medium">
               Counseling & Academic Records Engagement. A secure administrative platform for managing professional profiles and facilitating institutional student support.
             </p>
-          </motion.div>
+          </div>
         </div>
         <div className="space-y-6 mt-8 md:mt-0">
-          <motion.div variants={itemVariants} className="pt-4 border-t border-white/20 flex items-center justify-between">
+          <div className="pt-4 border-t border-white/20 flex items-center justify-between">
             <div>
               <span className="font-serif serif italic text-2xl tracking-tighter text-[#76DA0D] font-bold">2026</span>
               <span className="block text-[9px] uppercase tracking-widest text-white/60 font-bold">Academic Year</span>
@@ -207,12 +204,12 @@ export default function App() {
               <span className="text-[9px] uppercase tracking-widest text-white/50 font-mono font-bold block">District 58</span>
               <span className="text-[9px] uppercase tracking-widest text-[#76DA0D] font-mono font-bold block">Node Live</span>
             </div>
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* RIGHT COLUMN: Interactive Registration / Login Form Stage ({2/3} Width on modern layout) */}
-      <motion.div variants={itemVariants} className="w-full md:w-2/3 p-6 md:p-12 lg:p-16 flex flex-col justify-between bg-[#FFFFFF] min-h-screen">
+      <div className="w-full md:w-2/3 p-6 md:p-12 lg:p-16 flex flex-col justify-between bg-[#FFFFFF] min-h-screen">
         
         {/* Flex container wrapper for centering */}
         <div className="flex-1 flex flex-col justify-center max-w-xl w-full mx-auto py-8">
@@ -260,13 +257,13 @@ export default function App() {
         </div>
 
         {/* Footer credits bar compliant with Editorial Design blueprint */}
-        <motion.div variants={itemVariants} className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between text-[10px] text-slate-400 uppercase tracking-widest font-mono gap-2 shrink-0">
+        <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between text-[10px] text-slate-400 uppercase tracking-widest font-mono gap-2 shrink-0">
           <div>Internal Systems Security • SHA-256 Encrypted</div>
           <div>v2.0.4-Stable</div>
-        </motion.div>
+        </div>
 
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
     </NotificationProvider>
   );
 }

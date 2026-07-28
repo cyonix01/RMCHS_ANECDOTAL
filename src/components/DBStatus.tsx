@@ -28,6 +28,14 @@ export default function DBStatus() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);
+  const isMountedRef = React.useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Supabase Storage Diagnostics states
   const [storageDiagnostic, setStorageDiagnostic] = useState<{
@@ -37,11 +45,14 @@ export default function DBStatus() {
   } | null>(null);
 
   const runStorageDiagnostics = async () => {
+    if (!isMountedRef.current) return;
     setStorageDiagnostic({ running: true, result: null, error: null });
     try {
       const res = await fetch("/api/diagnose-storage");
+      if (!isMountedRef.current) return;
       if (res.ok) {
         const data = await res.json();
+        if (!isMountedRef.current) return;
         if (data.success) {
           setStorageDiagnostic({ running: false, result: data, error: null });
         } else {
@@ -51,23 +62,29 @@ export default function DBStatus() {
         throw new Error(`HTTP Error ${res.status}`);
       }
     } catch (err: any) {
-      setStorageDiagnostic({
-        running: false,
-        result: null,
-        error: { message: err.message || "Unknown error occurred" }
-      });
+      if (isMountedRef.current) {
+        setStorageDiagnostic({
+          running: false,
+          result: null,
+          error: { message: err.message || "Unknown error occurred" }
+        });
+      }
     }
   };
 
   const fetchStatus = async () => {
+    if (!isMountedRef.current) return;
     try {
       const res = await fetch("/api/db-status");
+      if (!isMountedRef.current) return;
       if (res.ok) {
         const data = await res.json();
-        setStatus(data);
-        if (!isEditingSupabase) {
-          setSupabaseUrl(data.supabaseUrl || "");
-          setSupabaseAnonKey(data.supabaseAnonKey || "");
+        if (isMountedRef.current) {
+          setStatus(data);
+          if (!isEditingSupabase) {
+            setSupabaseUrl(data.supabaseUrl || "");
+            setSupabaseAnonKey(data.supabaseAnonKey || "");
+          }
         }
       }
     } catch (err) {

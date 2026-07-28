@@ -34,6 +34,14 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const isMountedRef = React.useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const triggerPhotoUpload = (e: React.MouseEvent, student: Student) => {
     e.stopPropagation();
@@ -57,6 +65,7 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
     try {
       const reader = new FileReader();
       reader.onload = async (event) => {
+        if (!isMountedRef.current) return;
         const base64 = (event.target?.result as string).split(',')[1];
         const userEmail = user?.email || JSON.parse(localStorage.getItem("teacher_portal_user") || "{}")?.email || "";
         const res = await fetch(`/api/students/${activeStudentForPhoto.lrn}/photo`, {
@@ -75,6 +84,8 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
           })
         });
 
+        if (!isMountedRef.current) return;
+
         if (!res.ok) {
           const errData = await res.json();
           throw new Error(errData.error || "Failed to update profile picture");
@@ -83,30 +94,40 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
         const data = await res.json();
         const newPhotoUrl = data.url;
 
-        setStudents(prev => prev.map(s => s.lrn === activeStudentForPhoto.lrn ? { ...s, profilePictureUrl: newPhotoUrl } : s));
-        if (selectedStudent && selectedStudent.lrn === activeStudentForPhoto.lrn) {
-          setSelectedStudent(prev => prev ? { ...prev, profilePictureUrl: newPhotoUrl } : null);
-        }
+        if (isMountedRef.current) {
+          setStudents(prev => prev.map(s => s.lrn === activeStudentForPhoto.lrn ? { ...s, profilePictureUrl: newPhotoUrl } : s));
+          if (selectedStudent && selectedStudent.lrn === activeStudentForPhoto.lrn) {
+            setSelectedStudent(prev => prev ? { ...prev, profilePictureUrl: newPhotoUrl } : null);
+          }
 
-        setToastMessage(`Profile picture updated for ${activeStudentForPhoto.firstName} ${activeStudentForPhoto.lastName}!`);
-        setTimeout(() => setToastMessage(null), 4000);
+          setToastMessage(`Profile picture updated for ${activeStudentForPhoto.firstName} ${activeStudentForPhoto.lastName}!`);
+          setTimeout(() => {
+            if (isMountedRef.current) setToastMessage(null);
+          }, 4000);
+        }
       };
       reader.readAsDataURL(file);
     } catch (err: any) {
       console.error("Photo upload error:", err);
-      alert(`Photo upload failed: ${err.message}`);
+      if (isMountedRef.current) {
+        alert(`Photo upload failed: ${err.message}`);
+      }
     } finally {
-      setIsUploadingPhoto(false);
-      setActiveStudentForPhoto(null);
+      if (isMountedRef.current) {
+        setIsUploadingPhoto(false);
+        setActiveStudentForPhoto(null);
+      }
     }
   };
 
   const fetchData = React.useCallback(() => {
+    if (!isMountedRef.current) return;
     Promise.all([
       fetch("/api/students").then(res => { if (!res.ok) throw new Error("Failed to fetch students"); return res.json(); }),
       fetch("/api/reports").then(res => { if (!res.ok) throw new Error("Failed to fetch reports"); return res.json(); }),
       fetch("/api/critical-reports").then(res => { if (!res.ok) throw new Error("Failed to fetch critical reports"); return res.json(); })
     ]).then(([allStudents, allReports, allCritReports]) => {
+      if (!isMountedRef.current) return;
       if (allStudents.error || allReports.error || allCritReports.error) {
         throw new Error("API returned an error");
       }
@@ -114,14 +135,17 @@ export default function StudentListDashboard({ user: propsUser }: StudentListDas
       const filteredStudents = allStudents.filter((s: Student) => s.gradeLevel === user.gradeLevel && s.section === user.section);
       const studentLrnSet = new Set(filteredStudents.map((s: Student) => s.lrn));
 
-      setStudents(filteredStudents.sort((a: Student, b: Student) => a.lastName.localeCompare(b.lastName)));
-      setReports(allReports.filter((r: Report) => studentLrnSet.has(r.studentLrn)));
-      setCriticalReports(allCritReports.filter((r: CriticalReport) => studentLrnSet.has(r.studentLrn)));
-      
-      setLoading(false);
+      if (isMountedRef.current) {
+        setStudents(filteredStudents.sort((a: Student, b: Student) => a.lastName.localeCompare(b.lastName)));
+        setReports(allReports.filter((r: Report) => studentLrnSet.has(r.studentLrn)));
+        setCriticalReports(allCritReports.filter((r: CriticalReport) => studentLrnSet.has(r.studentLrn)));
+        setLoading(false);
+      }
     }).catch(err => {
       console.error(err);
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     });
   }, [user.gradeLevel, user.section]);
 

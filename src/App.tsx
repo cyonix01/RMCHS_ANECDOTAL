@@ -40,6 +40,12 @@ export default function App() {
   // Initialize auth state from local storage on browser render
   useEffect(() => {
     try {
+      const logoutReason = localStorage.getItem("teacher_portal_logout_reason");
+      if (logoutReason) {
+        setSessionNotice(logoutReason);
+        localStorage.removeItem("teacher_portal_logout_reason");
+      }
+
       const cached = localStorage.getItem("teacher_portal_user");
       const lastActivity = localStorage.getItem("teacher_portal_last_activity");
       const savedTimeout = localStorage.getItem("teacher_portal_session_timeout");
@@ -87,13 +93,12 @@ export default function App() {
   };
 
   const handleLogout = useCallback((reason?: string) => {
-    setCurrentUser(null);
     localStorage.removeItem("teacher_portal_user");
     localStorage.removeItem("teacher_portal_last_activity");
-    setViewState("login");
     if (reason) {
-      setSessionNotice(reason);
+      localStorage.setItem("teacher_portal_logout_reason", reason);
     }
+    window.location.reload();
   }, []);
 
   const handleUpdateUser = (freshUser: Partial<UserAccount>) => {
@@ -223,10 +228,10 @@ export default function App() {
             {viewState === "login" && (
               <motion.div
                 key="view-login"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, x: -28, filter: "blur(3px)" }}
+                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, x: 28, filter: "blur(3px)" }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                 className="w-full"
               >
                 <LoginView
@@ -240,10 +245,10 @@ export default function App() {
             {viewState === "register" && (
               <motion.div
                 key="view-register"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, x: 28, filter: "blur(3px)" }}
+                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, x: -28, filter: "blur(3px)" }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
                 className="w-full"
               >
                 <RegisterView

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Search, Calendar, FileText, Download, Filter, User, ChevronRight, AlertCircle, ShieldAlert, Clock, Trash2, CheckSquare, Square, Paperclip, ExternalLink, CheckCircle, XCircle } from "lucide-react";
 import Swal from "sweetalert2";
@@ -140,8 +140,17 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
   const [selectedReportIds, setSelectedReportIds] = useState<Set<string | number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSavingRec, setIsSavingRec] = useState(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const fetchAllData = React.useCallback(async () => {
+    if (!isMountedRef.current) return;
     try {
       const [genRes, critRes, studentRes] = await Promise.all([
         fetch("/api/reports"),
@@ -149,10 +158,14 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
         fetch("/api/students")
       ]);
 
+      if (!isMountedRef.current) return;
+
       if (genRes.ok && critRes.ok && studentRes.ok) {
         const genData: Report[] = await genRes.json();
         const critData: CriticalReport[] = await critRes.json();
         const students: any[] = await studentRes.json();
+
+        if (!isMountedRef.current) return;
 
         const studentMap = new Map(students.map(s => [s.lrn, { name: `${s.firstName} ${s.lastName}`, grade: s.gradeLevel, section: s.section, profilePictureUrl: s.profilePictureUrl }]));
 
@@ -223,14 +236,22 @@ const ReportsViewerModal: React.FC<ReportsViewerModalProps> = ({
           if (valA !== valB) return valB - valA;
           return String(b.id).localeCompare(String(a.id));
         });
-        setReports(filteredCombined);
+        if (isMountedRef.current) {
+          setReports(filteredCombined);
+        }
       } else {
-        notify("error", "Failed to retrieve institutional records.");
+        if (isMountedRef.current) {
+          notify("error", "Failed to retrieve institutional records.");
+        }
       }
     } catch (err) {
-      notify("error", "Network error while accessing database.");
+      if (isMountedRef.current) {
+        notify("error", "Network error while accessing database.");
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [userFirstName, userLastName, userRole, userGradeLevel, userSection, notify]);
 

@@ -128,6 +128,14 @@ interface DashboardViewProps {
 }
 
 export default function DashboardView({ user: propsUser, onLogout, onUpdateUser }: DashboardViewProps) {
+  const isMountedRef = React.useRef(true);
+  React.useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const user = React.useMemo(() => ({
     ...propsUser,
     firstName: propsUser.firstName || "User",
@@ -250,12 +258,15 @@ export default function DashboardView({ user: propsUser, onLogout, onUpdateUser 
   };
 
   const fetchData = React.useCallback(async () => {
+    if (!isMountedRef.current) return;
     try {
       const [reports, criticalReports, students] = await Promise.all([
         fetch("/api/reports").then(res => { if (!res.ok) throw new Error("reports"); return res.json(); }),
         fetch("/api/critical-reports").then(res => { if (!res.ok) throw new Error("critical-reports"); return res.json(); }),
         fetch("/api/students").then(res => { if (!res.ok) throw new Error("students"); return res.json(); })
       ]);
+      
+      if (!isMountedRef.current) return;
       
       if (reports.error) throw new Error(reports.error);
       if (criticalReports.error) throw new Error(criticalReports.error);

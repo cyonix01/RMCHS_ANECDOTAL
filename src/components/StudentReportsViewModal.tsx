@@ -89,6 +89,14 @@ export default function StudentReportsViewModal({ student, onClose, userRole, on
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const currentUser = React.useMemo(() => {
     try {
@@ -153,10 +161,12 @@ export default function StudentReportsViewModal({ student, onClose, userRole, on
   };
 
   const fetchReports = React.useCallback(() => {
+    if (!isMountedRef.current) return;
     Promise.all([
       fetch("/api/reports").then(res => { if (!res.ok) throw new Error("reports"); return res.json(); }),
       fetch("/api/critical-reports").then(res => { if (!res.ok) throw new Error("critical-reports"); return res.json(); })
     ]).then(([genReports, critReports]) => {
+      if (!isMountedRef.current) return;
       if (genReports.error || critReports.error) throw new Error("API error");
       
       const filteredGen = genReports
@@ -167,12 +177,16 @@ export default function StudentReportsViewModal({ student, onClose, userRole, on
         .filter((r: CriticalReport) => r.studentLrn === student.lrn)
         .sort((a: any, b: any) => getReportSortValue(b) - getReportSortValue(a));
 
-      setGeneralReports(filteredGen);
-      setCriticalReports(filteredCrit);
-      setLoading(false);
+      if (isMountedRef.current) {
+        setGeneralReports(filteredGen);
+        setCriticalReports(filteredCrit);
+        setLoading(false);
+      }
     }).catch(err => {
       console.error(err);
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     });
   }, [student.lrn]);
 

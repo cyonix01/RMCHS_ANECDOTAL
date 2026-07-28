@@ -19,13 +19,23 @@ const [loading, setLoading] = useState(true);
   const [studentGradeFilter, setStudentGradeFilter] = useState<string>('All');
   const [reportTypeFilter, setReportTypeFilter] = useState<'All' | 'General' | 'Critical' | 'CICL'>('All');
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const isMountedRef = React.useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const fetchData = (showLoading = true) => {
+    if (!isMountedRef.current) return;
     Promise.all([
       fetch("/api/reports").then(res => res.json()),
       fetch("/api/critical-reports").then(res => res.json()),
       fetch("/api/students").then(res => res.json())
     ]).then(([reportsData, criticalData, studentsData]) => {
+      if (!isMountedRef.current) return;
       let filteredGeneral = reportsData || [];
       let filteredCritical = criticalData || [];
       
@@ -53,17 +63,19 @@ const [loading, setLoading] = useState(true);
         }
       }
 
-      setReports(filteredGeneral);
-      setCriticalReports(filteredCritical);
-      setStudents(studentsData || []);
-      if (showLoading) setLoading(false);
+      if (isMountedRef.current) {
+        setReports(filteredGeneral);
+        setCriticalReports(filteredCritical);
+        setStudents(studentsData || []);
+        if (showLoading) setLoading(false);
+      }
     }).catch(err => {
       if (err instanceof Error && err.message === "Failed to fetch") {
-        if (showLoading) setLoading(false);
+        if (isMountedRef.current && showLoading) setLoading(false);
         return; // Silent on network error during polling
       }
       console.error("Analytics fetch error:", err);
-      if (showLoading) setLoading(false);
+      if (isMountedRef.current && showLoading) setLoading(false);
     });
   };
 

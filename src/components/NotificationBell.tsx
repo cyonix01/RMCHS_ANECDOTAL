@@ -15,14 +15,26 @@ export default function NotificationBell({ user, onSelectNotification }: Notific
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Poll intervals
   const fetchNotifications = async () => {
+    if (!isMountedRef.current) return;
     try {
       const res = await fetch("/api/notifications");
+      if (!isMountedRef.current) return;
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data);
+        if (isMountedRef.current) {
+          setNotifications(data);
+        }
       }
     } catch (err) {
       // Silent fail for polling network errors
